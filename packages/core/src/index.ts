@@ -7,3 +7,19 @@ export const MARU_PRODUCT = {
   name: "MaruCheck",
   positioning: "Test what your AI didn't.",
 } as const;
+
+export { defaultDoctorEnvironment, diagnoseProject } from "./project/doctor.js";
+export { ProjectError } from "./project/errors.js";
+export { initializeProject } from "./project/initialize.js";
+export { scanProject, writeProjectScan } from "./project/scanner.js";
+export { detectStack } from "./project/stack-detector.js";
+export type {
+  DetectedStack,
+  DoctorCheck,
+  DoctorEnvironment,
+  DoctorReport,
+  InitializationResult,
+  ProjectRoute,
+  ProjectScan,
+  ProjectTestFile,
+} from "./project/types.js";

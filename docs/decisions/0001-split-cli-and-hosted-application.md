@@ -49,5 +49,5 @@ The original plan proposed one pnpm/Turborepo monorepo containing the CLI, core 
 
 ## References
 
-- `MaruCheck_master_build_plan.md`
+- Workspace source of truth: `../MaruCheck_master_build_plan.md` in the local parent directory
 - `docs/architecture/repository-boundaries.md`

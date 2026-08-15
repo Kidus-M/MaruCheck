@@ -14,6 +14,20 @@ npm run check
 npm run maru -- --help
 ```
 
+During local development, build the CLI and invoke it from the project you want to inspect:
+
+```bash
+# In maru-cli
+npm run build
+
+# In a Next.js/React project
+node ../maru-cli/packages/cli/dist/index.js init
+node ../maru-cli/packages/cli/dist/index.js scan
+node ../maru-cli/packages/cli/dist/index.js doctor
+```
+
+The published developer experience will use `npx maru <command>`.
+
 ## Commands
 
 | Command                  | Description                  |
@@ -25,6 +39,14 @@ npm run maru -- --help
 | `npm test`               | Run Vitest tests             |
 | `npm run check`          | Run every local quality gate |
 | `npm run maru -- --help` | Exercise the local CLI build |
+
+### Project commands
+
+| Command       | Description                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| `maru init`   | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`   | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor` | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
 
 ## Repository structure
 
@@ -42,7 +64,14 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phase 0 establishes package boundaries and quality gates. Phase 1 will implement `maru init`, `maru scan`, and `maru doctor` end to end.
+Phases 0 and 1 are implemented. The local CLI currently supports Next.js/React repositories using JavaScript or TypeScript, npm/pnpm/yarn/bun detection, Playwright/Vitest/Jest discovery, common database-library discovery, GitHub Actions inventory, App Router and Pages Router route discovery, and typed diagnostic output.
+
+Known Phase 1 limitations:
+
+- route discovery follows common Next.js filesystem conventions and does not interpret custom runtime routing;
+- doctor validates declared tooling and executables but does not install browser binaries;
+- MCP and GitHub Actions configuration generation remain in their later planned phases;
+- no cloud account or AI provider is used or required.
 
 ## Contributing
 
