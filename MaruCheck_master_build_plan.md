@@ -4080,3 +4080,55 @@ Do not weaken verification to obtain green results.
 Do not silently change product intent.
 
 **The coding agent builds. ProofLayer proves.**
+## Project Naming Update
+
+The project previously referred to as **ProofLayer** is now officially named **MaruCheck**.
+
+From this point forward, all references to `ProofLayer`, `prooflayer`, and related naming throughout this specification should be interpreted and implemented as **MaruCheck**.
+
+Use the following naming conventions:
+
+```text
+Product / Platform: MaruCheck
+CLI command: maru
+Configuration directory: .maru/
+Primary configuration: .maru/maru.yml
+Environment variable prefix: MARU_
+Package / internal namespace: @maru/*
+```
+
+For example:
+
+```bash
+# Old
+npx prooflayer init
+prooflayer verify --diff
+prooflayer risk --diff
+
+# New
+npx maru init
+maru verify --diff
+maru risk --diff
+```
+
+The core product positioning is:
+
+> **MaruCheck — Test what your AI didn't.**
+
+MaruCheck is the **independent QA and verification layer for AI-generated software**. Coding agents build the implementation; MaruCheck independently verifies that the resulting software still satisfies its intended product behavior.
+
+The name is inspired by the concept of the **Kobayashi Maru**: testing a system under difficult and unexpected conditions rather than merely checking the happy path.
+
+All future code, documentation, CLI commands, UI copy, package names, APIs, configuration examples, and architectural references should use **MaruCheck / Maru** terminology instead of ProofLayer.
+
+One small naming choice I particularly recommend: keep MaruCheck for the company/product, but use simply maru everywhere developers interact with it.
+
+So the experience becomes:
+
+maru init
+maru scan
+maru contract create
+maru risk --diff
+maru plan --diff
+maru verify --diff
+maru verify --release
