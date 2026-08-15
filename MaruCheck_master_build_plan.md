@@ -341,6 +341,8 @@ Later adapter support:
 
 # 6. Recommended Technical Architecture
 
+> **Accepted implementation override (2026-08-15):** MaruCheck uses sibling repositories under one local workspace. The existing repository owns the local CLI, core, contracts, Git, and MCP packages via npm workspaces. The Next.js full-stack hosted application lives in a separate `maru-web` repository. The monorepo layout below remains a conceptual component map, not the Git repository layout. See `docs/decisions/0001-split-cli-and-hosted-application.md`.
+
 Use a TypeScript-first monorepo.
 
 Recommended monorepo tooling:
@@ -2851,6 +2853,8 @@ Do not implement artificial feature gates before the product proves value.
 ---
 
 # 66. Phase 0 — Repository Foundation
+
+> **Repository scope:** In this repository, Phase 0 applies to the CLI and local verification packages. The web dashboard and hosted API are maintained in the sibling `maru-web` repository. npm workspaces replace pnpm/Turborepo for this repository per ADR-001.
 
 Goal:
 Create a clean, maintainable monorepo.

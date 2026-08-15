@@ -1,0 +1,35 @@
+{
+  "name": "marucheck-cli-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first independent verification tooling for MaruCheck",
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "npm": ">=11"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "clean": "tsc -b --clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "maru": "node packages/cli/dist/index.js",
+    "test": "vitest run --configLoader native --pool=threads",
+    "test:watch": "vitest --configLoader native --pool=threads",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.8.1",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  }
+}

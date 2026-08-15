@@ -1,0 +1,5 @@
+MaruCheck_master_build_plan.md
+node_modules/
+dist/
+coverage/
+package-lock.json
