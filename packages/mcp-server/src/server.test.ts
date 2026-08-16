@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes seven namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes eight namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -75,6 +75,7 @@ describe("MaruCheck MCP server", () => {
       "maru_validate_contract",
       "maru_analyze_diff",
       "maru_assess_risk",
+      "maru_create_verification_plan",
     ]);
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
@@ -83,6 +84,13 @@ describe("MaruCheck MCP server", () => {
     }
     expect(
       MARU_MCP_TOOLS.find((tool) => tool.name === "maru_create_contract")?.annotations,
+    ).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      readOnlyHint: false,
+    });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_create_verification_plan")?.annotations,
     ).toMatchObject({
       destructiveHint: false,
       idempotentHint: false,
@@ -212,6 +220,40 @@ describe("MaruCheck MCP server", () => {
       },
     });
     expect(assessRisk).toHaveBeenCalledWith(root);
+  });
+
+  it("creates a persisted, requirement-linked verification plan", async () => {
+    const createVerificationPlan = vi.fn().mockResolvedValue({
+      path: ".maru/generated/verification-plan.json",
+      plan: {
+        risk: { level: "high", score: 70 },
+        schemaVersion: 1,
+        selectedRequirements: [{ contractId: "web-foundation", id: "WEB-001" }],
+        steps: [{ adapter: "vitest", category: "unit" }],
+      },
+    });
+
+    const result = await callMaruTool(
+      "maru_create_verification_plan",
+      {},
+      { root, createVerificationPlan, now: () => new Date("2026-08-16T12:00:00.000Z") },
+    );
+
+    expect(result).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        path: ".maru/generated/verification-plan.json",
+        plan: {
+          selectedRequirements: [{ contractId: "web-foundation", id: "WEB-001" }],
+          steps: [{ adapter: "vitest", category: "unit" }],
+        },
+      },
+    });
+    expect(createVerificationPlan).toHaveBeenCalledWith(
+      root,
+      new Date("2026-08-16T12:00:00.000Z"),
+    );
   });
 
   it("enforces initialization before listing or calling tools", async () => {

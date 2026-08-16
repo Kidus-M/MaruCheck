@@ -177,4 +177,71 @@ describe("maru CLI", () => {
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("contract-regression"));
     expect(output.error).not.toHaveBeenCalled();
   });
+
+  it("writes and summarizes an inspectable verification plan for the current diff", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const verificationPlan = vi.fn().mockResolvedValue({
+      path: ".maru/generated/verification-plan.json",
+      plan: {
+        affectedTests: [
+          {
+            framework: "vitest",
+            matchedTerms: ["subscription"],
+            path: "tests/subscription.test.ts",
+            requirementRefs: ["subscription-management#SUB-001"],
+          },
+        ],
+        changeSummary: { additions: 4, changedFiles: 1, deletions: 1 },
+        generatedAt: "2026-08-16T12:00:00.000Z",
+        project: { name: "cli-fixture", testFrameworks: ["vitest"] },
+        risk: { level: "high", score: 72 },
+        schemaVersion: 1,
+        scope: "working-tree",
+        selectedRequirements: [
+          {
+            blocking: true,
+            contractId: "subscription-management",
+            contractTitle: "Subscription Management",
+            id: "SUB-001",
+            kind: "requirement",
+            priority: "required",
+            reasons: ["Matched diff terms."],
+            statement: "Subscription changes require a verified webhook.",
+          },
+        ],
+        steps: [
+          {
+            adapter: "vitest",
+            blocking: true,
+            category: "unit",
+            execution: "automated",
+            id: "step-01-unit",
+            reasons: ["High risk.", "Vitest detected."],
+            requirementRefs: ["subscription-management#SUB-001"],
+            testFiles: ["tests/subscription.test.ts"],
+          },
+        ],
+        summary: {
+          affectedTests: 1,
+          automatedSteps: 1,
+          manualSteps: 0,
+          selectedRequirements: 1,
+          unavailableSteps: 0,
+        },
+        uncoveredRequirements: [],
+      },
+    });
+
+    await expect(
+      runCli(["plan", "--diff"], output, { cwd: root, verificationPlan }),
+    ).resolves.toBe(0);
+
+    expect(verificationPlan).toHaveBeenCalledWith(root, expect.any(Date));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification plan written"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Risk: HIGH (72/100)"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Requirements: 1"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Affected tests: 1"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
 });
