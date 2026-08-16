@@ -1,0 +1,49 @@
+version: 1
+id: subscription-management
+title: Subscription Management
+status: draft
+criticality: high
+intent: Free users receive a monthly quota, Pro users receive unlimited usage, and billing transitions preserve paid access correctly.
+owners:
+  - product
+  - engineering
+requirements:
+  - id: SUB-001
+    statement: Free users may perform at most 10 generations per billing month.
+    priority: required
+  - id: SUB-002
+    statement: Pro users have no monthly generation limit.
+    priority: required
+  - id: SUB-003
+    statement: A successful upgrade takes effect immediately.
+    priority: required
+invariants:
+  - id: SUB-INV-001
+    statement: Client-controlled data must never be accepted as proof of successful payment.
+  - id: SUB-INV-002
+    statement: Replayed billing webhooks must be idempotent.
+edge_cases:
+  - payment succeeds but webhook delivery is delayed
+  - the webhook is delivered twice
+  - the database update fails after payment succeeds
+security:
+  - verify billing webhook signatures
+  - enforce authorization server-side
+data_integrity:
+  - maintain at most one active subscription record per user
+  - prevent duplicate events from creating duplicate subscription state
+accessibility:
+  required: true
+  standard: WCAG-AA
+performance:
+  requirements:
+    - keep the subscription page interactive under normal application load
+observability:
+  expected_events:
+    - subscription_upgraded
+    - subscription_payment_failed
+evidence_policy:
+  blocking_requirements:
+    - SUB-003
+    - SUB-INV-001
+    - SUB-INV-002

@@ -24,6 +24,7 @@ npm run build
 node ../maru-cli/packages/cli/dist/index.js init
 node ../maru-cli/packages/cli/dist/index.js scan
 node ../maru-cli/packages/cli/dist/index.js doctor
+node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.md
 ```
 
 The published developer experience will use `npx maru <command>`.
@@ -48,6 +49,17 @@ The published developer experience will use `npx maru <command>`.
 | `maru scan`   | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
 | `maru doctor` | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
 
+### Quality Contract commands
+
+| Command                                               | Description                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| `maru contract create --from requirements.md`         | Create a deterministic draft from natural-language intent    |
+| `maru contract list`                                  | List current contracts, states, criticality, and version IDs |
+| `maru contract show <id>`                             | Print one validated contract                                 |
+| `maru contract validate [path]`                       | Validate all current contracts or one YAML file              |
+| `maru contract diff <id-or-path> <id-or-path>`        | Classify mechanical and semantic contract changes            |
+| `maru contract approve <id> --by <accountable-owner>` | Approve and snapshot one reviewed version                    |
+
 ## Repository structure
 
 ```text
@@ -64,7 +76,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 and 1 are implemented. The local CLI currently supports Next.js/React repositories using JavaScript or TypeScript, npm/pnpm/yarn/bun detection, Playwright/Vitest/Jest discovery, common database-library discovery, GitHub Actions inventory, App Router and Pages Router route discovery, and typed diagnostic output.
+Phases 0, 1, and 2 are implemented. The local CLI supports Next.js/React repository discovery plus local Quality Contract creation, validation, inspection, semantic diffing, version hashing, and explicit approval.
 
 Known Phase 1 limitations:
 
@@ -72,6 +84,10 @@ Known Phase 1 limitations:
 - doctor validates declared tooling and executables but does not install browser binaries;
 - MCP and GitHub Actions configuration generation remain in their later planned phases;
 - no cloud account or AI provider is used or required.
+
+Quality Contract YAML intentionally supports the documented MaruCheck schema rather than every YAML feature. Anchors, aliases, tags, merge keys, unsafe identifiers, duplicate keys, and paths outside the project root are rejected.
+
+See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.md) and the [subscription example](examples/contracts/subscription-management.yml).
 
 ## Contributing
 

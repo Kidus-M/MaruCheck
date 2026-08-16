@@ -86,4 +86,42 @@ describe("maru CLI", () => {
     expect(output.error).toHaveBeenCalledWith(expect.stringContaining("MARU_NOT_INITIALIZED"));
     expect(output.error).toHaveBeenCalledWith(expect.stringContaining("Run maru init"));
   });
+
+  it("runs the local Quality Contract lifecycle", async () => {
+    const root = await createProject();
+    const requirementsPath = join(root, "requirements.md");
+    await writeFile(
+      requirementsPath,
+      "Free users receive 10 generations each month. Pro users have unlimited generations. Upgrades require a verified payment webhook.",
+      "utf8",
+    );
+    const output = { error: vi.fn(), log: vi.fn() };
+    const dependencies = {
+      cwd: root,
+      now: () => new Date("2026-08-16T09:00:00.000Z"),
+    };
+
+    await expect(runCli(["init"], output, dependencies)).resolves.toBe(0);
+    await expect(
+      runCli(["contract", "create", "--from", "requirements.md"], output, dependencies),
+    ).resolves.toBe(0);
+    await expect(runCli(["contract", "list"], output, dependencies)).resolves.toBe(0);
+    await expect(
+      runCli(["contract", "show", "subscription-management"], output, dependencies),
+    ).resolves.toBe(0);
+    await expect(runCli(["contract", "validate"], output, dependencies)).resolves.toBe(0);
+    await expect(
+      runCli(
+        ["contract", "approve", "subscription-management", "--by", "product-owner"],
+        output,
+        dependencies,
+      ),
+    ).resolves.toBe(0);
+
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Draft contract created"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("subscription-management"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Contracts valid: 1"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Contract approved"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
 });
