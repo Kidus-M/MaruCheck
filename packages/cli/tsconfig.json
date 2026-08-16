@@ -13,6 +13,7 @@
     { "path": "../core" },
     { "path": "../git" },
     { "path": "../mcp-server" },
+    { "path": "../planner" },
     { "path": "../risk" }
   ]
 }

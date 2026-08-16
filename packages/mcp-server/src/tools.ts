@@ -8,6 +8,11 @@ import {
 } from "@maru/contracts";
 import { ProjectError, scanProject, type ProjectScan } from "@maru/core";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
+import {
+  VerificationPlanError,
+  createAndWriteVerificationPlan,
+  type VerificationPlanResult,
+} from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 import type { JsonObject, MaruMcpToolName, McpToolDefinition, McpToolResult } from "./types.js";
 
@@ -120,6 +125,13 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
     CLOSED_EMPTY_SCHEMA,
     true,
   ),
+  definition(
+    "maru_create_verification_plan",
+    "Create a verification plan",
+    "Select related requirements and affected tests, choose risk-based adapters, explain every step, and write the versioned local plan artifact.",
+    CLOSED_EMPTY_SCHEMA,
+    false,
+  ),
 ];
 
 class ToolInputError extends Error {
@@ -225,6 +237,7 @@ function failure(error: unknown): McpToolResult {
     error instanceof ContractError ||
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
+    error instanceof VerificationPlanError ||
     error instanceof ToolInputError
   ) {
     code = error.code;
@@ -243,6 +256,10 @@ function failure(error: unknown): McpToolResult {
 export interface MaruToolDependencies {
   readonly analyzeDiff?: (root: string) => Promise<GitDiffAnalysis>;
   readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
+  readonly createVerificationPlan?: (
+    root: string,
+    now: Date,
+  ) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
   readonly root: string;
 }
@@ -316,8 +333,14 @@ export async function callMaruTool(
       const diff = await (dependencies.analyzeDiff ?? analyzeGitDiff)(root);
       return success({ diff, scope: "staged-unstaged-untracked" });
     }
-    const assessment = await (dependencies.assessRisk ?? assessProjectRisk)(root);
-    return success({ assessment });
+    if (name === "maru_assess_risk") {
+      const assessment = await (dependencies.assessRisk ?? assessProjectRisk)(root);
+      return success({ assessment });
+    }
+    const result = await (
+      dependencies.createVerificationPlan ?? createAndWriteVerificationPlan
+    )(root, dependencies.now?.() ?? new Date());
+    return success({ path: result.path, plan: result.plan });
   } catch (error) {
     return failure(error);
   }

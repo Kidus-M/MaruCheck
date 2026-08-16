@@ -12,6 +12,7 @@
     { "path": "../contracts" },
     { "path": "../core" },
     { "path": "../git" },
+    { "path": "../planner" },
     { "path": "../risk" }
   ]
 }

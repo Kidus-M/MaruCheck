@@ -22,6 +22,11 @@ import {
 } from "@maru/core";
 import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
+import {
+  VerificationPlanError,
+  createAndWriteVerificationPlan,
+  type VerificationPlanResult,
+} from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 
 export interface CliOutput {
@@ -35,6 +40,7 @@ export interface CliDependencies {
   readonly mcpServer?: (root: string) => Promise<void>;
   readonly now?: () => Date;
   readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
+  readonly verificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
 }
 
 const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
@@ -47,6 +53,7 @@ Commands:
   doctor     Diagnose local prerequisites and configuration
   contract   Create, validate, inspect, diff, and approve Quality Contracts
   risk       Assess the current Git diff with deterministic rules
+  plan       Create an inspectable verification plan for the current diff
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
@@ -59,6 +66,9 @@ Contract commands:
 
 Risk commands:
   maru risk --diff
+
+Planning commands:
+  maru plan --diff
 
 Options:
   -h, --help       Show help
@@ -100,6 +110,18 @@ function formatRiskAssessment(assessment: RiskAssessment): string {
     "Why:",
     ...assessment.reasons.map((reason) => `  +${reason.points} ${reason.message}`),
     `Recommended tests: ${assessment.recommendedTestCategories.join(", ") || "none"}`,
+  ].join("\n");
+}
+
+function formatVerificationPlan(result: VerificationPlanResult): string {
+  const { plan } = result;
+  return [
+    `Verification plan written: ${result.path}`,
+    `Risk: ${plan.risk.level.toUpperCase()} (${plan.risk.score}/100)`,
+    `Requirements: ${plan.summary.selectedRequirements}`,
+    `Affected tests: ${plan.summary.affectedTests}`,
+    `Steps: ${plan.steps.length} (${plan.summary.automatedSteps} automated, ${plan.summary.manualSteps} manual, ${plan.summary.unavailableSteps} unavailable)`,
+    `Uncovered requirements: ${plan.uncoveredRequirements.length}`,
   ].join("\n");
 }
 
@@ -319,6 +341,19 @@ export async function runCli(
       return 0;
     }
 
+    if (command === "plan") {
+      if (args.length !== 2 || args[1] !== "--diff") {
+        output.error("Invalid planning command.\nRun maru plan --diff.");
+        return 1;
+      }
+      const result = await (dependencies.verificationPlan ?? createAndWriteVerificationPlan)(
+        root,
+        dependencies.now?.() ?? new Date(),
+      );
+      output.log(formatVerificationPlan(result));
+      return 0;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -336,6 +371,10 @@ export async function runCli(
     }
     if (error instanceof GitAnalysisError) {
       reportGitError(error, output);
+      return 1;
+    }
+    if (error instanceof VerificationPlanError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
 
