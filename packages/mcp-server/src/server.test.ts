@@ -97,10 +97,20 @@ describe("MaruCheck MCP server", () => {
       isError: false,
       structuredContent: {
         ok: true,
-        project: { project: { name: "mcp-fixture" } },
+        project: {
+          project: { name: "mcp-fixture" },
+          source: {
+            fileCount: 1,
+            filesTruncated: false,
+            sampleFiles: ["src/app/page.tsx"],
+          },
+        },
         contracts: [{ id: "web-foundation" }],
       },
     });
+    expect(
+      (context.structuredContent.project as { source: Record<string, unknown> }).source,
+    ).not.toHaveProperty("files");
     expect(contract).toMatchObject({
       isError: false,
       structuredContent: {

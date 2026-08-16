@@ -29,6 +29,8 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 
+Project context returns totals plus at most 100 source, route, test, dependency, and contract items per category. The complete scan remains available locally at `.maru/generated/project-scan.json`, preventing large repositories from consuming an agent's context window unnecessarily.
+
 ## Codex
 
 Codex can store MCP settings in the user configuration or a trusted project's `.codex/config.toml`. A project-scoped configuration keeps the web project as MaruCheck's working root:

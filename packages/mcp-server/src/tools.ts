@@ -6,7 +6,7 @@ import {
   listContracts,
   validateContracts,
 } from "@maru/contracts";
-import { ProjectError, scanProject } from "@maru/core";
+import { ProjectError, scanProject, type ProjectScan } from "@maru/core";
 import { GitAnalysisError, analyzeWorkingTree, type WorkingTreeAnalysis } from "@maru/git";
 import type { JsonObject, MaruMcpToolName, McpToolDefinition, McpToolResult } from "./types.js";
 
@@ -21,6 +21,7 @@ const BASE_OUTPUT_SCHEMA = {
   required: ["ok"],
   type: "object",
 } as const;
+const MAX_CONTEXT_ITEMS = 100;
 
 function schema(properties: JsonObject, required: readonly string[] = []): JsonObject {
   return {
@@ -171,6 +172,41 @@ function success(data: JsonObject): McpToolResult {
   };
 }
 
+function boundedProjectContext(scan: ProjectScan): JsonObject {
+  return {
+    ci: scan.ci,
+    dependencies: {
+      development: scan.dependencies.development.slice(0, MAX_CONTEXT_ITEMS),
+      developmentCount: scan.dependencies.development.length,
+      production: scan.dependencies.production.slice(0, MAX_CONTEXT_ITEMS),
+      productionCount: scan.dependencies.production.length,
+      truncated:
+        scan.dependencies.development.length > MAX_CONTEXT_ITEMS ||
+        scan.dependencies.production.length > MAX_CONTEXT_ITEMS,
+    },
+    generatedAt: scan.generatedAt,
+    project: scan.project,
+    routeCount: scan.routes.length,
+    routes: scan.routes.slice(0, MAX_CONTEXT_ITEMS),
+    routesTruncated: scan.routes.length > MAX_CONTEXT_ITEMS,
+    schemaVersion: scan.schemaVersion,
+    source: {
+      directories: scan.source.directories,
+      fileCount: scan.source.fileCount,
+      filesByExtension: scan.source.filesByExtension,
+      filesTruncated: scan.source.files.length > MAX_CONTEXT_ITEMS,
+      sampleFiles: scan.source.files.slice(0, MAX_CONTEXT_ITEMS),
+    },
+    tests: {
+      directories: scan.tests.directories,
+      fileCount: scan.tests.files.length,
+      files: scan.tests.files.slice(0, MAX_CONTEXT_ITEMS),
+      filesTruncated: scan.tests.files.length > MAX_CONTEXT_ITEMS,
+      frameworks: scan.tests.frameworks,
+    },
+  };
+}
+
 function failure(error: unknown): McpToolResult {
   let code = "MCP_TOOL_EXECUTION_FAILED";
   let message = "The MaruCheck tool could not complete safely.";
@@ -224,12 +260,14 @@ export async function callMaruTool(
         validateContracts(root),
       ]);
       return success({
-        contracts,
+        contractCount: contracts.length,
+        contracts: contracts.slice(0, MAX_CONTEXT_ITEMS),
+        contractsTruncated: contracts.length > MAX_CONTEXT_ITEMS,
         contractValidation: {
           invalid: validation.invalid,
           validCount: validation.valid.length,
         },
-        project,
+        project: boundedProjectContext(project),
       });
     }
 
