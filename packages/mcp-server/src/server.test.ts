@@ -250,10 +250,7 @@ describe("MaruCheck MCP server", () => {
         },
       },
     });
-    expect(createVerificationPlan).toHaveBeenCalledWith(
-      root,
-      new Date("2026-08-16T12:00:00.000Z"),
-    );
+    expect(createVerificationPlan).toHaveBeenCalledWith(root, new Date("2026-08-16T12:00:00.000Z"));
   });
 
   it("enforces initialization before listing or calling tools", async () => {

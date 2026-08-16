@@ -66,7 +66,7 @@ The risk engine matches normalized terms from changed paths and symbols against 
 - affected requirement identifiers;
 - affected invariant identifiers.
 
-This is deliberately lexical and deterministic. It does not claim semantic call-graph coverage. Phase 5 will consume this evidence to create an inspectable verification plan.
+This is deliberately lexical and deterministic. It does not claim semantic call-graph coverage. Phase 5 consumes this evidence to create an inspectable verification plan.
 
 ## MCP tools
 
@@ -80,6 +80,6 @@ Both tools are read-only. Coding agents should call `maru_analyze_diff` and `mar
 - No full language AST or call graph is built yet.
 - Untracked file contents and binary contents are not inspected.
 - Historical regressions, measured coverage, AI-generated-code percentage, and organization risk overrides are not Phase 4 inputs.
-- Recommendations are categories, not an executable plan; plan generation is Phase 5.
+- Recommendations are categories; `maru plan --diff` converts them into an inspectable Phase 5 plan, while execution remains Phase 6.
 
 See [ADR-004](../decisions/0004-use-deterministic-metadata-risk-scoring.md) for the design rationale.

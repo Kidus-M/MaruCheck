@@ -256,10 +256,7 @@ function failure(error: unknown): McpToolResult {
 export interface MaruToolDependencies {
   readonly analyzeDiff?: (root: string) => Promise<GitDiffAnalysis>;
   readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
-  readonly createVerificationPlan?: (
-    root: string,
-    now: Date,
-  ) => Promise<VerificationPlanResult>;
+  readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
   readonly root: string;
 }
@@ -337,9 +334,10 @@ export async function callMaruTool(
       const assessment = await (dependencies.assessRisk ?? assessProjectRisk)(root);
       return success({ assessment });
     }
-    const result = await (
-      dependencies.createVerificationPlan ?? createAndWriteVerificationPlan
-    )(root, dependencies.now?.() ?? new Date());
+    const result = await (dependencies.createVerificationPlan ?? createAndWriteVerificationPlan)(
+      root,
+      dependencies.now?.() ?? new Date(),
+    );
     return success({ path: result.path, plan: result.plan });
   } catch (error) {
     return failure(error);

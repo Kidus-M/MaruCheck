@@ -18,15 +18,16 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 
 ## Tools
 
-| Tool                       | Behavior                                                                           | Access      |
-| -------------------------- | ---------------------------------------------------------------------------------- | ----------- |
-| `maru_get_project_context` | Return project architecture, test inventory, routes, and contract summaries        | Read-only   |
-| `maru_list_contracts`      | List contract lifecycle, criticality, path, and version hash                       | Read-only   |
-| `maru_get_contract`        | Return one validated contract and its stable version hash                          | Read-only   |
-| `maru_create_contract`     | Create a review-required draft from requirements; never approve it                 | Local write |
-| `maru_validate_contract`   | Validate every current contract or one project-root-bounded path                   | Read-only   |
-| `maru_analyze_diff`        | Return bounded staged, unstaged, and untracked change metadata and classifications | Read-only   |
-| `maru_assess_risk`         | Return deterministic risk, reasons, related contracts, and test categories         | Read-only   |
+| Tool                            | Behavior                                                                           | Access      |
+| ------------------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| `maru_get_project_context`      | Return project architecture, test inventory, routes, and contract summaries        | Read-only   |
+| `maru_list_contracts`           | List contract lifecycle, criticality, path, and version hash                       | Read-only   |
+| `maru_get_contract`             | Return one validated contract and its stable version hash                          | Read-only   |
+| `maru_create_contract`          | Create a review-required draft from requirements; never approve it                 | Local write |
+| `maru_validate_contract`        | Validate every current contract or one project-root-bounded path                   | Read-only   |
+| `maru_analyze_diff`             | Return bounded staged, unstaged, and untracked change metadata and classifications | Read-only   |
+| `maru_assess_risk`              | Return deterministic risk, reasons, related contracts, and test categories         | Read-only   |
+| `maru_create_verification_plan` | Write a requirement-linked, risk-based verification plan                           | Local write |
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 
@@ -92,7 +93,8 @@ Restart Cursor and enable `maru` in MCP settings.
 3. Implement the change without weakening or auto-approving the contract.
 4. Call `maru_analyze_diff` to inspect change metadata and classifications.
 5. Call `maru_assess_risk` to inspect score contributions and related requirements.
-6. Validate contracts with `maru_validate_contract`.
+6. Call `maru_create_verification_plan` and review unavailable or uncovered work.
+7. Validate contracts with `maru_validate_contract`.
 
 ## Protocol and safety
 

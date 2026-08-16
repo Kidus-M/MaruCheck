@@ -233,9 +233,9 @@ describe("maru CLI", () => {
       },
     });
 
-    await expect(
-      runCli(["plan", "--diff"], output, { cwd: root, verificationPlan }),
-    ).resolves.toBe(0);
+    await expect(runCli(["plan", "--diff"], output, { cwd: root, verificationPlan })).resolves.toBe(
+      0,
+    );
 
     expect(verificationPlan).toHaveBeenCalledWith(root, expect.any(Date));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification plan written"));

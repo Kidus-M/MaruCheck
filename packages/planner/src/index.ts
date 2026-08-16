@@ -112,9 +112,7 @@ const STOP_WORDS = new Set([
 function terms(text: string): Set<string> {
   const separated = text.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").toLowerCase();
   return new Set(
-    separated
-      .split(/[^a-z0-9]+/u)
-      .filter((term) => term.length >= 4 && !STOP_WORDS.has(term)),
+    separated.split(/[^a-z0-9]+/u).filter((term) => term.length >= 4 && !STOP_WORDS.has(term)),
   );
 }
 

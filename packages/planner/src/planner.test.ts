@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { QualityContract } from "@maru/contracts";
@@ -101,7 +101,14 @@ function scan(options: { readonly includeTests?: boolean } = {}): ProjectScan {
       packageManager: "npm",
       root: ".",
     },
-    routes: [{ kind: "api", methods: ["POST"], path: "/api/webhooks", source: "src/app/api/webhooks/route.ts" }],
+    routes: [
+      {
+        kind: "api",
+        methods: ["POST"],
+        path: "/api/webhooks",
+        source: "src/app/api/webhooks/route.ts",
+      },
+    ],
     schemaVersion: 1,
     source: {
       directories: ["src"],
@@ -182,7 +189,11 @@ describe("verification planner", () => {
     });
 
     expect(plan.steps).toEqual([
-      expect.objectContaining({ adapter: "unavailable", category: "unit", execution: "unavailable" }),
+      expect.objectContaining({
+        adapter: "unavailable",
+        category: "unit",
+        execution: "unavailable",
+      }),
     ]);
     expect(plan.uncoveredRequirements).toEqual([
       "subscription-management#SUB-001",
@@ -195,7 +206,11 @@ describe("verification planner", () => {
     const plan = buildVerificationPlan({
       assessment: {
         ...ASSESSMENT,
-        analysis: { clean: true, files: [], summary: { additions: 0, changedFiles: 0, deletions: 0 } },
+        analysis: {
+          clean: true,
+          files: [],
+          summary: { additions: 0, changedFiles: 0, deletions: 0 },
+        },
         level: "low",
         reasons: [{ code: "clean", message: "No changes.", points: 0 }],
         recommendedTestCategories: [],
@@ -230,8 +245,26 @@ describe("verification planner", () => {
     await expect(writeVerificationPlan(root, plan)).resolves.toBe(
       ".maru/generated/verification-plan.json",
     );
-    await expect(readFile(join(root, ".maru/generated/verification-plan.json"), "utf8")).resolves.toBe(
-      serialized,
-    );
+    await expect(
+      readFile(join(root, ".maru/generated/verification-plan.json"), "utf8"),
+    ).resolves.toBe(serialized);
+  });
+
+  it("returns an actionable planner error when the artifact cannot be written", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "maru-plan-error-"));
+    temporaryDirectories.push(directory);
+    const rootFile = join(directory, "not-a-directory");
+    await writeFile(rootFile, "blocked", "utf8");
+    const plan = buildVerificationPlan({
+      assessment: ASSESSMENT,
+      contracts: [CONTRACT],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project: scan(),
+    });
+
+    await expect(writeVerificationPlan(rootFile, plan)).rejects.toMatchObject({
+      code: "PLAN_WRITE_FAILED",
+      remediation: expect.stringContaining("permissions"),
+    });
   });
 });

@@ -26,6 +26,7 @@ node ../maru-cli/packages/cli/dist/index.js scan
 node ../maru-cli/packages/cli/dist/index.js doctor
 node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.md
 node ../maru-cli/packages/cli/dist/index.js risk --diff
+node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
@@ -51,6 +52,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru scan`        | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
 | `maru doctor`      | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
 | `maru risk --diff` | Score current changes with deterministic explanations                                          |
+| `maru plan --diff` | Write an inspectable, requirement-linked verification plan                                     |
 
 ### Quality Contract commands
 
@@ -72,6 +74,7 @@ packages/
 |-- core/         # verification domain and orchestration
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
+|-- planner/      # requirement-linked verification planning
 |-- risk/         # deterministic risk scoring and contract matching
 `-- shared/       # stable cross-package primitives
 ```
@@ -80,7 +83,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 4 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, related-contract matching, and deterministic change-risk scoring.
+Phases 0 through 5 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, and requirement-linked verification planning.
 
 Known Phase 1 limitations:
 
@@ -104,6 +107,12 @@ See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md
 `maru risk --diff` classifies current changes and returns a reproducible 0-100 score with explicit point contributions, related Quality Contract requirements/invariants, and recommended test categories. It works offline and does not use an LLM for scoring.
 
 See the [Phase 4 Git risk guide](docs/guides/phase-4-git-risk.md) and [ADR-004](docs/decisions/0004-use-deterministic-metadata-risk-scoring.md).
+
+### Verification planning
+
+`maru plan --diff` writes a versioned `.maru/generated/verification-plan.json` connecting the current change to contract requirements, affected tests, risk-based adapter choices, uncovered requirements, and reasons for every step. Phase 5 plans are inspectable inputs for the Phase 6 execution adapters.
+
+See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-planner.md) and [ADR-005](docs/decisions/0005-use-versioned-traceable-verification-plans.md).
 
 ## Contributing
 
