@@ -97,6 +97,36 @@ async function writeContractFile(
   }
 }
 
+async function writeContractSnapshot(
+  root: string,
+  path: string,
+  contract: QualityContract,
+): Promise<void> {
+  try {
+    const target = safePath(root, path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, serializeQualityContract(contract), { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (error instanceof ContractError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new ContractError(
+        "CONTRACT_VERSION_EXISTS",
+        "An immutable snapshot already exists for this contract content.",
+        "Change the contract's reviewable content before approving a new version.",
+        [],
+        { cause: error },
+      );
+    }
+    throw new ContractError(
+      "CONTRACT_WRITE_FAILED",
+      `Unable to write ${path}.`,
+      "Check directory permissions and available disk space.",
+      [],
+      { cause: error },
+    );
+  }
+}
+
 function summary(contract: QualityContract, path: string): ContractSummary {
   return {
     criticality: contract.criticality,
@@ -267,7 +297,7 @@ export async function approveContract(
   };
   const path = `${CONTRACT_DIRECTORY}/${id}.yml`;
   const historyPath = `${CONTRACT_DIRECTORY}/.history/${id}/${versionHash}.yml`;
-  await writeContractFile(root, historyPath, contract);
+  await writeContractSnapshot(root, historyPath, contract);
   await writeContractFile(root, path, contract);
   return { contract, path, versionHash };
 }

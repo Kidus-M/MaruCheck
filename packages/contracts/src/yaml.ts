@@ -136,7 +136,7 @@ class StrictYamlParser {
         continue;
       }
 
-      if (item.includes(":")) {
+      if (/^[A-Za-z][A-Za-z0-9_-]*:(?:\s|$)/u.test(item)) {
         const [key, rawValue] = splitKeyValue(item, line.line);
         const object: Record<string, unknown> = {};
         object[key] = rawValue.length > 0 ? parseScalar(rawValue, line.line) : null;

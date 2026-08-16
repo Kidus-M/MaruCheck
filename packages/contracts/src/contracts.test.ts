@@ -70,6 +70,17 @@ describe("Quality Contracts", () => {
     expect(contractVersionHash(contract)).toMatch(/^[a-f0-9]{64}$/u);
   });
 
+  it("preserves URL colons inside plain sequence values", () => {
+    const source = VALID_CONTRACT.replace(
+      "  - verify billing webhook signatures",
+      "  - allow https://billing.example.test callbacks",
+    );
+
+    expect(parseQualityContract(source).security).toEqual([
+      "allow https://billing.example.test callbacks",
+    ]);
+  });
+
   it("returns field-specific validation issues for unsafe or incomplete contracts", () => {
     expect(() =>
       parseQualityContract(
@@ -194,6 +205,18 @@ describe("Quality Contracts", () => {
         approvedBy: "different-owner",
       }),
     ).rejects.toEqual(expect.objectContaining({ code: "CONTRACT_ALREADY_APPROVED" }));
+
+    await writeFile(
+      join(fixtureRoot, ".maru/contracts/subscription-management.yml"),
+      VALID_CONTRACT.replace("status: draft", "status: amended"),
+      "utf8",
+    );
+    await expect(
+      approveContract(fixtureRoot, "subscription-management", {
+        approvedAt: new Date("2026-08-16T10:00:00.000Z"),
+        approvedBy: "different-owner",
+      }),
+    ).rejects.toEqual(expect.objectContaining({ code: "CONTRACT_VERSION_EXISTS" }));
     await expect(
       readFile(
         join(
