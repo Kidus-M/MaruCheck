@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes six namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes seven namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -74,6 +74,7 @@ describe("MaruCheck MCP server", () => {
       "maru_create_contract",
       "maru_validate_contract",
       "maru_analyze_diff",
+      "maru_assess_risk",
     ]);
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
@@ -181,6 +182,36 @@ describe("MaruCheck MCP server", () => {
       structuredContent: { diff: { clean: false }, ok: true },
     });
     expect(analyzeDiff).toHaveBeenCalledWith(root);
+  });
+
+  it("returns deterministic risk and related contract evidence through assess_risk", async () => {
+    const assessRisk = vi.fn().mockResolvedValue({
+      analysis: {
+        clean: false,
+        files: [],
+        summary: { additions: 3, changedFiles: 1, deletions: 1 },
+      },
+      level: "critical",
+      reasons: [{ code: "billing", message: "Touches billing.", points: 30 }],
+      recommendedTestCategories: ["api", "security"],
+      relatedContracts: [{ contractId: "subscription-management" }],
+      score: 86,
+    });
+
+    const result = await callMaruTool("maru_assess_risk", {}, { root, assessRisk });
+
+    expect(result).toMatchObject({
+      isError: false,
+      structuredContent: {
+        assessment: {
+          level: "critical",
+          relatedContracts: [{ contractId: "subscription-management" }],
+          score: 86,
+        },
+        ok: true,
+      },
+    });
+    expect(assessRisk).toHaveBeenCalledWith(root);
   });
 
   it("enforces initialization before listing or calling tools", async () => {

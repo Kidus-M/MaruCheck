@@ -136,4 +136,45 @@ describe("maru CLI", () => {
     expect(output.log).not.toHaveBeenCalled();
     expect(output.error).not.toHaveBeenCalled();
   });
+
+  it("prints an inspectable deterministic risk assessment for the current diff", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const riskAssessment = vi.fn().mockResolvedValue({
+      analysis: {
+        clean: false,
+        files: [],
+        summary: { additions: 8, changedFiles: 1, deletions: 1 },
+      },
+      level: "critical",
+      reasons: [
+        { code: "billing", message: "Touches billing and payments.", points: 30 },
+        { code: "external-integration", message: "Touches a webhook.", points: 15 },
+      ],
+      recommendedTestCategories: ["api", "contract-regression", "security", "unit"],
+      relatedContracts: [
+        {
+          contractId: "subscription-management",
+          criticality: "critical",
+          invariantIds: ["SUB-INV-001"],
+          matchedTerms: ["subscription", "webhook"],
+          requirementIds: ["SUB-001"],
+          status: "approved",
+          title: "Subscription Management",
+        },
+      ],
+      score: 92,
+    });
+
+    await expect(
+      runCli(["risk", "--diff"], output, { cwd: root, riskAssessment }),
+    ).resolves.toBe(0);
+
+    expect(riskAssessment).toHaveBeenCalledWith(root);
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Risk: CRITICAL (92/100)"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("+30 Touches billing"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("subscription-management"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("contract-regression"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
 });
