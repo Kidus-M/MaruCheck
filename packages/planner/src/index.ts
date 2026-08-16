@@ -6,7 +6,7 @@ import {
   type QualityContract,
   type RequirementPriority,
 } from "@maru/contracts";
-import { scanProject, type ProjectScan, type TestFramework } from "@maru/core";
+import { scanProject, type ProjectScan } from "@maru/core";
 import {
   assessProjectRisk,
   type RecommendedTestCategory,
@@ -19,6 +19,7 @@ export const VERIFICATION_PLAN_PATH = ".maru/generated/verification-plan.json";
 
 export type VerificationAdapter = "manual-review" | "playwright" | "unavailable" | "vitest";
 export type VerificationExecution = "automated" | "manual" | "unavailable";
+type TestFramework = ProjectScan["tests"]["frameworks"][number];
 
 export interface SelectedRequirement {
   readonly blocking: boolean;
