@@ -33,25 +33,28 @@ Project context returns totals plus at most 100 source, route, test, dependency,
 
 ## Codex
 
-Codex can store MCP settings in the user configuration or a trusted project's `.codex/config.toml`. A project-scoped configuration keeps the web project as MaruCheck's working root:
+Codex can store MCP settings in the user configuration or a trusted project's `.codex/config.toml`. The sibling `maru-web` repository already includes this portable project-scoped configuration:
 
 ```toml
 [mcp_servers.maru]
 command = "node"
-args = ['C:\path\to\MaruCheck\maru-cli\packages\cli\dist\index.js', "mcp"]
-cwd = 'C:\path\to\MaruCheck\maru-web'
-required = true
+args = ["../maru-cli/packages/cli/dist/index.js", "mcp"]
+required = false
 default_tools_approval_mode = "writes"
 ```
 
-Alternatively, while inside the target project:
+The relative path works on Windows, macOS, and Linux when `maru-cli` and `maru-web` are sibling folders. `required = false` means Codex still opens normally when a contributor has only cloned the web repository or has not built the CLI yet. The MCP tools become available after the CLI is installed and built.
+
+For a different folder layout, add the server to your user configuration with an absolute path, or run this while inside the target project and adjust the path:
 
 ```powershell
 codex mcp add maru -- node ..\maru-cli\packages\cli\dist\index.js mcp
 codex mcp list
 ```
 
-Restart the Codex host after changing configuration, then use `/mcp` to inspect the connection.
+Trust the project when Codex prompts, restart the Codex host after changing configuration, then use `/mcp` to inspect the connection.
+
+This file is only a Codex convenience. The `maru mcp` process uses standard MCP stdio and does not depend on Codex, so other clients can use the same server command.
 
 ## Claude Code
 
