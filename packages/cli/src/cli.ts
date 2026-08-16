@@ -20,6 +20,7 @@ import {
   writeProjectScan,
   type DoctorEnvironment,
 } from "@maru/core";
+import { runStdioMcpServer } from "@maru/mcp-server";
 
 export interface CliOutput {
   error(message: string): void;
@@ -29,6 +30,7 @@ export interface CliOutput {
 export interface CliDependencies {
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;
+  readonly mcpServer?: (root: string) => Promise<void>;
   readonly now?: () => Date;
 }
 
@@ -41,6 +43,7 @@ Commands:
   scan       Inventory project architecture, routes, tests, and dependencies
   doctor     Diagnose local prerequisites and configuration
   contract   Create, validate, inspect, diff, and approve Quality Contracts
+  mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
   maru contract create [--from requirements.md] [--id contract-id] [--title "Title"]
@@ -281,6 +284,13 @@ export async function runCli(
         output,
         dependencies.now?.() ?? new Date(),
       );
+    }
+
+    if (command === "mcp") {
+      await (
+        dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
+      )(root);
+      return 0;
     }
   } catch (error) {
     if (error instanceof ContractError) {

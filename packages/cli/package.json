@@ -17,6 +17,7 @@
   ],
   "dependencies": {
     "@maru/contracts": "0.1.0",
-    "@maru/core": "0.1.0"
+    "@maru/core": "0.1.0",
+    "@maru/mcp-server": "0.1.0"
   }
 }

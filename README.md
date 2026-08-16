@@ -25,6 +25,7 @@ node ../maru-cli/packages/cli/dist/index.js init
 node ../maru-cli/packages/cli/dist/index.js scan
 node ../maru-cli/packages/cli/dist/index.js doctor
 node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.md
+node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
 The published developer experience will use `npx maru <command>`.
@@ -88,6 +89,12 @@ Known Phase 1 limitations:
 Quality Contract YAML intentionally supports the documented MaruCheck schema rather than every YAML feature. Anchors, aliases, tags, merge keys, unsafe identifiers, duplicate keys, and paths outside the project root are rejected.
 
 See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.md) and the [subscription example](examples/contracts/subscription-management.yml).
+
+### MCP server
+
+`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, validation, and a bounded Git working-tree inventory. It never approves contracts or sends repository content to a cloud service.
+
+See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
 
 ## Contributing
 

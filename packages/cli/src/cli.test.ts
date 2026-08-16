@@ -124,4 +124,16 @@ describe("maru CLI", () => {
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Contract approved"));
     expect(output.error).not.toHaveBeenCalled();
   });
+
+  it("starts the local MCP server for the current project", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const mcpServer = vi.fn().mockResolvedValue(undefined);
+
+    await expect(runCli(["mcp"], output, { cwd: root, mcpServer })).resolves.toBe(0);
+
+    expect(mcpServer).toHaveBeenCalledWith(root);
+    expect(output.log).not.toHaveBeenCalled();
+    expect(output.error).not.toHaveBeenCalled();
+  });
 });
