@@ -148,7 +148,8 @@ export function parseUnifiedDiff(output: string): ParsedGitFileDiff[] {
     } else if (line.startsWith("--- ")) {
       current.originalPath = decodeGitPath(line.slice(4));
     } else if (line.startsWith("+++ ")) {
-      current.path = decodeGitPath(line.slice(4));
+      const nextPath = decodeGitPath(line.slice(4));
+      current.path = nextPath ?? current.originalPath;
     } else if (line.startsWith("Binary files ") || line.startsWith("GIT binary patch")) {
       current.binary = true;
     } else if (line.startsWith("@@ ")) {

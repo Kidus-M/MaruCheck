@@ -52,9 +52,34 @@ describe("Git diff analysis", () => {
       "security-sensitive",
     ]);
     expect(classifyChangedPath("src/app/theme.css")).toEqual(["ui-only"]);
+    expect(classifyChangedPath("src/app/page.tsx")).toEqual(["ui-only"]);
     expect(classifyChangedPath("package-lock.json")).toEqual([
       "configuration",
       "dependency-upgrade",
+    ]);
+  });
+
+  it("keeps the original path for a deleted file patch", () => {
+    const deleted = parseUnifiedDiff(`diff --git a/src/legacy.ts b/src/legacy.ts
+deleted file mode 100644
+index 1111111..0000000
+--- a/src/legacy.ts
++++ /dev/null
+@@ -1 +0,0 @@
+-export function legacy() {}
+`);
+
+    expect(deleted).toEqual([
+      {
+        additions: 0,
+        binary: false,
+        deletions: 1,
+        hunks: [{ newLines: 0, newStart: 0, oldLines: 1, oldStart: 1 }],
+        originalPath: "src/legacy.ts",
+        path: "src/legacy.ts",
+        status: "deleted",
+        symbols: ["legacy"],
+      },
     ]);
   });
 

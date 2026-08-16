@@ -38,7 +38,7 @@ export function classifyChangedPath(path: string): ChangeClassification[] {
   if (UI_EXTENSION.test(normalized)) classifications.add("ui-only");
   if (
     has(normalized, /(?:^|\/)(?:components?|ui|styles?)(?:\/|$)/u) ||
-    has(normalized, /(?:^|\/)app\/[^/]+\/page\.[jt]sx$/u)
+    has(normalized, /(?:^|\/)app\/(?:[^/]+\/)*page\.[jt]sx$/u)
   ) {
     classifications.add("ui-only");
   }
