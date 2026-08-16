@@ -135,6 +135,18 @@ describe("Quality Contracts", () => {
     expect(stored).toContain("status: draft");
   });
 
+  it("does not turn Markdown headings into requirements", async () => {
+    const created = await createContractFromRequirements(
+      fixtureRoot,
+      "# Subscription requirements\n\nFree users receive 10 generations each month.",
+    );
+
+    expect(created.contract.requirements).toHaveLength(1);
+    expect(created.contract.requirements[0]?.statement).toBe(
+      "Free users receive 10 generations each month.",
+    );
+  });
+
   it("lists, validates, shows, approves, and snapshots contract versions", async () => {
     await mkdir(join(fixtureRoot, ".maru/contracts"), { recursive: true });
     await writeFile(

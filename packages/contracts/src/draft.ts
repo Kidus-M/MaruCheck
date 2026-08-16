@@ -2,7 +2,7 @@ import type { ContractInvariant, ContractRequirement, QualityContract } from "./
 
 function sentenceList(requirements: string): string[] {
   return requirements
-    .replace(/^#+\s*/gmu, "")
+    .replace(/^#{1,6}\s+.*$/gmu, "")
     .split(/(?<=[.!?])\s+|\r?\n+/u)
     .map((sentence) => sentence.replace(/^[-*]\s+/u, "").trim())
     .filter((sentence) => sentence.length >= 8)
