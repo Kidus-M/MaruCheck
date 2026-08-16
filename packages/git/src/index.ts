@@ -142,3 +142,14 @@ export async function analyzeWorkingTree(
     throw new GitAnalysisError({ cause: error });
   }
 }
+
+export { classifyChangedPath, type ChangeClassification } from "./classification.js";
+export {
+  analyzeGitDiff,
+  parseUnifiedDiff,
+  type GitChangeStatus,
+  type GitDiffAnalysis,
+  type GitDiffHunk,
+  type GitFileChange,
+  type ParsedGitFileDiff,
+} from "./diff.js";
