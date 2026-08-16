@@ -7,7 +7,8 @@ import {
   validateContracts,
 } from "@maru/contracts";
 import { ProjectError, scanProject, type ProjectScan } from "@maru/core";
-import { GitAnalysisError, analyzeWorkingTree, type WorkingTreeAnalysis } from "@maru/git";
+import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
+import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 import type { JsonObject, MaruMcpToolName, McpToolDefinition, McpToolResult } from "./types.js";
 
 const CLOSED_EMPTY_SCHEMA = {
@@ -107,8 +108,15 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
   ),
   definition(
     "maru_analyze_diff",
-    "Analyze the Git working tree",
-    "Inventory staged, unstaged, and untracked paths without reading their contents. Risk scoring is added in Phase 4.",
+    "Analyze the Git diff",
+    "Parse staged and unstaged hunks, classify changed paths, and report bounded change metadata without returning source lines.",
+    CLOSED_EMPTY_SCHEMA,
+    true,
+  ),
+  definition(
+    "maru_assess_risk",
+    "Assess deterministic change risk",
+    "Score the current Git diff from 0 to 100 with explicit rule contributions, related contracts, and recommended test categories.",
     CLOSED_EMPTY_SCHEMA,
     true,
   ),
@@ -233,7 +241,8 @@ function failure(error: unknown): McpToolResult {
 }
 
 export interface MaruToolDependencies {
-  readonly analyzeDiff?: (root: string) => Promise<WorkingTreeAnalysis>;
+  readonly analyzeDiff?: (root: string) => Promise<GitDiffAnalysis>;
+  readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
   readonly now?: () => Date;
   readonly root: string;
 }
@@ -303,8 +312,12 @@ export async function callMaruTool(
     }
 
     objectArguments(args, []);
-    const diff = await (dependencies.analyzeDiff ?? analyzeWorkingTree)(root);
-    return success({ diff, riskAssessment: "not-included-until-phase-4", scope: "working-tree" });
+    if (name === "maru_analyze_diff") {
+      const diff = await (dependencies.analyzeDiff ?? analyzeGitDiff)(root);
+      return success({ diff, scope: "staged-unstaged-untracked" });
+    }
+    const assessment = await (dependencies.assessRisk ?? assessProjectRisk)(root);
+    return success({ assessment });
   } catch (error) {
     return failure(error);
   }

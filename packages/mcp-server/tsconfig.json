@@ -8,5 +8,10 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../contracts" }, { "path": "../core" }, { "path": "../git" }]
+  "references": [
+    { "path": "../contracts" },
+    { "path": "../core" },
+    { "path": "../git" },
+    { "path": "../risk" }
+  ]
 }

@@ -85,7 +85,7 @@ export class MaruMcpServer {
       return response(id, {
         capabilities: { tools: { listChanged: false } },
         instructions:
-          "Query MaruCheck project context and Quality Contracts before changing behavior. Draft creation never approves product intent.",
+          "Query MaruCheck project context and Quality Contracts before changing behavior. Analyze the diff and assess risk after edits. Draft creation never approves product intent.",
         protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.has(protocolVersion)
           ? protocolVersion
           : MCP_PROTOCOL_VERSION,

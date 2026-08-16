@@ -8,5 +8,11 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../contracts" }, { "path": "../core" }, { "path": "../mcp-server" }]
+  "references": [
+    { "path": "../contracts" },
+    { "path": "../core" },
+    { "path": "../git" },
+    { "path": "../mcp-server" },
+    { "path": "../risk" }
+  ]
 }

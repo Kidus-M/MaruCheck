@@ -20,7 +20,9 @@ import {
   writeProjectScan,
   type DoctorEnvironment,
 } from "@maru/core";
+import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
+import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 
 export interface CliOutput {
   error(message: string): void;
@@ -32,6 +34,7 @@ export interface CliDependencies {
   readonly doctorEnvironment?: DoctorEnvironment;
   readonly mcpServer?: (root: string) => Promise<void>;
   readonly now?: () => Date;
+  readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
 }
 
 const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
@@ -43,6 +46,7 @@ Commands:
   scan       Inventory project architecture, routes, tests, and dependencies
   doctor     Diagnose local prerequisites and configuration
   contract   Create, validate, inspect, diff, and approve Quality Contracts
+  risk       Assess the current Git diff with deterministic rules
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
@@ -52,6 +56,9 @@ Contract commands:
   maru contract show <id>
   maru contract diff <id-or-path> <id-or-path>
   maru contract approve <id> --by <owner>
+
+Risk commands:
+  maru risk --diff
 
 Options:
   -h, --help       Show help
@@ -78,6 +85,22 @@ function reportContractError(error: ContractError, output: CliOutput): void {
   output.error(
     `${error.code}\n${error.message}${issueLines.length === 0 ? "" : `\n${issueLines}`}\nFix: ${error.remediation}`,
   );
+}
+
+function reportGitError(error: GitAnalysisError, output: CliOutput): void {
+  output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+}
+
+function formatRiskAssessment(assessment: RiskAssessment): string {
+  const related = assessment.relatedContracts.map((contract) => contract.contractId).join(", ");
+  return [
+    `Risk: ${assessment.level.toUpperCase()} (${assessment.score}/100)`,
+    `Changed files: ${assessment.analysis.summary.changedFiles} (+${assessment.analysis.summary.additions} -${assessment.analysis.summary.deletions})`,
+    `Related contracts: ${related.length === 0 ? "none" : related}`,
+    "Why:",
+    ...assessment.reasons.map((reason) => `  +${reason.points} ${reason.message}`),
+    `Recommended tests: ${assessment.recommendedTestCategories.join(", ") || "none"}`,
+  ].join("\n");
 }
 
 function option(args: readonly string[], name: string): string | undefined {
@@ -286,6 +309,16 @@ export async function runCli(
       );
     }
 
+    if (command === "risk") {
+      if (args.length !== 2 || args[1] !== "--diff") {
+        output.error("Invalid risk command.\nRun maru risk --diff.");
+        return 1;
+      }
+      const assessment = await (dependencies.riskAssessment ?? assessProjectRisk)(root);
+      output.log(formatRiskAssessment(assessment));
+      return 0;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -299,6 +332,10 @@ export async function runCli(
     }
     if (error instanceof ProjectError) {
       reportProjectError(error, output);
+      return 1;
+    }
+    if (error instanceof GitAnalysisError) {
+      reportGitError(error, output);
       return 1;
     }
 
