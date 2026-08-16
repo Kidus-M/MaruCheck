@@ -242,7 +242,13 @@ export async function analyzeGitDiff(
         changed.path,
         existing === undefined
           ? metadata
-          : { ...existing, status: metadata.status, ...(metadata.originalPath === undefined ? {} : { originalPath: metadata.originalPath }) },
+          : {
+              ...existing,
+              status: metadata.status,
+              ...(metadata.originalPath === undefined
+                ? {}
+                : { originalPath: metadata.originalPath }),
+            },
       );
     }
 

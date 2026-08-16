@@ -18,14 +18,15 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 
 ## Tools
 
-| Tool                       | Behavior                                                                       | Access      |
-| -------------------------- | ------------------------------------------------------------------------------ | ----------- |
-| `maru_get_project_context` | Return project architecture, test inventory, routes, and contract summaries    | Read-only   |
-| `maru_list_contracts`      | List contract lifecycle, criticality, path, and version hash                   | Read-only   |
-| `maru_get_contract`        | Return one validated contract and its stable version hash                      | Read-only   |
-| `maru_create_contract`     | Create a review-required draft from requirements; never approve it             | Local write |
-| `maru_validate_contract`   | Validate every current contract or one project-root-bounded path               | Read-only   |
-| `maru_analyze_diff`        | Inventory staged, unstaged, and untracked paths without reading their contents | Read-only   |
+| Tool                       | Behavior                                                                           | Access      |
+| -------------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| `maru_get_project_context` | Return project architecture, test inventory, routes, and contract summaries        | Read-only   |
+| `maru_list_contracts`      | List contract lifecycle, criticality, path, and version hash                       | Read-only   |
+| `maru_get_contract`        | Return one validated contract and its stable version hash                          | Read-only   |
+| `maru_create_contract`     | Create a review-required draft from requirements; never approve it                 | Local write |
+| `maru_validate_contract`   | Validate every current contract or one project-root-bounded path                   | Read-only   |
+| `maru_analyze_diff`        | Return bounded staged, unstaged, and untracked change metadata and classifications | Read-only   |
+| `maru_assess_risk`         | Return deterministic risk, reasons, related contracts, and test categories         | Read-only   |
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 
@@ -89,10 +90,9 @@ Restart Cursor and enable `maru` in MCP settings.
 1. Call `maru_get_project_context` before changing behavior.
 2. Call `maru_get_contract` for the affected feature.
 3. Implement the change without weakening or auto-approving the contract.
-4. Call `maru_analyze_diff` to inventory changed paths.
-5. Validate contracts with `maru_validate_contract`.
-
-Phase 4 will extend diff analysis with deterministic risk and related-contract matching.
+4. Call `maru_analyze_diff` to inspect change metadata and classifications.
+5. Call `maru_assess_risk` to inspect score contributions and related requirements.
+6. Validate contracts with `maru_validate_contract`.
 
 ## Protocol and safety
 
@@ -100,7 +100,7 @@ Phase 4 will extend diff analysis with deterministic risk and related-contract m
 - Transport: local stdio only; no listening network socket or authentication surface.
 - Paths remain inside the configured project root.
 - Contract creation is the only write tool and always produces `draft` status.
-- Git analysis invokes `git` directly without a shell and returns paths/status only.
+- Git analysis invokes `git` directly without a shell and returns metadata rather than changed source lines.
 - stdout is reserved for MCP messages; clients should apply normal tool approval controls.
 
 References: [MCP lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [stdio transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports), [MCP tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [Codex MCP configuration](https://developers.openai.com/codex/mcp), [Claude Code MCP](https://docs.anthropic.com/en/docs/claude-code/mcp), and [Cursor MCP](https://docs.cursor.com/context/model-context-protocol).

@@ -25,6 +25,7 @@ node ../maru-cli/packages/cli/dist/index.js init
 node ../maru-cli/packages/cli/dist/index.js scan
 node ../maru-cli/packages/cli/dist/index.js doctor
 node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.md
+node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
@@ -44,11 +45,12 @@ The published developer experience will use `npx maru <command>`.
 
 ### Project commands
 
-| Command       | Description                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------------- |
-| `maru init`   | Detect the stack and create an idempotent `.maru/` configuration                               |
-| `maru scan`   | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
-| `maru doctor` | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| Command            | Description                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| `maru init`        | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`        | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor`      | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| `maru risk --diff` | Score current changes with deterministic explanations                                          |
 
 ### Quality Contract commands
 
@@ -70,6 +72,7 @@ packages/
 |-- core/         # verification domain and orchestration
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
+|-- risk/         # deterministic risk scoring and contract matching
 `-- shared/       # stable cross-package primitives
 ```
 
@@ -77,13 +80,13 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0, 1, and 2 are implemented. The local CLI supports Next.js/React repository discovery plus local Quality Contract creation, validation, inspection, semantic diffing, version hashing, and explicit approval.
+Phases 0 through 4 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, related-contract matching, and deterministic change-risk scoring.
 
 Known Phase 1 limitations:
 
 - route discovery follows common Next.js filesystem conventions and does not interpret custom runtime routing;
 - doctor validates declared tooling and executables but does not install browser binaries;
-- MCP and GitHub Actions configuration generation remain in their later planned phases;
+- GitHub Actions configuration remains in a later planned phase;
 - no cloud account or AI provider is used or required.
 
 Quality Contract YAML intentionally supports the documented MaruCheck schema rather than every YAML feature. Anchors, aliases, tags, merge keys, unsafe identifiers, duplicate keys, and paths outside the project root are rejected.
@@ -95,6 +98,12 @@ See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.
 `maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, validation, and a bounded Git working-tree inventory. It never approves contracts or sends repository content to a cloud service.
 
 See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
+
+### Git risk
+
+`maru risk --diff` classifies current changes and returns a reproducible 0-100 score with explicit point contributions, related Quality Contract requirements/invariants, and recommended test categories. It works offline and does not use an LLM for scoring.
+
+See the [Phase 4 Git risk guide](docs/guides/phase-4-git-risk.md) and [ADR-004](docs/decisions/0004-use-deterministic-metadata-risk-scoring.md).
 
 ## Contributing
 

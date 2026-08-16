@@ -72,9 +72,7 @@ describe("deterministic risk engine", () => {
       [SUBSCRIPTION_CONTRACT],
     );
     const css = assessRisk(
-      analysis([
-        file({ classifications: ["ui-only"], path: "src/app/theme.css", deletions: 0 }),
-      ]),
+      analysis([file({ classifications: ["ui-only"], path: "src/app/theme.css", deletions: 0 })]),
       [SUBSCRIPTION_CONTRACT],
     );
 

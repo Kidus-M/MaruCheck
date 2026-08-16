@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  analyzeGitDiff,
-  classifyChangedPath,
-  parseUnifiedDiff,
-  type GitRunner,
-} from "./index.js";
+import { analyzeGitDiff, classifyChangedPath, parseUnifiedDiff, type GitRunner } from "./index.js";
 
 const BILLING_PATCH = `diff --git a/src/billing/webhook.ts b/src/billing/webhook.ts
 index 1111111..2222222 100644

@@ -113,9 +113,7 @@ const CRITICALITY_POINTS: Record<ContractCriticality, number> = {
 function terms(text: string): Set<string> {
   const separated = text.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").toLowerCase();
   return new Set(
-    separated
-      .split(/[^a-z0-9]+/u)
-      .filter((term) => term.length >= 4 && !STOP_WORDS.has(term)),
+    separated.split(/[^a-z0-9]+/u).filter((term) => term.length >= 4 && !STOP_WORDS.has(term)),
   );
 }
 
@@ -149,7 +147,9 @@ function matchContract(
   return {
     contractId: contract.id,
     criticality: contract.criticality,
-    invariantIds: contract.invariants.filter((item) => matchesItem(item.statement)).map((item) => item.id),
+    invariantIds: contract.invariants
+      .filter((item) => matchesItem(item.statement))
+      .map((item) => item.id),
     matchedTerms,
     requirementIds: contract.requirements
       .filter((item) => matchesItem(item.statement))
@@ -244,7 +244,12 @@ export function assessRisk(
   const sizePoints =
     changedLineCount >= 200 ? 15 : changedLineCount >= 50 ? 10 : changedLineCount >= 10 ? 5 : 0;
   if (sizePoints > 0) {
-    addReason(reasons, "change-size", `Changes ${changedLineCount} added or deleted lines.`, sizePoints);
+    addReason(
+      reasons,
+      "change-size",
+      `Changes ${changedLineCount} added or deleted lines.`,
+      sizePoints,
+    );
   }
   const blastPoints =
     analysis.summary.changedFiles >= 20
@@ -311,7 +316,12 @@ export function assessRisk(
     );
   }
   if (productionChange && !classifications.has("test")) {
-    addReason(reasons, "tests-unchanged", "Production code changed without a changed test file.", 7);
+    addReason(
+      reasons,
+      "tests-unchanged",
+      "Production code changed without a changed test file.",
+      7,
+    );
   }
 
   const rawScore = reasons.reduce((total, reason) => total + reason.points, 0);

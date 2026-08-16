@@ -166,9 +166,9 @@ describe("maru CLI", () => {
       score: 92,
     });
 
-    await expect(
-      runCli(["risk", "--diff"], output, { cwd: root, riskAssessment }),
-    ).resolves.toBe(0);
+    await expect(runCli(["risk", "--diff"], output, { cwd: root, riskAssessment })).resolves.toBe(
+      0,
+    );
 
     expect(riskAssessment).toHaveBeenCalledWith(root);
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Risk: CRITICAL (92/100)"));
