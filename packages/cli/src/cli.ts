@@ -20,6 +20,11 @@ import {
   writeProjectScan,
   type DoctorEnvironment,
 } from "@maru/core";
+import {
+  VerificationExecutionError,
+  createAndRunVerification,
+  type VerificationRunResult,
+} from "@maru/execution";
 import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
@@ -41,6 +46,7 @@ export interface CliDependencies {
   readonly now?: () => Date;
   readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
   readonly verificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
+  readonly verificationRun?: (root: string, now: Date) => Promise<VerificationRunResult>;
 }
 
 const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
@@ -54,6 +60,7 @@ Commands:
   contract   Create, validate, inspect, diff, and approve Quality Contracts
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
+  verify     Execute selected tests for the current diff and capture raw artifacts
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
@@ -69,6 +76,9 @@ Risk commands:
 
 Planning commands:
   maru plan --diff
+
+Verification commands:
+  maru verify --diff
 
 Options:
   -h, --help       Show help
@@ -122,6 +132,20 @@ function formatVerificationPlan(result: VerificationPlanResult): string {
     `Affected tests: ${plan.summary.affectedTests}`,
     `Steps: ${plan.steps.length} (${plan.summary.automatedSteps} automated, ${plan.summary.manualSteps} manual, ${plan.summary.unavailableSteps} unavailable)`,
     `Uncovered requirements: ${plan.uncoveredRequirements.length}`,
+  ].join("\n");
+}
+
+function formatVerificationRun(result: VerificationRunResult): string {
+  const { run } = result;
+  const requirementRefs = [
+    ...new Set(run.results.flatMap((adapterResult) => adapterResult.requirementRefs)),
+  ].sort();
+  return [
+    `Verification: ${run.status.toUpperCase()}`,
+    `Run artifact: ${result.path}`,
+    `Results: ${run.summary.passed} passed, ${run.summary.failed} failed, ${run.summary.error} errors, ${run.summary.skipped} skipped, ${run.summary.unavailable} unavailable`,
+    `Blocking failures: ${run.summary.blockingFailures}`,
+    `Requirements: ${requirementRefs.join(", ") || "none"}`,
   ].join("\n");
 }
 
@@ -354,6 +378,23 @@ export async function runCli(
       return 0;
     }
 
+    if (command === "verify") {
+      if (args.length !== 2 || args[1] !== "--diff") {
+        output.error("Invalid verification command.\nRun maru verify --diff.");
+        return 1;
+      }
+      const result = await (dependencies.verificationRun ?? createAndRunVerification)(
+        root,
+        dependencies.now?.() ?? new Date(),
+      );
+      output.log(formatVerificationRun(result));
+      return result.run.status === "failed" ||
+        result.run.status === "error" ||
+        result.run.summary.blockingFailures > 0
+        ? 1
+        : 0;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -374,6 +415,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof VerificationPlanError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof VerificationExecutionError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

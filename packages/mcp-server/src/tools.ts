@@ -7,6 +7,12 @@ import {
   validateContracts,
 } from "@maru/contracts";
 import { ProjectError, scanProject, type ProjectScan } from "@maru/core";
+import {
+  VerificationExecutionError,
+  createAndRunVerification,
+  type TemporaryTest,
+  type VerificationRunResult,
+} from "@maru/execution";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
   VerificationPlanError,
@@ -132,6 +138,40 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
     CLOSED_EMPTY_SCHEMA,
     false,
   ),
+  definition(
+    "maru_run_verification",
+    "Run verification",
+    "Rebuild the current-diff plan, execute selected local tests plus optional requirement-tagged temporary tests, and persist bounded raw artifacts. Temporary test source is executed inside the project and removed after the run.",
+    schema({
+      temporaryTests: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            adapter: { enum: ["playwright", "vitest"], type: "string" },
+            id: {
+              maxLength: 80,
+              minLength: 1,
+              pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              type: "string",
+            },
+            requirementRefs: {
+              items: { maxLength: 240, minLength: 1, type: "string" },
+              maxItems: 100,
+              minItems: 1,
+              type: "array",
+            },
+            source: { maxLength: 100000, minLength: 1, type: "string" },
+            targetPath: { maxLength: 500, minLength: 1, type: "string" },
+          },
+          required: ["adapter", "id", "requirementRefs", "source", "targetPath"],
+          type: "object",
+        },
+        maxItems: 20,
+        type: "array",
+      },
+    }),
+    false,
+  ),
 ];
 
 class ToolInputError extends Error {
@@ -181,6 +221,40 @@ function optionalString(
 ): string | undefined {
   if (input[key] === undefined) return undefined;
   return requiredString(input, key, maximum);
+}
+
+function temporaryTests(input: Record<string, unknown>): TemporaryTest[] {
+  const value = input.temporaryTests;
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 20) {
+    throw new ToolInputError("temporaryTests must be an array containing at most 20 tests.");
+  }
+  return value.map((item, index) => {
+    const test = objectArguments(item, ["adapter", "id", "requirementRefs", "source", "targetPath"]);
+    if (test.adapter !== "vitest" && test.adapter !== "playwright") {
+      throw new ToolInputError(`temporaryTests[${index}].adapter must be vitest or playwright.`);
+    }
+    if (
+      !Array.isArray(test.requirementRefs) ||
+      test.requirementRefs.length === 0 ||
+      test.requirementRefs.length > 100 ||
+      test.requirementRefs.some(
+        (reference) =>
+          typeof reference !== "string" || reference.length === 0 || reference.length > 240,
+      )
+    ) {
+      throw new ToolInputError(
+        `temporaryTests[${index}].requirementRefs must contain 1 to 100 non-empty strings.`,
+      );
+    }
+    return {
+      adapter: test.adapter,
+      id: requiredString(test, "id", 80),
+      requirementRefs: test.requirementRefs as string[],
+      source: requiredString(test, "source", 100_000),
+      targetPath: requiredString(test, "targetPath", 500),
+    };
+  });
 }
 
 function success(data: JsonObject): McpToolResult {
@@ -237,6 +311,7 @@ function failure(error: unknown): McpToolResult {
     error instanceof ContractError ||
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
+    error instanceof VerificationExecutionError ||
     error instanceof VerificationPlanError ||
     error instanceof ToolInputError
   ) {
@@ -259,6 +334,11 @@ export interface MaruToolDependencies {
   readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
   readonly root: string;
+  readonly runVerification?: (
+    root: string,
+    now: Date,
+    options: { readonly temporaryTests: readonly TemporaryTest[] },
+  ) => Promise<VerificationRunResult>;
 }
 
 function isToolName(name: string): name is MaruMcpToolName {
@@ -323,6 +403,17 @@ export async function callMaruTool(
       const input = objectArguments(args, ["path"]);
       const validation = await validateContracts(root, optionalString(input, "path", 500));
       return success({ invalid: validation.invalid, valid: validation.valid });
+    }
+
+    if (name === "maru_run_verification") {
+      const input = objectArguments(args, ["temporaryTests"]);
+      const tests = temporaryTests(input);
+      const result = await (dependencies.runVerification ?? createAndRunVerification)(
+        root,
+        dependencies.now?.() ?? new Date(),
+        { temporaryTests: tests },
+      );
+      return success({ path: result.path, run: result.run });
     }
 
     objectArguments(args, []);

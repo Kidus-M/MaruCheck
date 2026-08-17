@@ -11,6 +11,7 @@
   "references": [
     { "path": "../contracts" },
     { "path": "../core" },
+    { "path": "../execution" },
     { "path": "../git" },
     { "path": "../mcp-server" },
     { "path": "../planner" },

@@ -34,6 +34,7 @@ export type MaruMcpToolName =
   | "maru_get_contract"
   | "maru_get_project_context"
   | "maru_list_contracts"
+  | "maru_run_verification"
   | "maru_validate_contract";
 
 export interface McpToolResult {
