@@ -128,6 +128,107 @@ describe("maru CLI", () => {
     expect(output.error).not.toHaveBeenCalled();
   });
 
+  it("blocks semantic drift, stores an amendment proposal, and applies it only after approval", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const dependencies = {
+      cwd: root,
+      now: () => new Date("2026-08-17T14:00:00.000Z"),
+    };
+    await runCli(["init"], output, dependencies);
+    await mkdir(join(root, ".maru", "contracts"), { recursive: true });
+    await writeFile(
+      join(root, ".maru", "contracts", "subscription-management.yml"),
+      `version: 1
+id: subscription-management
+title: Subscription Management
+status: approved
+criticality: critical
+intent: Preserve subscription limits.
+owners:
+  - product
+requirements:
+  - id: SUB-001
+    statement: Free users may upload 5 files.
+    priority: required
+invariants:
+  - id: SUB-INV-001
+    statement: Billing changes require a verified webhook.
+edge_cases: []
+security: []
+data_integrity: []
+evidence_policy:
+  blocking_requirements:
+    - SUB-001
+approval:
+  approved_by: product
+  approved_at: "2026-08-16T10:00:00.000Z"
+  version_hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+`,
+      "utf8",
+    );
+    await writeFile(
+      join(root, "observations.json"),
+      JSON.stringify({
+        observations: [
+          {
+            observed: "Free users may upload 10 files.",
+            requirementRef: "subscription-management#SUB-001",
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    await expect(
+      runCli(["drift", "check", "--from", "observations.json"], output, dependencies),
+    ).resolves.toBe(1);
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Semantic drift: BLOCKED"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("Contract: Free users may upload 5 files."),
+    );
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("Observed: Free users may upload 10 files."),
+    );
+
+    await expect(
+      runCli(
+        [
+          "drift",
+          "propose",
+          "subscription-management",
+          "--from",
+          "observations.json",
+          "--reason",
+          "Observed implementation behavior.",
+          "--by",
+          "codex",
+        ],
+        output,
+        dependencies,
+      ),
+    ).resolves.toBe(0);
+    const proposalMessage = output.log.mock.calls
+      .map(([message]) => String(message))
+      .find((message) => message.startsWith("Amendment proposed:"));
+    const proposalPath = proposalMessage?.split("\n")[0]?.replace("Amendment proposed: ", "");
+    expect(proposalPath).toBeTruthy();
+    expect((await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"))).toContain(
+      "Free users may upload 5 files.",
+    );
+
+    await expect(
+      runCli(
+        ["drift", "approve", proposalPath!, "--by", "product"],
+        output,
+        dependencies,
+      ),
+    ).resolves.toBe(0);
+    expect((await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"))).toContain(
+      "Free users may upload 10 files.",
+    );
+  });
+
   it("starts the local MCP server for the current project", async () => {
     const root = await createProject();
     const output = { error: vi.fn(), log: vi.fn() };

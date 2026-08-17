@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes nine namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes eleven namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -77,6 +77,8 @@ describe("MaruCheck MCP server", () => {
       "maru_assess_risk",
       "maru_create_verification_plan",
       "maru_run_verification",
+      "maru_check_semantic_drift",
+      "maru_propose_contract_amendment",
     ]);
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
@@ -104,6 +106,12 @@ describe("MaruCheck MCP server", () => {
       idempotentHint: false,
       readOnlyHint: false,
     });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_check_semantic_drift")?.annotations,
+    ).toMatchObject({ readOnlyHint: true });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_propose_contract_amendment")?.annotations,
+    ).toMatchObject({ readOnlyHint: false });
   });
 
   it("lets an agent query project context and a contract before editing code", async () => {
@@ -336,6 +344,61 @@ describe("MaruCheck MCP server", () => {
     expect(verificationReport).toHaveBeenCalledWith(root, new Date("2026-08-17T09:30:00.000Z"), {
       temporaryTests,
     });
+  });
+
+  it("reports semantic conflicts and can propose but never approve an amendment", async () => {
+    await writeFixture(
+      root,
+      ".maru/contracts/web-foundation.yml",
+      CONTRACT.replace("status: draft", "status: approved").replace(
+        "evidence_policy:",
+        `approval:
+  approved_by: product
+  approved_at: "2026-08-16T10:00:00.000Z"
+  version_hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evidence_policy:`,
+      ),
+    );
+    const observations = [
+      {
+        observed: "The health endpoint returns an unsuccessful JSON response.",
+        requirementRef: "web-foundation#WEB-001",
+      },
+    ];
+
+    const checked = await callMaruTool("maru_check_semantic_drift", { observations }, { root });
+    const proposed = await callMaruTool(
+      "maru_propose_contract_amendment",
+      {
+        contractId: "web-foundation",
+        observations,
+        proposedBy: "codex",
+        reason: "Observed local behavior differs from the approved requirement.",
+      },
+      { now: () => new Date("2026-08-17T14:00:00.000Z"), root },
+    );
+
+    expect(checked).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        report: {
+          classification: "semantic",
+          gate: { status: "blocked" },
+        },
+      },
+    });
+    expect(proposed).toMatchObject({
+      isError: false,
+      structuredContent: {
+        approvalRequired: true,
+        ok: true,
+        proposal: { approval: { status: "pending" }, status: "proposed" },
+      },
+    });
+    expect(await readFile(join(root, ".maru/contracts/web-foundation.yml"), "utf8")).toContain(
+      "The health endpoint returns a successful JSON response.",
+    );
   });
 
   it("enforces initialization before listing or calling tools", async () => {
