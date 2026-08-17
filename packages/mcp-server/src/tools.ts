@@ -155,7 +155,13 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
               type: "string",
             },
             requirementRefs: {
-              items: { maxLength: 240, minLength: 1, type: "string" },
+              items: {
+                maxLength: 241,
+                minLength: 3,
+                pattern:
+                  "^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$",
+                type: "string",
+              },
               maxItems: 100,
               minItems: 1,
               type: "array",
@@ -246,18 +252,30 @@ function temporaryTests(input: Record<string, unknown>): TemporaryTest[] {
       test.requirementRefs.length > 100 ||
       test.requirementRefs.some(
         (reference) =>
-          typeof reference !== "string" || reference.length === 0 || reference.length > 240,
+          typeof reference !== "string" ||
+          !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/u.test(
+            reference,
+          ),
       )
     ) {
       throw new ToolInputError(
-        `temporaryTests[${index}].requirementRefs must contain 1 to 100 non-empty strings.`,
+        `temporaryTests[${index}].requirementRefs must contain 1 to 100 contract-id#requirement-id strings.`,
+      );
+    }
+    if (
+      typeof test.source !== "string" ||
+      test.source.trim().length === 0 ||
+      test.source.length > 100_000
+    ) {
+      throw new ToolInputError(
+        `temporaryTests[${index}].source must be non-empty and no longer than 100000 characters.`,
       );
     }
     return {
       adapter: test.adapter,
       id: requiredString(test, "id", 80),
       requirementRefs: test.requirementRefs as string[],
-      source: requiredString(test, "source", 100_000),
+      source: test.source,
       targetPath: requiredString(test, "targetPath", 500),
     };
   });

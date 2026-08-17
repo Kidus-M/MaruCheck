@@ -27,6 +27,9 @@ export * from "./types.js";
 export { defaultCommandRunner } from "./runner.js";
 
 const DEFAULT_TIMEOUT_MS = 120_000;
+const MAX_TEMPORARY_TEST_SOURCE_LENGTH = 100_000;
+const REQUIREMENT_REFERENCE =
+  /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/u;
 const TEMPORARY_TEST_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const TEST_FILE = /\.(?:spec|test)\.(?:c|m)?(?:j|t)sx?$/u;
 
@@ -125,6 +128,27 @@ async function prepareTemporaryTests(
           "TEMPORARY_TEST_INVALID",
           `Temporary test id is invalid: ${test.id}`,
           "Use a lowercase kebab-case id no longer than 80 characters.",
+        );
+      }
+      if (
+        test.requirementRefs.length === 0 ||
+        test.requirementRefs.length > 100 ||
+        test.requirementRefs.some((reference) => !REQUIREMENT_REFERENCE.test(reference))
+      ) {
+        throw new VerificationExecutionError(
+          "TEMPORARY_TEST_INVALID",
+          `Temporary test requirement references are invalid: ${test.id}`,
+          "Provide 1 to 100 references in contract-id#requirement-id form.",
+        );
+      }
+      if (
+        test.source.trim().length === 0 ||
+        test.source.length > MAX_TEMPORARY_TEST_SOURCE_LENGTH
+      ) {
+        throw new VerificationExecutionError(
+          "TEMPORARY_TEST_INVALID",
+          `Temporary test source is empty or too large: ${test.id}`,
+          "Provide non-empty test source no larger than 100,000 characters.",
         );
       }
       if (!TEST_FILE.test(test.targetPath)) {
