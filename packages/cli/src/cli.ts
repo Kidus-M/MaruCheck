@@ -62,7 +62,7 @@ Commands:
   contract   Create, validate, inspect, diff, and approve Quality Contracts
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
-  verify     Execute selected tests for the current diff and capture raw artifacts
+  verify     Execute tests and write evidence, findings, and a JSON report
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:

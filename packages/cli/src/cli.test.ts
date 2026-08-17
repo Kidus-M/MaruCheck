@@ -38,6 +38,9 @@ describe("maru CLI", () => {
 
     await expect(runCli(["--help"], output)).resolves.toBe(0);
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Usage: maru <command>"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("evidence, findings, and a JSON report"),
+    );
     expect(output.error).not.toHaveBeenCalled();
   });
 
