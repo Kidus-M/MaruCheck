@@ -54,7 +54,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru doctor`        | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
 | `maru risk --diff`   | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`   | Write an inspectable, requirement-linked verification plan                                     |
-| `maru verify --diff` | Execute selected local tests and persist requirement-linked raw artifacts                      |
+| `maru verify --diff` | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 
 ### Quality Contract commands
 
@@ -74,6 +74,7 @@ packages/
 |-- cli/          # maru command-line interface
 |-- contracts/    # Quality Contract schemas and versioning
 |-- core/         # verification domain and orchestration
+|-- evidence/     # requirement evidence, findings, gates, and reports
 |-- execution/    # Vitest/Playwright execution and raw run artifacts
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
@@ -86,7 +87,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 6 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, and local Vitest/Playwright execution.
+Phases 0 through 7 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, and evidence/findings reports.
 
 Known Phase 1 limitations:
 
@@ -122,6 +123,12 @@ See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-pl
 `maru verify --diff` executes the plan's selected local Vitest and Playwright files, distinguishes failures from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
 
 See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) and [ADR-006](docs/decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md).
+
+### Evidence and findings
+
+Every verification run now writes `report.json` with normalized evidence, requirement mappings, deterministic severity, complete blocking findings, reproduction instructions, artifact references, and an explicit release gate. The CLI terminal view and MCP result use the same report object.
+
+See the [Phase 7 evidence and findings guide](docs/guides/phase-7-evidence-and-findings.md) and [ADR-007](docs/decisions/0007-normalize-raw-runs-into-conservative-evidence-and-findings.md).
 
 ## Contributing
 

@@ -261,6 +261,34 @@ describe("verification evidence and findings", () => {
     expect("contractId" in (report.findings[0] ?? {})).toBe(false);
   });
 
+  it("uses typed adapter error codes to distinguish execution errors from verification gaps", () => {
+    const erroredRun = run("unavailable");
+    const report = buildVerificationReport({
+      generatedAt: NOW.toISOString(),
+      plan: plan(),
+      run: {
+        ...erroredRun,
+        results: erroredRun.results.map((item) => ({
+          ...item,
+          error: {
+            code: "ADAPTER_EXECUTION_FAILED",
+            message: "Process launch returned EPERM.",
+            remediation: "Confirm process execution is allowed.",
+          },
+          status: "error" as const,
+        })),
+        status: "error",
+        summary: { ...erroredRun.summary, error: 1, unavailable: 0 },
+      },
+    });
+
+    expect(report.evidence[0]).toMatchObject({ errorCode: "ADAPTER_EXECUTION_FAILED" });
+    expect(report.findings[0]).toMatchObject({
+      actual: "Process launch returned EPERM.",
+      kind: "execution-error",
+    });
+  });
+
   it("writes stable JSON and a readable terminal summary", async () => {
     const root = await mkdtemp(join(tmpdir(), "maru-evidence-"));
     temporaryDirectories.push(root);

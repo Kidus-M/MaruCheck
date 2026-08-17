@@ -89,6 +89,6 @@ Recommended coding-agent sequence:
 - `maru plan --diff` remains inspection-only; `maru verify --diff` performs execution.
 - Vitest and Playwright are the planned automated adapters; Jest is detected but not yet executable by MaruCheck.
 - Matching is lexical and path-based rather than a complete dependency graph.
-- Phase 6 supports temporary generated tests and raw artifacts. Normalized evidence, findings, and release policy are later phases.
+- Phase 6 supports temporary generated tests and raw artifacts. Phase 7 adds normalized evidence, findings, reproduction instructions, and a deterministic gate.
 
 See [ADR-005](../decisions/0005-use-versioned-traceable-verification-plans.md) for the decision rationale.

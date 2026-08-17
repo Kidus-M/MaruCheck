@@ -49,7 +49,7 @@ Each run writes a unique directory:
 
 `run.json` is schema version 1 and includes the source plan path, run status, adapter results, exit codes, durations, test files, plan step IDs, blocking state, and `contract-id#requirement-id` references. Stdout and stderr capture is bounded; framework-native output remains in its artifact directory.
 
-Phase 6 artifacts are raw execution facts. Phase 7 will turn them into normalized evidence and findings.
+Phase 6 artifacts are raw execution facts. Phase 7 turns them into normalized evidence and findings in the adjacent `report.json`.
 
 ## Generated temporary tests
 
@@ -65,7 +65,7 @@ MaruCheck prefixes the source with `@maru-requirements`, writes it without overw
 
 ## MCP
 
-`maru_run_verification` performs the same plan-and-run workflow. With no arguments it executes existing selected tests:
+`maru_run_verification` performs the same plan-and-run workflow and returns the raw run plus the Phase 7 report. With no arguments it executes existing selected tests:
 
 ```json
 {}
@@ -91,6 +91,6 @@ The expected assertion shows that the implementation returned `active` when `can
 - Existing-test selection still uses the Phase 5 lexical matcher.
 - The default adapter timeout is two minutes.
 - Playwright uses the project's own configuration and browser installation.
-- Evidence normalization, findings, reproduction instructions, and terminal/JSON reports belong to Phase 7.
+- Phase 7 now provides evidence normalization, findings, reproduction instructions, and terminal/JSON reports without changing the raw-run schema.
 
 See [ADR-006](../decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md) for the decision rationale.

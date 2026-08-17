@@ -26,9 +26,7 @@ import {
   formatVerificationReport,
   type VerificationReportResult,
 } from "@maru/evidence";
-import {
-  VerificationExecutionError,
-} from "@maru/execution";
+import { VerificationExecutionError } from "@maru/execution";
 import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
