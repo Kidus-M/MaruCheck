@@ -262,8 +262,23 @@ describe("MaruCheck MCP server", () => {
   });
 
   it("runs verification with optional requirement-tagged temporary tests", async () => {
-    const runVerification = vi.fn().mockResolvedValue({
-      path: ".maru/artifacts/runs/run-id/run.json",
+    const verificationReport = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/runs/run-id/report.json",
+      planPath: ".maru/generated/verification-plan.json",
+      report: {
+        evidence: [{ id: "evidence-001-vitest", status: "failed" }],
+        findings: [
+          {
+            blocking: true,
+            contractId: "web-foundation",
+            evidenceIds: ["evidence-001-vitest"],
+            requirementId: "WEB-001",
+            severity: "high",
+          },
+        ],
+        gate: { status: "blocked" },
+        schemaVersion: 1,
+      },
       run: {
         generatedTests: [
           {
@@ -277,6 +292,7 @@ describe("MaruCheck MCP server", () => {
         status: "failed",
         summary: { blockingFailures: 1, failed: 1 },
       },
+      runPath: ".maru/artifacts/runs/run-id/run.json",
     });
     const temporaryTests = [
       {
@@ -294,7 +310,7 @@ describe("MaruCheck MCP server", () => {
       {
         now: () => new Date("2026-08-17T09:30:00.000Z"),
         root,
-        runVerification,
+        verificationReport,
       },
     );
 
@@ -302,13 +318,26 @@ describe("MaruCheck MCP server", () => {
       isError: false,
       structuredContent: {
         ok: true,
-        path: ".maru/artifacts/runs/run-id/run.json",
+        path: ".maru/artifacts/runs/run-id/report.json",
+        report: {
+          findings: [
+            expect.objectContaining({
+              contractId: "web-foundation",
+              evidenceIds: ["evidence-001-vitest"],
+              requirementId: "WEB-001",
+            }),
+          ],
+          gate: { status: "blocked" },
+        },
         run: { status: "failed", summary: { blockingFailures: 1 } },
+        runPath: ".maru/artifacts/runs/run-id/run.json",
       },
     });
-    expect(runVerification).toHaveBeenCalledWith(root, new Date("2026-08-17T09:30:00.000Z"), {
-      temporaryTests,
-    });
+    expect(verificationReport).toHaveBeenCalledWith(
+      root,
+      new Date("2026-08-17T09:30:00.000Z"),
+      { temporaryTests },
+    );
   });
 
   it("enforces initialization before listing or calling tools", async () => {

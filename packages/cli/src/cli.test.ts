@@ -249,36 +249,40 @@ describe("maru CLI", () => {
     const root = await createProject();
     const now = new Date("2026-08-17T09:30:00.000Z");
     const output = { error: vi.fn(), log: vi.fn() };
-    const verificationRun = vi.fn().mockResolvedValue({
-      path: ".maru/artifacts/runs/2026-08-17T09-30-00-000Z/run.json",
-      run: {
-        artifactDirectory: ".maru/artifacts/runs/2026-08-17T09-30-00-000Z",
-        completedAt: "2026-08-17T09:30:00.000Z",
-        generatedTests: [],
-        planPath: ".maru/generated/verification-plan.json",
-        results: [
+    const verificationReport = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/runs/2026-08-17T09-30-00-000Z/report.json",
+      report: {
+        evidence: [{ id: "evidence-001-vitest" }],
+        findings: [
           {
-            adapter: "vitest",
-            artifacts: {},
+            actual: "Received: active",
+            artifactRefs: [".maru/artifacts/runs/run-id/vitest/stderr.txt"],
             blocking: true,
-            durationMs: 12,
-            exitCode: 1,
-            requirementRefs: ["subscription-management#SUB-003"],
-            status: "failed",
-            stepIds: ["step-01-unit"],
-            testFiles: ["tests/subscription-cancellation.test.ts"],
+            contractId: "subscription-management",
+            evidenceIds: ["evidence-001-vitest"],
+            expected: "Cancellation remains active until period_end.",
+            id: "finding-001-subscription-management-sub-003",
+            reproduction: { command: "maru verify --diff", steps: ["Run verification."] },
+            requirementId: "SUB-003",
+            severity: "critical",
+            title: "SUB-003 verification failed",
           },
         ],
-        schemaVersion: 1,
-        startedAt: "2026-08-17T09:30:00.000Z",
-        status: "failed",
+        gate: { reasons: ["1 blocking finding remains open."], status: "blocked" },
+        requirementEvidence: [{ status: "failed" }],
+        runId: "2026-08-17T09-30-00-000Z",
+        runStatus: "failed",
         summary: {
-          blockingFailures: 1,
-          error: 0,
-          failed: 1,
-          passed: 0,
-          skipped: 0,
-          unavailable: 0,
+          blockingFindings: 1,
+          evidence: 1,
+          failedEvidence: 1,
+          findings: 1,
+          inconclusiveEvidence: 0,
+          passedEvidence: 0,
+          requirementsFailed: 1,
+          requirementsInconclusive: 0,
+          requirementsPassed: 0,
+          requirementsUnverified: 0,
         },
       },
     });
@@ -287,15 +291,16 @@ describe("maru CLI", () => {
       runCli(["verify", "--diff"], output, {
         cwd: root,
         now: () => now,
-        verificationRun,
+        verificationReport,
       }),
     ).resolves.toBe(1);
 
-    expect(verificationRun).toHaveBeenCalledWith(root, now);
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification: FAILED"));
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Blocking failures: 1"));
-    expect(output.log).toHaveBeenCalledWith(
-      expect.stringContaining("subscription-management#SUB-003"),
-    );
+    expect(verificationReport).toHaveBeenCalledWith(root, now);
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification gate: BLOCKED"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("[CRITICAL] BLOCKING"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Contract: subscription-management"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Requirement: SUB-003"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Actual: Received: active"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("JSON report:"));
   });
 });

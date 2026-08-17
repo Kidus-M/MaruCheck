@@ -21,9 +21,13 @@ import {
   type DoctorEnvironment,
 } from "@maru/core";
 import {
+  EvidenceReportError,
+  createAndWriteVerificationReport,
+  formatVerificationReport,
+  type VerificationReportResult,
+} from "@maru/evidence";
+import {
   VerificationExecutionError,
-  createAndRunVerification,
-  type VerificationRunResult,
 } from "@maru/execution";
 import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
@@ -46,7 +50,7 @@ export interface CliDependencies {
   readonly now?: () => Date;
   readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
   readonly verificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
-  readonly verificationRun?: (root: string, now: Date) => Promise<VerificationRunResult>;
+  readonly verificationReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
 }
 
 const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
@@ -132,20 +136,6 @@ function formatVerificationPlan(result: VerificationPlanResult): string {
     `Affected tests: ${plan.summary.affectedTests}`,
     `Steps: ${plan.steps.length} (${plan.summary.automatedSteps} automated, ${plan.summary.manualSteps} manual, ${plan.summary.unavailableSteps} unavailable)`,
     `Uncovered requirements: ${plan.uncoveredRequirements.length}`,
-  ].join("\n");
-}
-
-function formatVerificationRun(result: VerificationRunResult): string {
-  const { run } = result;
-  const requirementRefs = [
-    ...new Set(run.results.flatMap((adapterResult) => adapterResult.requirementRefs)),
-  ].sort();
-  return [
-    `Verification: ${run.status.toUpperCase()}`,
-    `Run artifact: ${result.path}`,
-    `Results: ${run.summary.passed} passed, ${run.summary.failed} failed, ${run.summary.error} errors, ${run.summary.skipped} skipped, ${run.summary.unavailable} unavailable`,
-    `Blocking failures: ${run.summary.blockingFailures}`,
-    `Requirements: ${requirementRefs.join(", ") || "none"}`,
   ].join("\n");
 }
 
@@ -383,16 +373,12 @@ export async function runCli(
         output.error("Invalid verification command.\nRun maru verify --diff.");
         return 1;
       }
-      const result = await (dependencies.verificationRun ?? createAndRunVerification)(
+      const result = await (dependencies.verificationReport ?? createAndWriteVerificationReport)(
         root,
         dependencies.now?.() ?? new Date(),
       );
-      output.log(formatVerificationRun(result));
-      return result.run.status === "failed" ||
-        result.run.status === "error" ||
-        result.run.summary.blockingFailures > 0
-        ? 1
-        : 0;
+      output.log(formatVerificationReport(result));
+      return result.report.gate.status === "blocked" ? 1 : 0;
     }
 
     if (command === "mcp") {
@@ -419,6 +405,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof VerificationExecutionError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof EvidenceReportError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

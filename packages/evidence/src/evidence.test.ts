@@ -212,6 +212,31 @@ describe("verification evidence and findings", () => {
     expect(report.gate.status).toBe("blocked");
   });
 
+  it("links archived generated tests into their adapter evidence", () => {
+    const failedRun = run("failed");
+    const report = buildVerificationReport({
+      diagnostics: ["Received: free"],
+      generatedAt: NOW.toISOString(),
+      plan: plan(),
+      run: {
+        ...failedRun,
+        generatedTests: [
+          {
+            adapter: "vitest",
+            artifactPath: `${RUN_DIRECTORY}/generated/vitest-cancellation.test.ts`,
+            id: "cancellation",
+            requirementRefs: ["subscription-management#SUB-004"],
+            targetPath: "tests/.maru-cancellation.test.ts",
+          },
+        ],
+      },
+    });
+
+    expect(report.evidence[0]?.artifactRefs).toContain(
+      `${RUN_DIRECTORY}/generated/vitest-cancellation.test.ts`,
+    );
+  });
+
   it("writes stable JSON and a readable terminal summary", async () => {
     const root = await mkdtemp(join(tmpdir(), "maru-evidence-"));
     temporaryDirectories.push(root);

@@ -1,5 +1,5 @@
 {
-  "name": "@maru/mcp-server",
+  "name": "@maru/evidence",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,11 +13,7 @@
     "dist"
   ],
   "dependencies": {
-    "@maru/contracts": "0.1.0",
-    "@maru/core": "0.1.0",
-    "@maru/evidence": "0.1.0",
     "@maru/execution": "0.1.0",
-    "@maru/git": "0.1.0",
     "@maru/planner": "0.1.0",
     "@maru/risk": "0.1.0"
   }

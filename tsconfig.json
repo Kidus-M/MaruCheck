@@ -8,6 +8,7 @@
     { "path": "./packages/risk" },
     { "path": "./packages/planner" },
     { "path": "./packages/execution" },
+    { "path": "./packages/evidence" },
     { "path": "./packages/cli" },
     { "path": "./packages/mcp-server" }
   ]

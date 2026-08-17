@@ -9,12 +9,7 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../contracts" },
-    { "path": "../core" },
-    { "path": "../evidence" },
     { "path": "../execution" },
-    { "path": "../git" },
-    { "path": "../mcp-server" },
     { "path": "../planner" },
     { "path": "../risk" }
   ]

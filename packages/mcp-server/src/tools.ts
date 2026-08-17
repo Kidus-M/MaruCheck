@@ -8,10 +8,13 @@ import {
 } from "@maru/contracts";
 import { ProjectError, scanProject, type ProjectScan } from "@maru/core";
 import {
+  EvidenceReportError,
+  createAndWriteVerificationReport,
+  type VerificationReportResult,
+} from "@maru/evidence";
+import {
   VerificationExecutionError,
-  createAndRunVerification,
   type TemporaryTest,
-  type VerificationRunResult,
 } from "@maru/execution";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
@@ -141,7 +144,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
   definition(
     "maru_run_verification",
     "Run verification",
-    "Rebuild the current-diff plan, execute selected local tests plus optional requirement-tagged temporary tests, and persist bounded raw artifacts. Temporary test source is executed inside the project and removed after the run.",
+    "Rebuild the current-diff plan, execute selected local tests plus optional requirement-tagged temporary tests, and persist raw artifacts plus normalized evidence, requirement mappings, findings, reproduction instructions, and a JSON report. Temporary test source is executed inside the project and removed after the run.",
     schema({
       temporaryTests: {
         items: {
@@ -330,6 +333,7 @@ function failure(error: unknown): McpToolResult {
 
   if (
     error instanceof ContractError ||
+    error instanceof EvidenceReportError ||
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
     error instanceof VerificationExecutionError ||
@@ -355,11 +359,11 @@ export interface MaruToolDependencies {
   readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
   readonly root: string;
-  readonly runVerification?: (
+  readonly verificationReport?: (
     root: string,
     now: Date,
     options: { readonly temporaryTests: readonly TemporaryTest[] },
-  ) => Promise<VerificationRunResult>;
+  ) => Promise<VerificationReportResult>;
 }
 
 function isToolName(name: string): name is MaruMcpToolName {
@@ -429,12 +433,18 @@ export async function callMaruTool(
     if (name === "maru_run_verification") {
       const input = objectArguments(args, ["temporaryTests"]);
       const tests = temporaryTests(input);
-      const result = await (dependencies.runVerification ?? createAndRunVerification)(
+      const result = await (dependencies.verificationReport ?? createAndWriteVerificationReport)(
         root,
         dependencies.now?.() ?? new Date(),
         { temporaryTests: tests },
       );
-      return success({ path: result.path, run: result.run });
+      return success({
+        path: result.path,
+        planPath: result.planPath,
+        report: result.report,
+        run: result.run,
+        runPath: result.runPath,
+      });
     }
 
     objectArguments(args, []);

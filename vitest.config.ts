@@ -10,6 +10,7 @@ export default defineConfig({
       "@maru/contracts": packageSource("contracts"),
       "@maru/core": packageSource("core"),
       "@maru/execution": packageSource("execution"),
+      "@maru/evidence": packageSource("evidence"),
       "@maru/git": packageSource("git"),
       "@maru/mcp-server": packageSource("mcp-server"),
       "@maru/planner": packageSource("planner"),
