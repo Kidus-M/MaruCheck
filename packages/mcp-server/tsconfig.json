@@ -11,6 +11,7 @@
   "references": [
     { "path": "../contracts" },
     { "path": "../core" },
+    { "path": "../drift" },
     { "path": "../evidence" },
     { "path": "../execution" },
     { "path": "../git" },

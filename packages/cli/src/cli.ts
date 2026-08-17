@@ -27,6 +27,14 @@ import {
   type VerificationReportResult,
 } from "@maru/evidence";
 import { VerificationExecutionError } from "@maru/execution";
+import {
+  DriftError,
+  approveContractAmendment,
+  checkSemanticDrift,
+  formatSemanticDriftReport,
+  parseObservedBehaviors,
+  proposeContractAmendment,
+} from "@maru/drift";
 import { GitAnalysisError } from "@maru/git";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
@@ -60,6 +68,7 @@ Commands:
   scan       Inventory project architecture, routes, tests, and dependencies
   doctor     Diagnose local prerequisites and configuration
   contract   Create, validate, inspect, diff, and approve Quality Contracts
+  drift      Check protected expectations and manage contract amendments
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
   verify     Execute tests and write evidence, findings, and a JSON report
@@ -72,6 +81,11 @@ Contract commands:
   maru contract show <id>
   maru contract diff <id-or-path> <id-or-path>
   maru contract approve <id> --by <owner>
+
+Semantic drift commands:
+  maru drift check --from observations.json
+  maru drift propose <contract-id> --from observations.json --reason "Why" --by <proposer>
+  maru drift approve <proposal-path> --by <contract-owner>
 
 Risk commands:
   maru risk --diff
@@ -274,6 +288,101 @@ async function runContractCommand(
   );
 }
 
+async function observationsFromFile(root: string, path: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(resolveInsideRoot(root, path), "utf8")) as unknown;
+  } catch (error) {
+    throw new DriftError(
+      "DRIFT_INVALID_INPUT",
+      `Unable to read observations from ${path}.`,
+      "Provide a valid JSON file inside the project root.",
+      { cause: error },
+    );
+  }
+  return parseObservedBehaviors(parsed);
+}
+
+async function runDriftCommand(
+  args: readonly string[],
+  root: string,
+  output: CliOutput,
+  now: Date,
+): Promise<number> {
+  const [action, ...actionArgs] = args;
+  if (action === "check") {
+    const sourcePath = option(actionArgs, "--from");
+    if (sourcePath === undefined) {
+      throw new DriftError(
+        "DRIFT_INVALID_INPUT",
+        "An observations file is required.",
+        "Run maru drift check --from observations.json.",
+      );
+    }
+    const summaries = await listContracts(root);
+    const contracts = await Promise.all(summaries.map((item) => getContract(root, item.id)));
+    const report = checkSemanticDrift(
+      contracts,
+      await observationsFromFile(root, sourcePath),
+      now,
+    );
+    output.log(formatSemanticDriftReport(report));
+    return report.gate.status === "blocked" ? 1 : 0;
+  }
+
+  if (action === "propose") {
+    const contractId = actionArgs[0];
+    const sourcePath = option(actionArgs, "--from");
+    const reason = option(actionArgs, "--reason");
+    const proposedBy = option(actionArgs, "--by");
+    if (
+      contractId === undefined ||
+      sourcePath === undefined ||
+      reason === undefined ||
+      proposedBy === undefined
+    ) {
+      throw new DriftError(
+        "DRIFT_INVALID_INPUT",
+        "A contract, observations file, reason, and proposer are required.",
+        'Run maru drift propose <contract-id> --from observations.json --reason "Why" --by <proposer>.',
+      );
+    }
+    const result = await proposeContractAmendment(
+      root,
+      contractId,
+      await observationsFromFile(root, sourcePath),
+      { now, proposedBy, reason },
+    );
+    output.log(
+      `Amendment proposed: ${result.path}\nSemantic changes: ${result.proposal.changes.filter((item) => item.semantic).length}\nApproval required from: ${result.proposal.approval.eligibleApprovers.join(", ") || "an accountable owner"}\nThe current contract was not changed.`,
+    );
+    return 0;
+  }
+
+  if (action === "approve") {
+    const proposalPath = actionArgs[0];
+    const approvedBy = option(actionArgs, "--by");
+    if (proposalPath === undefined || approvedBy === undefined) {
+      throw new DriftError(
+        "DRIFT_APPROVAL_REQUIRED",
+        "A proposal path and approving contract owner are required.",
+        "Run maru drift approve <proposal-path> --by <contract-owner>.",
+      );
+    }
+    const result = await approveContractAmendment(root, proposalPath, { approvedBy, now });
+    output.log(
+      `Amendment approved: ${result.contract.id}\nVersion: ${result.versionHash}\nAudit: ${result.auditPath}`,
+    );
+    return 0;
+  }
+
+  throw new DriftError(
+    "DRIFT_INVALID_INPUT",
+    `Unknown drift command: ${action ?? "(missing)"}`,
+    "Run maru --help for semantic drift command usage.",
+  );
+}
+
 /**
  * Execute a MaruCheck CLI command against a project directory.
  *
@@ -336,6 +445,15 @@ export async function runCli(
 
     if (command === "contract") {
       return await runContractCommand(
+        args.slice(1),
+        root,
+        output,
+        dependencies.now?.() ?? new Date(),
+      );
+    }
+
+    if (command === "drift") {
+      return await runDriftCommand(
         args.slice(1),
         root,
         output,
@@ -407,6 +525,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof EvidenceReportError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof DriftError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

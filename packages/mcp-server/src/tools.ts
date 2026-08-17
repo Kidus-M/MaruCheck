@@ -13,6 +13,12 @@ import {
   type VerificationReportResult,
 } from "@maru/evidence";
 import { VerificationExecutionError, type TemporaryTest } from "@maru/execution";
+import {
+  DriftError,
+  checkSemanticDrift,
+  parseObservedBehaviors,
+  proposeContractAmendment,
+} from "@maru/drift";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
   VerificationPlanError,
@@ -34,6 +40,33 @@ const BASE_OUTPUT_SCHEMA = {
   type: "object",
 } as const;
 const MAX_CONTEXT_ITEMS = 100;
+const OBSERVATION_SCHEMA = {
+  additionalProperties: false,
+  properties: {
+    maintenanceKind: {
+      enum: ["dom-structure", "fixture-setup", "route-timing", "selector", "wait-condition"],
+      type: "string",
+    },
+    observed: { maxLength: 10000, minLength: 1, type: "string" },
+    requirementRef: {
+      maxLength: 241,
+      minLength: 3,
+      pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$",
+      type: "string",
+    },
+    source: {
+      additionalProperties: false,
+      properties: {
+        line: { minimum: 1, type: "integer" },
+        path: { maxLength: 500, minLength: 1, type: "string" },
+      },
+      required: ["path"],
+      type: "object",
+    },
+  },
+  required: ["observed", "requirementRef"],
+  type: "object",
+} as const;
 
 function schema(properties: JsonObject, required: readonly string[] = []): JsonObject {
   return {
@@ -175,6 +208,48 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
         type: "array",
       },
     }),
+    false,
+  ),
+  definition(
+    "maru_check_semantic_drift",
+    "Check protected contract expectations",
+    "Compare explicit observed behavior with current contract requirements and invariants. Approved semantic conflicts block; selector, DOM, timing, wait, and fixture maintenance is allowed only when protected meaning is unchanged.",
+    schema(
+      {
+        observations: {
+          items: OBSERVATION_SCHEMA,
+          maxItems: 100,
+          minItems: 1,
+          type: "array",
+        },
+      },
+      ["observations"],
+    ),
+    true,
+  ),
+  definition(
+    "maru_propose_contract_amendment",
+    "Propose a contract amendment",
+    "Write an immutable, pending amendment proposal for a semantic conflict. This tool never approves or rewrites the current contract.",
+    schema(
+      {
+        contractId: {
+          maxLength: 120,
+          minLength: 1,
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          type: "string",
+        },
+        observations: {
+          items: OBSERVATION_SCHEMA,
+          maxItems: 100,
+          minItems: 1,
+          type: "array",
+        },
+        proposedBy: { maxLength: 200, minLength: 1, type: "string" },
+        reason: { maxLength: 2000, minLength: 1, type: "string" },
+      },
+      ["contractId", "observations", "proposedBy", "reason"],
+    ),
     false,
   ),
 ];
@@ -330,6 +405,7 @@ function failure(error: unknown): McpToolResult {
 
   if (
     error instanceof ContractError ||
+    error instanceof DriftError ||
     error instanceof EvidenceReportError ||
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
@@ -442,6 +518,31 @@ export async function callMaruTool(
         run: result.run,
         runPath: result.runPath,
       });
+    }
+
+    if (name === "maru_check_semantic_drift") {
+      const input = objectArguments(args, ["observations"]);
+      const observations = parseObservedBehaviors({ observations: input.observations });
+      const summaries = await listContracts(root);
+      const contracts = await Promise.all(summaries.map((item) => getContract(root, item.id)));
+      return success({
+        report: checkSemanticDrift(contracts, observations, dependencies.now?.() ?? new Date()),
+      });
+    }
+
+    if (name === "maru_propose_contract_amendment") {
+      const input = objectArguments(args, ["contractId", "observations", "proposedBy", "reason"]);
+      const result = await proposeContractAmendment(
+        root,
+        requiredString(input, "contractId", 120),
+        parseObservedBehaviors({ observations: input.observations }),
+        {
+          now: dependencies.now?.() ?? new Date(),
+          proposedBy: requiredString(input, "proposedBy", 200),
+          reason: requiredString(input, "reason", 2000),
+        },
+      );
+      return success({ ...result, approvalRequired: true });
     }
 
     objectArguments(args, []);

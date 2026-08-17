@@ -29,11 +29,13 @@ export interface McpToolDefinition {
 export type MaruMcpToolName =
   | "maru_analyze_diff"
   | "maru_assess_risk"
+  | "maru_check_semantic_drift"
   | "maru_create_contract"
   | "maru_create_verification_plan"
   | "maru_get_contract"
   | "maru_get_project_context"
   | "maru_list_contracts"
+  | "maru_propose_contract_amendment"
   | "maru_run_verification"
   | "maru_validate_contract";
 
