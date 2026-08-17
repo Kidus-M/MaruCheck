@@ -158,8 +158,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
               items: {
                 maxLength: 241,
                 minLength: 3,
-                pattern:
-                  "^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$",
+                pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$",
                 type: "string",
               },
               maxItems: 100,
@@ -253,9 +252,7 @@ function temporaryTests(input: Record<string, unknown>): TemporaryTest[] {
       test.requirementRefs.some(
         (reference) =>
           typeof reference !== "string" ||
-          !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/u.test(
-            reference,
-          ),
+          !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/u.test(reference),
       )
     ) {
       throw new ToolInputError(

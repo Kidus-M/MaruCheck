@@ -27,6 +27,7 @@ node ../maru-cli/packages/cli/dist/index.js doctor
 node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.md
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
+node ../maru-cli/packages/cli/dist/index.js verify --diff
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
@@ -46,13 +47,14 @@ The published developer experience will use `npx maru <command>`.
 
 ### Project commands
 
-| Command            | Description                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------- |
-| `maru init`        | Detect the stack and create an idempotent `.maru/` configuration                               |
-| `maru scan`        | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
-| `maru doctor`      | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
-| `maru risk --diff` | Score current changes with deterministic explanations                                          |
-| `maru plan --diff` | Write an inspectable, requirement-linked verification plan                                     |
+| Command              | Description                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `maru init`          | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`          | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor`        | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| `maru risk --diff`   | Score current changes with deterministic explanations                                          |
+| `maru plan --diff`   | Write an inspectable, requirement-linked verification plan                                     |
+| `maru verify --diff` | Execute selected local tests and persist requirement-linked raw artifacts                      |
 
 ### Quality Contract commands
 
@@ -72,6 +74,7 @@ packages/
 |-- cli/          # maru command-line interface
 |-- contracts/    # Quality Contract schemas and versioning
 |-- core/         # verification domain and orchestration
+|-- execution/    # Vitest/Playwright execution and raw run artifacts
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
 |-- planner/      # requirement-linked verification planning
@@ -83,7 +86,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 5 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, and requirement-linked verification planning.
+Phases 0 through 6 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, and local Vitest/Playwright execution.
 
 Known Phase 1 limitations:
 
@@ -98,7 +101,7 @@ See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.
 
 ### MCP server
 
-`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, validation, and a bounded Git working-tree inventory. It never approves contracts or sends repository content to a cloud service.
+`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, validation, bounded Git/risk/planning tools, and local verification execution. It never approves contracts or sends repository content to a cloud service.
 
 See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
 
@@ -110,9 +113,15 @@ See the [Phase 4 Git risk guide](docs/guides/phase-4-git-risk.md) and [ADR-004](
 
 ### Verification planning
 
-`maru plan --diff` writes a versioned `.maru/generated/verification-plan.json` connecting the current change to contract requirements, affected tests, risk-based adapter choices, uncovered requirements, and reasons for every step. Phase 5 plans are inspectable inputs for the Phase 6 execution adapters.
+`maru plan --diff` writes a versioned `.maru/generated/verification-plan.json` connecting the current change to contract requirements, affected tests, risk-based adapter choices, uncovered requirements, and reasons for every step.
 
 See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-planner.md) and [ADR-005](docs/decisions/0005-use-versioned-traceable-verification-plans.md).
+
+### Verification execution
+
+`maru verify --diff` executes the plan's selected local Vitest and Playwright files, distinguishes failures from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
+
+See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) and [ADR-006](docs/decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md).
 
 ## Contributing
 

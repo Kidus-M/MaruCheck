@@ -68,7 +68,7 @@ This is targeted lexical matching, not a claim of full call-graph coverage. Requ
 | E2E and accessibility                       | Playwright when detected; otherwise `unavailable`        |
 | Security and adversarial edge cases         | `manual-review` until a supported adapter is implemented |
 
-Adapters in a Phase 5 plan describe intended execution. Phase 6 will execute Vitest and Playwright steps. An unavailable step is never counted as successful verification.
+Adapters in a Phase 5 plan describe intended execution. Phase 6 executes Vitest and Playwright steps through `maru verify --diff`. An unavailable step is never counted as successful verification.
 
 ## MCP
 
@@ -81,13 +81,14 @@ Recommended coding-agent sequence:
 3. Call `maru_analyze_diff`.
 4. Call `maru_assess_risk`.
 5. Call `maru_create_verification_plan`.
-6. Review unavailable steps and uncovered requirements before claiming verification.
+6. Call `maru_run_verification` after reviewing any generated temporary test source.
+7. Review unavailable steps, uncovered requirements, and blocking failures before claiming verification.
 
 ## Current limits
 
-- The planner does not execute tests in Phase 5.
+- `maru plan --diff` remains inspection-only; `maru verify --diff` performs execution.
 - Vitest and Playwright are the planned automated adapters; Jest is detected but not yet executable by MaruCheck.
 - Matching is lexical and path-based rather than a complete dependency graph.
-- Generated tests, evidence capture, findings, and release policy are later phases.
+- Phase 6 supports temporary generated tests and raw artifacts. Normalized evidence, findings, and release policy are later phases.
 
 See [ADR-005](../decisions/0005-use-versioned-traceable-verification-plans.md) for the decision rationale.
