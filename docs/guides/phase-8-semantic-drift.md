@@ -89,3 +89,13 @@ Compatible coding agents receive two tools:
 There is intentionally no MCP approval tool. Codex, Claude Code, Cursor, and other clients use the same contract and report model, while the final authority remains a separate owner action through the CLI.
 
 See [ADR-008](../decisions/0008-separate-semantic-drift-detection-proposal-and-approval.md) for the decision rationale.
+
+## Acceptance fixture
+
+Run:
+
+```bash
+npm run test:acceptance:semantic-drift
+```
+
+The fixture succeeds only when an approved free quota changing from 5 to 10 produces a blocking report, a non-zero CLI exit, both expected and observed statements, and no change to the current contract file.
