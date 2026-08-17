@@ -226,6 +226,29 @@ describe("verification execution", () => {
     expect(runner.run).not.toHaveBeenCalled();
   });
 
+  it("refuses to overwrite an existing file with a temporary test", async () => {
+    const root = await project();
+    await writeFile(join(root, "tests/existing.test.ts"), "user-owned", "utf8");
+
+    await expect(
+      runVerificationPlan(root, plan([step("vitest")]), {
+        now: () => NOW,
+        temporaryTests: [
+          {
+            adapter: "vitest",
+            id: "existing",
+            requirementRefs: ["subscription-management#SUB-003"],
+            source: "throw new Error('must not be written');",
+            targetPath: "tests/existing.test.ts",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "TEMPORARY_TEST_EXISTS" });
+    await expect(readFile(join(root, "tests/existing.test.ts"), "utf8")).resolves.toBe(
+      "user-owned",
+    );
+  });
+
   it("creates and persists the current plan before executing it", async () => {
     const root = await project();
     const verificationPlan = plan([step("vitest", { testFiles: ["tests/unit.test.ts"] })]);

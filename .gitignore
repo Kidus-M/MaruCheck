@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+.maru/artifacts/
 *.tsbuildinfo
 .env
 .env.*
