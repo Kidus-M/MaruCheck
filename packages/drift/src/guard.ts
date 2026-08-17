@@ -1,5 +1,6 @@
 import type { QualityContract } from "@maru/contracts";
 import {
+  DriftError,
   SEMANTIC_DRIFT_SCHEMA_VERSION,
   type AllowedMechanicalChange,
   type ObservedBehavior,
@@ -13,9 +14,101 @@ const ACTIONS = [
   "propose-contract-amendment",
   "investigate",
 ] as const;
+const MAINTENANCE_KINDS = new Set([
+  "dom-structure",
+  "fixture-setup",
+  "route-timing",
+  "selector",
+  "wait-condition",
+]);
 
 function normalize(statement: string): string {
   return statement.trim().replace(/\s+/gu, " ");
+}
+
+/** Validate bounded observations supplied by a CLI file or MCP client. */
+export function parseObservedBehaviors(value: unknown): ObservedBehavior[] {
+  const candidate =
+    typeof value === "object" && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>).observations
+      : value;
+  if (!Array.isArray(candidate) || candidate.length === 0 || candidate.length > 100) {
+    throw new DriftError(
+      "DRIFT_INVALID_INPUT",
+      "Observations must contain between 1 and 100 entries.",
+      "Provide an array, or an object with an observations array, using contract-id#requirement-id references.",
+    );
+  }
+  return candidate.map((item, index) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new DriftError(
+        "DRIFT_INVALID_INPUT",
+        `Observation ${index + 1} must be an object.`,
+        "Provide requirementRef and observed strings for every observation.",
+      );
+    }
+    const input = item as Record<string, unknown>;
+    const unknown = Object.keys(input).filter(
+      (key) => !["maintenanceKind", "observed", "requirementRef", "source"].includes(key),
+    );
+    if (
+      unknown.length > 0 ||
+      typeof input.requirementRef !== "string" ||
+      !REFERENCE.test(input.requirementRef) ||
+      typeof input.observed !== "string" ||
+      input.observed.trim().length === 0 ||
+      input.observed.length > 10_000 ||
+      (input.maintenanceKind !== undefined &&
+        (typeof input.maintenanceKind !== "string" ||
+          !MAINTENANCE_KINDS.has(input.maintenanceKind)))
+    ) {
+      throw new DriftError(
+        "DRIFT_INVALID_INPUT",
+        `Observation ${index + 1} is invalid.`,
+        "Use a valid requirementRef, a non-empty observed statement, and an optional published maintenanceKind.",
+      );
+    }
+    let source: ObservedBehavior["source"];
+    if (input.source !== undefined) {
+      if (
+        typeof input.source !== "object" ||
+        input.source === null ||
+        Array.isArray(input.source) ||
+        typeof (input.source as Record<string, unknown>).path !== "string"
+      ) {
+        throw new DriftError(
+          "DRIFT_INVALID_INPUT",
+          `Observation ${index + 1} has an invalid source.`,
+          "Use source.path and an optional positive source.line.",
+        );
+      }
+      const raw = input.source as Record<string, unknown>;
+      if (
+        raw.path.length === 0 ||
+        raw.path.length > 500 ||
+        (raw.line !== undefined &&
+          (typeof raw.line !== "number" || !Number.isInteger(raw.line) || raw.line < 1))
+      ) {
+        throw new DriftError(
+          "DRIFT_INVALID_INPUT",
+          `Observation ${index + 1} has an invalid source.`,
+          "Use source.path and an optional positive source.line.",
+        );
+      }
+      source = {
+        path: raw.path,
+        ...(typeof raw.line === "number" ? { line: raw.line } : {}),
+      };
+    }
+    return {
+      ...(typeof input.maintenanceKind === "string"
+        ? { maintenanceKind: input.maintenanceKind as ObservedBehavior["maintenanceKind"] }
+        : {}),
+      observed: input.observed.trim(),
+      requirementRef: input.requirementRef,
+      ...(source === undefined ? {} : { source }),
+    };
+  });
 }
 
 function lookup(

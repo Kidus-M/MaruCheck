@@ -18,6 +18,7 @@
   "dependencies": {
     "@maru/contracts": "0.1.0",
     "@maru/core": "0.1.0",
+    "@maru/drift": "0.1.0",
     "@maru/evidence": "0.1.0",
     "@maru/execution": "0.1.0",
     "@maru/git": "0.1.0",
