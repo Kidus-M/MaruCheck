@@ -257,9 +257,8 @@ describe("verification evidence and findings", () => {
       reasons: expect.arrayContaining([expect.stringContaining("raw blocking")]),
       status: "blocked",
     });
-    expect(report.findings).toEqual([
-      expect.objectContaining({ blocking: false, contractId: undefined }),
-    ]);
+    expect(report.findings).toEqual([expect.objectContaining({ blocking: false })]);
+    expect("contractId" in (report.findings[0] ?? {})).toBe(false);
   });
 
   it("writes stable JSON and a readable terminal summary", async () => {
