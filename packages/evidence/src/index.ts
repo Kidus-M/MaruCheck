@@ -388,6 +388,11 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
     ...(input.run.status === "failed" || input.run.status === "error"
       ? [`The raw verification run ended with status ${input.run.status}.`]
       : []),
+    ...(input.run.summary.blockingFailures > 0
+      ? [
+          `${input.run.summary.blockingFailures} raw blocking verification result(s) did not pass.`,
+        ]
+      : []),
     ...(reportSummary.blockingFindings > 0
       ? [`${reportSummary.blockingFindings} blocking finding(s) remain open.`]
       : []),

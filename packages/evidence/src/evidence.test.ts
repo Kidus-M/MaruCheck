@@ -237,6 +237,31 @@ describe("verification evidence and findings", () => {
     );
   });
 
+  it("blocks an unlinked raw blocking failure without inventing a contract violation", () => {
+    const inputPlan = plan();
+    const unavailableRun = run("unavailable");
+    const report = buildVerificationReport({
+      generatedAt: NOW.toISOString(),
+      plan: {
+        ...inputPlan,
+        selectedRequirements: [],
+        steps: inputPlan.steps.map((item) => ({ ...item, requirementRefs: [] })),
+      },
+      run: {
+        ...unavailableRun,
+        results: unavailableRun.results.map((item) => ({ ...item, requirementRefs: [] })),
+      },
+    });
+
+    expect(report.gate).toMatchObject({
+      reasons: expect.arrayContaining([expect.stringContaining("raw blocking")]),
+      status: "blocked",
+    });
+    expect(report.findings).toEqual([
+      expect.objectContaining({ blocking: false, contractId: undefined }),
+    ]);
+  });
+
   it("writes stable JSON and a readable terminal summary", async () => {
     const root = await mkdtemp(join(tmpdir(), "maru-evidence-"));
     temporaryDirectories.push(root);
