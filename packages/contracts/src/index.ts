@@ -17,6 +17,7 @@ export {
   type RequirementPriority,
 } from "./model.js";
 export {
+  applyApprovedContractAmendment,
   approveContract,
   createContractFromRequirements,
   diffContracts,

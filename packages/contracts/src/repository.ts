@@ -302,6 +302,79 @@ export async function approveContract(
   return { contract, path, versionHash };
 }
 
+/**
+ * Persist an explicitly approved semantic amendment with optimistic concurrency protection.
+ *
+ * Callers are responsible for collecting the approval decision; this repository boundary
+ * guarantees that an amendment cannot overwrite contract content reviewed after the proposal.
+ */
+export async function applyApprovedContractAmendment(
+  root: string,
+  id: string,
+  proposedContract: QualityContract,
+  options: {
+    readonly approvedAt?: Date;
+    readonly approvedBy: string;
+    readonly expectedCurrentVersionHash: string;
+  },
+): Promise<{
+  readonly contract: QualityContract;
+  readonly path: string;
+  readonly versionHash: string;
+}> {
+  if (options.approvedBy.trim().length === 0) {
+    throw new ContractError(
+      "CONTRACT_INVALID",
+      "An approver is required for a contract amendment.",
+      "Provide the accountable contract owner who approved the semantic change.",
+      [{ message: "must be a non-empty string", path: "approval.approved_by" }],
+    );
+  }
+  const current = await getContract(root, id);
+  if (proposedContract.id !== id) {
+    throw new ContractError(
+      "CONTRACT_INVALID",
+      "The proposed contract identifier does not match the current contract.",
+      "Create a separate amendment proposal for each contract.",
+    );
+  }
+  if (contractVersionHash(current) !== options.expectedCurrentVersionHash) {
+    throw new ContractError(
+      "CONTRACT_INVALID",
+      "The current contract changed after this amendment was proposed.",
+      "Review the latest contract and create a new amendment proposal.",
+    );
+  }
+  if (diffQualityContracts(current, proposedContract).classification !== "semantic") {
+    throw new ContractError(
+      "CONTRACT_INVALID",
+      "The amendment proposal does not contain a semantic contract change.",
+      "Use the normal contract workflow for mechanical metadata edits.",
+    );
+  }
+
+  const reviewable: QualityContract = {
+    ...proposedContract,
+    status: "amended",
+    approval: undefined,
+  };
+  const versionHash = contractVersionHash(reviewable);
+  const contract: QualityContract = {
+    ...reviewable,
+    status: "approved",
+    approval: {
+      approvedAt: (options.approvedAt ?? new Date()).toISOString(),
+      approvedBy: options.approvedBy.trim(),
+      versionHash,
+    },
+  };
+  const path = `${CONTRACT_DIRECTORY}/${id}.yml`;
+  const historyPath = `${CONTRACT_DIRECTORY}/.history/${id}/${versionHash}.yml`;
+  await writeContractSnapshot(root, historyPath, contract);
+  await writeContractFile(root, path, contract);
+  return { contract, path, versionHash };
+}
+
 async function contractFromReference(root: string, reference: string): Promise<QualityContract> {
   if (CONTRACT_ID.test(reference)) return getContract(root, reference);
   return readContractFile(root, portable(relative(resolve(root), safePath(root, reference))));
