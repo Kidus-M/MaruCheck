@@ -11,7 +11,7 @@ Requirements: Node.js 24 LTS and npm 11 or newer.
 ```bash
 npm install
 npm run check
-npm run maru -- --help
+npm run maru -- --help 
 ```
 
 During local development, build the CLI and invoke it from the project you want to inspect:
