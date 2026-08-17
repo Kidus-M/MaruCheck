@@ -83,9 +83,11 @@ export function parseObservedBehaviors(value: unknown): ObservedBehavior[] {
         );
       }
       const raw = input.source as Record<string, unknown>;
+      const sourcePath = raw.path;
       if (
-        raw.path.length === 0 ||
-        raw.path.length > 500 ||
+        typeof sourcePath !== "string" ||
+        sourcePath.length === 0 ||
+        sourcePath.length > 500 ||
         (raw.line !== undefined &&
           (typeof raw.line !== "number" || !Number.isInteger(raw.line) || raw.line < 1))
       ) {
@@ -96,7 +98,7 @@ export function parseObservedBehaviors(value: unknown): ObservedBehavior[] {
         );
       }
       source = {
-        path: raw.path,
+        path: sourcePath,
         ...(typeof raw.line === "number" ? { line: raw.line } : {}),
       };
     }

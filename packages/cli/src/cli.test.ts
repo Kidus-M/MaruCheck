@@ -154,9 +154,12 @@ requirements:
 invariants:
   - id: SUB-INV-001
     statement: Billing changes require a verified webhook.
-edge_cases: []
-security: []
-data_integrity: []
+edge_cases:
+  - a free user reaches the quota
+security:
+  - reject unauthorized plan changes
+data_integrity:
+  - preserve the active plan
 evidence_policy:
   blocking_requirements:
     - SUB-001
