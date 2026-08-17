@@ -143,6 +143,7 @@ function resultEvidence(
       createdAt: run.completedAt,
       diagnostic: diagnosticExcerpt(diagnostics[index] ?? "", fallback),
       durationMs: result.durationMs,
+      ...(result.error === undefined ? {} : { errorCode: result.error.code }),
       exitCode: result.exitCode,
       id: `evidence-${String(index + 1).padStart(3, "0")}-${safeId(result.adapter)}`,
       requirementRefs: unique(result.requirementRefs),
@@ -212,6 +213,8 @@ function findingKind(evidence: readonly Evidence[], status: RequirementEvidenceS
   if (status === "failed") return "requirement-failure";
   if (
     evidence.some((item) =>
+      item.errorCode === "ADAPTER_EXECUTION_FAILED" ||
+      item.errorCode === "ADAPTER_TIMEOUT" ||
       /could not start|execution failed|exceeded.+timeout/iu.test(item.diagnostic),
     )
   ) {
@@ -445,16 +448,17 @@ export async function writeVerificationReport(
 }
 
 async function readDiagnostic(root: string, result: AdapterExecutionResult): Promise<string> {
+  const sources: string[] = [];
   for (const path of [result.artifacts.stderr, result.artifacts.stdout]) {
     if (path === undefined) continue;
     try {
       const source = await readFile(resolveInsideRoot(root, path), "utf8");
-      if (source.trim().length > 0) return source.slice(0, 4_000);
+      if (source.trim().length > 0) sources.push(source);
     } catch {
       // Missing diagnostics remain represented by the typed adapter status and error.
     }
   }
-  return "";
+  return sources.join("\n").slice(0, 4_000);
 }
 
 /** Create the plan, execute it, normalize raw results, and persist report.json. */

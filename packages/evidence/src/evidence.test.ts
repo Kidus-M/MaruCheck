@@ -320,8 +320,10 @@ describe("verification evidence and findings", () => {
     const root = await mkdtemp(join(tmpdir(), "maru-evidence-orchestration-"));
     temporaryDirectories.push(root);
     const stderrPath = join(root, RUN_DIRECTORY, "vitest/stderr.txt");
+    const stdoutPath = join(root, RUN_DIRECTORY, "vitest/stdout.txt");
     await mkdir(join(stderrPath, ".."), { recursive: true });
-    await writeFile(stderrPath, "Received: active instead of cancelled", "utf8");
+    await writeFile(stderrPath, "Framework warning", "utf8");
+    await writeFile(stdoutPath, "Received: active instead of cancelled", "utf8");
     const planned: VerificationPlanResult = {
       path: ".maru/generated/verification-plan.json",
       plan: plan(),

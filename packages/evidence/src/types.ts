@@ -44,6 +44,7 @@ export interface Evidence {
   readonly createdAt: string;
   readonly diagnostic: string;
   readonly durationMs: number;
+  readonly errorCode?: string;
   readonly exitCode: number | null;
   readonly id: string;
   readonly requirementRefs: readonly string[];
