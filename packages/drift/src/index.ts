@@ -1,8 +1,4 @@
-export {
-  checkSemanticDrift,
-  formatSemanticDriftReport,
-  parseObservedBehaviors,
-} from "./guard.js";
+export { checkSemanticDrift, formatSemanticDriftReport, parseObservedBehaviors } from "./guard.js";
 export {
   CONTRACT_AMENDMENT_SCHEMA_VERSION,
   DriftError,

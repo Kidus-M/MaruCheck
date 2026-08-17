@@ -173,7 +173,10 @@ export async function proposeContractAmendment(
   try {
     const target = safePath(root, path);
     await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, `${JSON.stringify(proposal, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    await writeFile(target, `${JSON.stringify(proposal, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx",
+    });
   } catch (error) {
     if (error instanceof DriftError) throw error;
     throw new DriftError(
@@ -214,7 +217,9 @@ export async function approveContractAmendment(
   }
   let proposal: ContractAmendmentProposal;
   try {
-    proposal = assertProposal(JSON.parse(await readFile(safePath(root, relativePath), "utf8")) as unknown);
+    proposal = assertProposal(
+      JSON.parse(await readFile(safePath(root, relativePath), "utf8")) as unknown,
+    );
   } catch (error) {
     if (error instanceof DriftError) throw error;
     throw new DriftError(

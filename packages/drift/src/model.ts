@@ -4,11 +4,7 @@ export const SEMANTIC_DRIFT_SCHEMA_VERSION = 1;
 export const CONTRACT_AMENDMENT_SCHEMA_VERSION = 1;
 
 export type MechanicalMaintenanceKind =
-  | "dom-structure"
-  | "fixture-setup"
-  | "route-timing"
-  | "selector"
-  | "wait-condition";
+  "dom-structure" | "fixture-setup" | "route-timing" | "selector" | "wait-condition";
 
 export interface ObservedBehavior {
   readonly maintenanceKind?: MechanicalMaintenanceKind;

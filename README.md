@@ -48,15 +48,15 @@ The published developer experience will use `npx maru <command>`.
 
 ### Project commands
 
-| Command              | Description                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------- |
-| `maru init`          | Detect the stack and create an idempotent `.maru/` configuration                               |
-| `maru scan`          | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
-| `maru doctor`        | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
-| `maru risk --diff`   | Score current changes with deterministic explanations                                          |
-| `maru plan --diff`   | Write an inspectable, requirement-linked verification plan                                     |
-| `maru verify --diff` | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
-| `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                   |
+| Command                                     | Description                                                                                    |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `maru init`                                 | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`                                 | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor`                               | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
+| `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
+| `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
 
 ### Quality Contract commands
 
@@ -75,7 +75,7 @@ The published developer experience will use `npx maru <command>`.
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `maru drift check --from observations.json`                                       | Compare observed behavior with protected requirements/invariants   |
 | `maru drift propose <id> --from observations.json --reason "Why" --by <proposer>` | Write an immutable pending amendment without changing the contract |
-| `maru drift approve <proposal-path> --by <contract-owner>`                         | Apply a reviewed amendment with an owner approval and audit record |
+| `maru drift approve <proposal-path> --by <contract-owner>`                        | Apply a reviewed amendment with an owner approval and audit record |
 
 ## Repository structure
 

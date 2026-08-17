@@ -9,11 +9,7 @@ import {
 } from "./model.js";
 
 const REFERENCE = /^([A-Za-z0-9][A-Za-z0-9._-]{0,119})#([A-Za-z0-9][A-Za-z0-9._-]{0,119})$/u;
-const ACTIONS = [
-  "mark-implementation-bug",
-  "propose-contract-amendment",
-  "investigate",
-] as const;
+const ACTIONS = ["mark-implementation-bug", "propose-contract-amendment", "investigate"] as const;
 const MAINTENANCE_KINDS = new Set([
   "dom-structure",
   "fixture-setup",
@@ -130,11 +126,21 @@ function lookup(
   if (contract === undefined) return undefined;
   const requirement = contract.requirements.find((item) => item.id === match[2]);
   if (requirement !== undefined) {
-    return { contract, expected: requirement.statement, kind: "requirement", requirementId: requirement.id };
+    return {
+      contract,
+      expected: requirement.statement,
+      kind: "requirement",
+      requirementId: requirement.id,
+    };
   }
   const invariant = contract.invariants.find((item) => item.id === match[2]);
   if (invariant !== undefined) {
-    return { contract, expected: invariant.statement, kind: "invariant", requirementId: invariant.id };
+    return {
+      contract,
+      expected: invariant.statement,
+      kind: "invariant",
+      requirementId: invariant.id,
+    };
   }
   return undefined;
 }
@@ -151,7 +157,8 @@ export function checkSemanticDrift(
   for (const observation of observations) {
     const target = lookup(contracts, observation.requirementRef);
     if (target === undefined) {
-      const [contractId = "unknown", requirementId = "unknown"] = observation.requirementRef.split("#");
+      const [contractId = "unknown", requirementId = "unknown"] =
+        observation.requirementRef.split("#");
       conflicts.push({
         actions: ACTIONS,
         approvalRequired: true,

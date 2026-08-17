@@ -216,20 +216,16 @@ approval:
       .find((message) => message.startsWith("Amendment proposed:"));
     const proposalPath = proposalMessage?.split("\n")[0]?.replace("Amendment proposed: ", "");
     expect(proposalPath).toBeTruthy();
-    expect((await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"))).toContain(
-      "Free users may upload 5 files.",
-    );
+    expect(
+      await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"),
+    ).toContain("Free users may upload 5 files.");
 
     await expect(
-      runCli(
-        ["drift", "approve", proposalPath!, "--by", "product"],
-        output,
-        dependencies,
-      ),
+      runCli(["drift", "approve", proposalPath!, "--by", "product"], output, dependencies),
     ).resolves.toBe(0);
-    expect((await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"))).toContain(
-      "Free users may upload 10 files.",
-    );
+    expect(
+      await readFile(join(root, ".maru/contracts/subscription-management.yml"), "utf8"),
+    ).toContain("Free users may upload 10 files.");
   });
 
   it("starts the local MCP server for the current project", async () => {

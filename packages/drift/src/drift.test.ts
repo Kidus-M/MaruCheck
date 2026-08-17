@@ -120,6 +120,32 @@ describe("semantic drift guard", () => {
     });
   });
 
+  it("reports draft semantic conflicts for review without creating a hard gate", () => {
+    const contract = {
+      ...parseQualityContract(APPROVED_CONTRACT, "fixture.yml"),
+      approval: undefined,
+      status: "draft" as const,
+    };
+
+    const report = checkSemanticDrift(
+      [contract],
+      [
+        {
+          observed: "Free users may upload 10 files.",
+          requirementRef: "subscription-management#SUB-001",
+        },
+      ],
+      new Date("2026-08-17T12:00:00Z"),
+    );
+
+    expect(report).toMatchObject({
+      classification: "semantic",
+      gate: { status: "passed" },
+      summary: { blockingConflicts: 0, semanticConflicts: 1 },
+    });
+    expect(report.conflicts[0]).toMatchObject({ approvalRequired: true, blocking: false });
+  });
+
   it("records an immutable proposal and requires a separate explicit approval", async () => {
     const root = await project();
     const observations: ObservedBehavior[] = [
@@ -206,5 +232,34 @@ describe("semantic drift guard", () => {
         now: new Date("2026-08-17T13:00:00Z"),
       }),
     ).rejects.toMatchObject({ code: "DRIFT_PROPOSAL_STALE" });
+  });
+
+  it("requires approval from a current contract owner", async () => {
+    const root = await project();
+    const proposal = await proposeContractAmendment(
+      root,
+      "subscription-management",
+      [
+        {
+          observed: "Free users may upload 10 files.",
+          requirementRef: "subscription-management#SUB-001",
+        },
+      ],
+      {
+        now: new Date("2026-08-17T12:30:00Z"),
+        proposedBy: "codex",
+        reason: "Observed behavior differs.",
+      },
+    );
+
+    await expect(
+      approveContractAmendment(root, proposal.path, {
+        approvedBy: "codex",
+        now: new Date("2026-08-17T13:00:00Z"),
+      }),
+    ).rejects.toMatchObject({ code: "DRIFT_APPROVAL_REQUIRED" });
+    expect((await getContract(root, "subscription-management")).requirements[0]?.statement).toBe(
+      "Free users may upload 5 files.",
+    );
   });
 });

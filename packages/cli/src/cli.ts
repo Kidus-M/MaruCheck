@@ -321,11 +321,7 @@ async function runDriftCommand(
     }
     const summaries = await listContracts(root);
     const contracts = await Promise.all(summaries.map((item) => getContract(root, item.id)));
-    const report = checkSemanticDrift(
-      contracts,
-      await observationsFromFile(root, sourcePath),
-      now,
-    );
+    const report = checkSemanticDrift(contracts, await observationsFromFile(root, sourcePath), now);
     output.log(formatSemanticDriftReport(report));
     return report.gate.status === "blocked" ? 1 : 0;
   }
@@ -453,12 +449,7 @@ export async function runCli(
     }
 
     if (command === "drift") {
-      return await runDriftCommand(
-        args.slice(1),
-        root,
-        output,
-        dependencies.now?.() ?? new Date(),
-      );
+      return await runDriftCommand(args.slice(1), root, output, dependencies.now?.() ?? new Date());
     }
 
     if (command === "risk") {
