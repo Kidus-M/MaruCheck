@@ -6,35 +6,18 @@ import type {
   VerificationRunResult,
   VerificationRunStatus,
 } from "@maru/execution";
-import type {
-  RecommendedTestCategory,
-  RiskLevel,
-} from "@maru/risk";
-import type {
-  VerificationAdapter,
-  VerificationPlan,
-  VerificationPlanResult,
-} from "@maru/planner";
+import type { RecommendedTestCategory, RiskLevel } from "@maru/risk";
+import type { VerificationAdapter, VerificationPlan, VerificationPlanResult } from "@maru/planner";
 
 export const VERIFICATION_REPORT_SCHEMA_VERSION = 1;
 
 export type EvidenceStatus = "failed" | "inconclusive" | "passed";
 export type EvidenceType =
-  | "accessibility"
-  | "api-test"
-  | "e2e-test"
-  | "manual"
-  | "planning-gap"
-  | "unit-test";
+  "accessibility" | "api-test" | "e2e-test" | "manual" | "planning-gap" | "unit-test";
 export type FindingKind = "execution-error" | "requirement-failure" | "verification-gap";
 export type FindingSeverity = "critical" | "high" | "info" | "low" | "medium";
 export type FindingStatus =
-  | "accepted-risk"
-  | "confirmed"
-  | "deferred"
-  | "false-positive"
-  | "fixed"
-  | "open";
+  "accepted-risk" | "confirmed" | "deferred" | "false-positive" | "fixed" | "open";
 export type RequirementEvidenceStatus = EvidenceStatus | "unverified";
 
 export interface Evidence {

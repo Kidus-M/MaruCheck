@@ -58,7 +58,10 @@ function runId(artifactDirectory: string): string {
 }
 
 function safeId(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "");
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-|-$/gu, "");
 }
 
 function diagnosticExcerpt(value: string, fallback: string): string {
@@ -195,11 +198,7 @@ function planningGapEvidence(
   };
 }
 
-function severity(
-  kind: FindingKind,
-  blocking: boolean,
-  risk: RiskLevel,
-): FindingSeverity {
+function severity(kind: FindingKind, blocking: boolean, risk: RiskLevel): FindingSeverity {
   if (kind === "requirement-failure") {
     if (blocking && risk === "critical") return "critical";
     if (blocking || risk === "critical" || risk === "high") return "high";
@@ -209,13 +208,17 @@ function severity(
   return blocking ? "high" : "low";
 }
 
-function findingKind(evidence: readonly Evidence[], status: RequirementEvidenceStatus): FindingKind {
+function findingKind(
+  evidence: readonly Evidence[],
+  status: RequirementEvidenceStatus,
+): FindingKind {
   if (status === "failed") return "requirement-failure";
   if (
-    evidence.some((item) =>
-      item.errorCode === "ADAPTER_EXECUTION_FAILED" ||
-      item.errorCode === "ADAPTER_TIMEOUT" ||
-      /could not start|execution failed|exceeded.+timeout/iu.test(item.diagnostic),
+    evidence.some(
+      (item) =>
+        item.errorCode === "ADAPTER_EXECUTION_FAILED" ||
+        item.errorCode === "ADAPTER_TIMEOUT" ||
+        /could not start|execution failed|exceeded.+timeout/iu.test(item.diagnostic),
     )
   ) {
     return "execution-error";
@@ -298,7 +301,8 @@ function requirementFinding(
 }
 
 function unlinkedFinding(evidence: Evidence, risk: RiskLevel, index: number): AdvisoryFinding {
-  const kind: FindingKind = evidence.status === "failed" ? "requirement-failure" : "verification-gap";
+  const kind: FindingKind =
+    evidence.status === "failed" ? "requirement-failure" : "verification-gap";
   return {
     actual: evidence.diagnostic,
     artifactRefs: evidence.artifactRefs,
@@ -360,9 +364,7 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
     const linked = evidence.filter((item) => item.requirementRefs.includes(reference));
     const blocking =
       requirement.blocking ||
-      input.plan.steps.some(
-        (step) => step.blocking && step.requirementRefs.includes(reference),
-      );
+      input.plan.steps.some((step) => step.blocking && step.requirementRefs.includes(reference));
     return {
       blocking,
       contractId: requirement.contractId,
@@ -378,7 +380,9 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
 
   const findings: Finding[] = requirements
     .filter((requirement) => requirement.status !== "passed")
-    .map((requirement, index) => requirementFinding(requirement, evidence, input.plan.risk.level, index));
+    .map((requirement, index) =>
+      requirementFinding(requirement, evidence, input.plan.risk.level, index),
+    );
   const linkedEvidenceIds = new Set(requirements.flatMap((requirement) => requirement.evidenceIds));
   findings.push(
     ...evidence
@@ -392,9 +396,7 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
       ? [`The raw verification run ended with status ${input.run.status}.`]
       : []),
     ...(input.run.summary.blockingFailures > 0
-      ? [
-          `${input.run.summary.blockingFailures} raw blocking verification result(s) did not pass.`,
-        ]
+      ? [`${input.run.summary.blockingFailures} raw blocking verification result(s) did not pass.`]
       : []),
     ...(reportSummary.blockingFindings > 0
       ? [`${reportSummary.blockingFindings} blocking finding(s) remain open.`]

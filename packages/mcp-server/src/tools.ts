@@ -12,10 +12,7 @@ import {
   createAndWriteVerificationReport,
   type VerificationReportResult,
 } from "@maru/evidence";
-import {
-  VerificationExecutionError,
-  type TemporaryTest,
-} from "@maru/execution";
+import { VerificationExecutionError, type TemporaryTest } from "@maru/execution";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
   VerificationPlanError,

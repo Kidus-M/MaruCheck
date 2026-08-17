@@ -28,7 +28,7 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 | `maru_analyze_diff`             | Return bounded staged, unstaged, and untracked change metadata and classifications | Read-only                      |
 | `maru_assess_risk`              | Return deterministic risk, reasons, related contracts, and test categories         | Read-only                      |
 | `maru_create_verification_plan` | Write a requirement-linked, risk-based verification plan                           | Local write                    |
-| `maru_run_verification`         | Execute tests and persist raw artifacts, evidence, findings, and JSON report        | Local write and code execution |
+| `maru_run_verification`         | Execute tests and persist raw artifacts, evidence, findings, and JSON report       | Local write and code execution |
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 

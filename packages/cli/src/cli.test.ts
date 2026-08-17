@@ -298,7 +298,9 @@ describe("maru CLI", () => {
     expect(verificationReport).toHaveBeenCalledWith(root, now);
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification gate: BLOCKED"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("[CRITICAL] BLOCKING"));
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Contract: subscription-management"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("Contract: subscription-management"),
+    );
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Requirement: SUB-003"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Actual: Received: active"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("JSON report:"));

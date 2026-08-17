@@ -19,12 +19,12 @@ The command exits non-zero when a test fails, an adapter errors, or blocking wor
 
 ## Adapter behavior
 
-| Plan adapter    | Execution                                                                 |
-| --------------- | ------------------------------------------------------------------------- |
-| `vitest`        | Runs deduplicated selected files once with the local Vitest CLI           |
-| `playwright`    | Runs deduplicated selected files once with the local Playwright test CLI  |
-| `manual-review` | Records skipped work that still needs human review                        |
-| `unavailable`   | Records unsupported or unconfigured work; never treats it as passing      |
+| Plan adapter    | Execution                                                                |
+| --------------- | ------------------------------------------------------------------------ |
+| `vitest`        | Runs deduplicated selected files once with the local Vitest CLI          |
+| `playwright`    | Runs deduplicated selected files once with the local Playwright test CLI |
+| `manual-review` | Records skipped work that still needs human review                       |
+| `unavailable`   | Records unsupported or unconfigured work; never treats it as passing     |
 
 MaruCheck resolves `node_modules/vitest/vitest.mjs` and the local Playwright CLI. It does not call `npx`, download dependencies, install browsers, or use a shell. Install the test framework and Playwright browsers using the package manager and versions chosen by the project.
 

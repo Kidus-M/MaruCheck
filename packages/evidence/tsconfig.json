@@ -8,9 +8,5 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [
-    { "path": "../execution" },
-    { "path": "../planner" },
-    { "path": "../risk" }
-  ]
+  "references": [{ "path": "../execution" }, { "path": "../planner" }, { "path": "../risk" }]
 }

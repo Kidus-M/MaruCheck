@@ -333,11 +333,9 @@ describe("MaruCheck MCP server", () => {
         runPath: ".maru/artifacts/runs/run-id/run.json",
       },
     });
-    expect(verificationReport).toHaveBeenCalledWith(
-      root,
-      new Date("2026-08-17T09:30:00.000Z"),
-      { temporaryTests },
-    );
+    expect(verificationReport).toHaveBeenCalledWith(root, new Date("2026-08-17T09:30:00.000Z"), {
+      temporaryTests,
+    });
   });
 
   it("enforces initialization before listing or calling tools", async () => {

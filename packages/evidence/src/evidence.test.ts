@@ -122,9 +122,7 @@ describe("verification evidence and findings", () => {
 
   it("turns a blocking failed test into traceable evidence and a complete critical finding", () => {
     const report = buildVerificationReport({
-      diagnostics: [
-        'AssertionError: expected "free" to be "pro". Received: "free".',
-      ],
+      diagnostics: ['AssertionError: expected "free" to be "pro". Received: "free".'],
       generatedAt: NOW.toISOString(),
       plan: plan(),
       run: run("failed"),

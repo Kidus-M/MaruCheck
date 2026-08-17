@@ -23,22 +23,22 @@ The command exits non-zero when the report gate is blocked.
 
 Schema version 1 contains:
 
-| Field                 | Meaning                                                               |
-| --------------------- | --------------------------------------------------------------------- |
-| `evidence`            | Normalized adapter results with diagnostics and artifact references   |
-| `requirementEvidence` | Selected requirements/invariants mapped to supporting evidence        |
-| `findings`            | Open product failures, execution errors, and verification gaps        |
-| `gate`                | Deterministic passed/blocked status with explicit reasons              |
-| `summary`             | Evidence, requirement, finding, and blocking totals                   |
-| `artifacts`           | Paths to the source plan, raw run, and JSON report                     |
+| Field                 | Meaning                                                             |
+| --------------------- | ------------------------------------------------------------------- |
+| `evidence`            | Normalized adapter results with diagnostics and artifact references |
+| `requirementEvidence` | Selected requirements/invariants mapped to supporting evidence      |
+| `findings`            | Open product failures, execution errors, and verification gaps      |
+| `gate`                | Deterministic passed/blocked status with explicit reasons           |
+| `summary`             | Evidence, requirement, finding, and blocking totals                 |
+| `artifacts`           | Paths to the source plan, raw run, and JSON report                  |
 
 ## Evidence status
 
-| Raw result                         | Evidence status |
-| ---------------------------------- | --------------- |
-| Completed with exit code 0         | `passed`        |
-| Completed with a non-zero exit code| `failed`        |
-| Error, skipped, manual, unavailable| `inconclusive`  |
+| Raw result                          | Evidence status |
+| ----------------------------------- | --------------- |
+| Completed with exit code 0          | `passed`        |
+| Completed with a non-zero exit code | `failed`        |
+| Error, skipped, manual, unavailable | `inconclusive`  |
 
 Every evidence object retains adapter, categories, requirement references, plan step IDs, selected test files, duration, exit code, a bounded diagnostic, and raw/generated artifact paths.
 
@@ -67,13 +67,13 @@ An unlinked failing result is not assigned to a made-up requirement. It remains 
 
 Severity is deterministic and does not use an LLM:
 
-| Condition                                             | Severity |
-| ----------------------------------------------------- | -------- |
-| Blocking failed requirement at critical risk         | Critical |
-| Other blocking requirement failure                   | High     |
-| Blocking execution error or verification gap         | High     |
-| Non-blocking failed requirement or execution error   | Medium   |
-| Non-blocking verification gap                        | Low      |
+| Condition                                          | Severity |
+| -------------------------------------------------- | -------- |
+| Blocking failed requirement at critical risk       | Critical |
+| Other blocking requirement failure                 | High     |
+| Blocking execution error or verification gap       | High     |
+| Non-blocking failed requirement or execution error | Medium   |
+| Non-blocking verification gap                      | Low      |
 
 `info` is reserved for later informational findings; passed checks are evidence rather than findings.
 
