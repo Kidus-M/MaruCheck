@@ -29,6 +29,8 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 | `maru_assess_risk`              | Return deterministic risk, reasons, related contracts, and test categories         | Read-only                      |
 | `maru_create_verification_plan` | Write a requirement-linked, risk-based verification plan                           | Local write                    |
 | `maru_run_verification`         | Execute tests and persist raw artifacts, evidence, findings, and JSON report       | Local write and code execution |
+| `maru_check_semantic_drift`     | Compare observations with protected contract expectations                          | Read-only                      |
+| `maru_propose_contract_amendment` | Write an immutable pending amendment; never approve or rewrite the current contract | Local write                    |
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 
@@ -91,20 +93,22 @@ Restart Cursor and enable `maru` in MCP settings.
 
 1. Call `maru_get_project_context` before changing behavior.
 2. Call `maru_get_contract` for the affected feature.
-3. Implement the change without weakening or auto-approving the contract.
-4. Call `maru_analyze_diff` to inspect change metadata and classifications.
-5. Call `maru_assess_risk` to inspect score contributions and related requirements.
-6. Call `maru_create_verification_plan` and review unavailable or uncovered work.
-7. Call `maru_run_verification`; review any temporary test source before allowing execution.
-8. Treat a blocked report gate or any blocking finding as unresolved verification.
-9. Validate contracts with `maru_validate_contract`.
+3. Call `maru_check_semantic_drift` before changing a protected expectation.
+4. Implement the change without weakening or auto-approving the contract. If product intent should change, create a pending proposal with `maru_propose_contract_amendment` for an owner to review separately.
+5. Call `maru_analyze_diff` to inspect change metadata and classifications.
+6. Call `maru_assess_risk` to inspect score contributions and related requirements.
+7. Call `maru_create_verification_plan` and review unavailable or uncovered work.
+8. Call `maru_run_verification`; review any temporary test source before allowing execution.
+9. Treat a blocked report gate or any blocking finding as unresolved verification.
+10. Validate contracts with `maru_validate_contract`.
 
 ## Protocol and safety
 
 - Stable protocol target: MCP `2025-11-25`, with negotiation for `2025-06-18` and `2024-11-05` clients.
 - Transport: local stdio only; no listening network socket or authentication surface.
 - Paths remain inside the configured project root.
-- Contract creation is the only write tool and always produces `draft` status.
+- Contract creation always produces `draft` status. Planning, verification, and amendment proposals also write bounded local artifacts.
+- MCP can propose a semantic amendment but cannot approve one; approval requires a separate current-owner CLI action.
 - Git analysis invokes `git` directly without a shell and returns metadata rather than changed source lines.
 - stdout is reserved for MCP messages; clients should apply normal tool approval controls.
 

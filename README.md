@@ -28,6 +28,7 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
+node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
@@ -55,6 +56,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru risk --diff`   | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`   | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff` | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                   |
 
 ### Quality Contract commands
 
@@ -67,6 +69,14 @@ The published developer experience will use `npx maru <command>`.
 | `maru contract diff <id-or-path> <id-or-path>`        | Classify mechanical and semantic contract changes            |
 | `maru contract approve <id> --by <accountable-owner>` | Approve and snapshot one reviewed version                    |
 
+### Semantic drift commands
+
+| Command                                                                           | Description                                                        |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `maru drift check --from observations.json`                                       | Compare observed behavior with protected requirements/invariants   |
+| `maru drift propose <id> --from observations.json --reason "Why" --by <proposer>` | Write an immutable pending amendment without changing the contract |
+| `maru drift approve <proposal-path> --by <contract-owner>`                         | Apply a reviewed amendment with an owner approval and audit record |
+
 ## Repository structure
 
 ```text
@@ -74,6 +84,7 @@ packages/
 |-- cli/          # maru command-line interface
 |-- contracts/    # Quality Contract schemas and versioning
 |-- core/         # verification domain and orchestration
+|-- drift/        # protected expectations and contract amendment workflow
 |-- evidence/     # requirement evidence, findings, gates, and reports
 |-- execution/    # Vitest/Playwright execution and raw run artifacts
 |-- git/          # repository and diff analysis
@@ -87,7 +98,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 7 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, and evidence/findings reports.
+Phases 0 through 8 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, and semantic drift protection.
 
 Known Phase 1 limitations:
 
@@ -129,6 +140,12 @@ See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) an
 Every verification run now writes `report.json` with normalized evidence, requirement mappings, deterministic severity, complete blocking findings, reproduction instructions, artifact references, and an explicit release gate. The CLI terminal view and MCP result use the same report object.
 
 See the [Phase 7 evidence and findings guide](docs/guides/phase-7-evidence-and-findings.md) and [ADR-007](docs/decisions/0007-normalize-raw-runs-into-conservative-evidence-and-findings.md).
+
+### Semantic drift protection
+
+`maru drift check` compares explicit observed behavior with requirement-linked contract expectations. Approved meaning changes block without rewriting the contract. MCP clients may create an immutable pending proposal, but only a current contract owner can approve it through the separate CLI action.
+
+See the [Phase 8 semantic drift guide](docs/guides/phase-8-semantic-drift.md) and [ADR-008](docs/decisions/0008-separate-semantic-drift-detection-proposal-and-approval.md).
 
 ## Contributing
 
