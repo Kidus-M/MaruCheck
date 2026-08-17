@@ -4,12 +4,7 @@ export const VERIFICATION_RUN_SCHEMA_VERSION = 1;
 export const VERIFICATION_ARTIFACTS_DIRECTORY = ".maru/artifacts/runs";
 
 export type AutomatedVerificationAdapter = Extract<VerificationAdapter, "playwright" | "vitest">;
-export type VerificationResultStatus =
-  | "error"
-  | "failed"
-  | "passed"
-  | "skipped"
-  | "unavailable";
+export type VerificationResultStatus = "error" | "failed" | "passed" | "skipped" | "unavailable";
 export type VerificationRunStatus = "error" | "failed" | "incomplete" | "passed";
 
 export interface CommandRequest {

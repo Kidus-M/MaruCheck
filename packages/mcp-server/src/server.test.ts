@@ -306,11 +306,9 @@ describe("MaruCheck MCP server", () => {
         run: { status: "failed", summary: { blockingFailures: 1 } },
       },
     });
-    expect(runVerification).toHaveBeenCalledWith(
-      root,
-      new Date("2026-08-17T09:30:00.000Z"),
-      { temporaryTests },
-    );
+    expect(runVerification).toHaveBeenCalledWith(root, new Date("2026-08-17T09:30:00.000Z"), {
+      temporaryTests,
+    });
   });
 
   it("enforces initialization before listing or calling tools", async () => {

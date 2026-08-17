@@ -39,7 +39,11 @@ function step(
   overrides: Partial<VerificationPlan["steps"][number]> = {},
 ): VerificationPlan["steps"][number] {
   const execution =
-    adapter === "manual-review" ? "manual" : adapter === "unavailable" ? "unavailable" : "automated";
+    adapter === "manual-review"
+      ? "manual"
+      : adapter === "unavailable"
+        ? "unavailable"
+        : "automated";
   return {
     adapter,
     blocking: true,
@@ -109,16 +113,14 @@ describe("verification execution", () => {
     expect(runner.run).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        args: expect.arrayContaining([
-          "test",
-          "tests/subscription.spec.ts",
-          "--reporter=line",
-        ]),
+        args: expect.arrayContaining(["test", "tests/subscription.spec.ts", "--reporter=line"]),
         command: process.execPath,
         cwd: root,
       }),
     );
-    await expect(readFile(join(root, result.path), "utf8")).resolves.toContain('"status": "passed"');
+    await expect(readFile(join(root, result.path), "utf8")).resolves.toContain(
+      '"status": "passed"',
+    );
     await expect(
       readFile(join(root, result.run.results[0]?.artifacts.stdout ?? ""), "utf8"),
     ).resolves.toBe("2 passed");
@@ -171,7 +173,8 @@ describe("verification execution", () => {
       adapter: "vitest",
       id: "cancel-immediately",
       requirementRefs: ["subscription-management#SUB-003"],
-      source: "import { expect, it } from 'vitest';\nit('cancels', () => expect('active').toBe('cancelled'));\n",
+      source:
+        "import { expect, it } from 'vitest';\nit('cancels', () => expect('active').toBe('cancelled'));\n",
       targetPath: "tests/.maru-cancel-immediately.test.ts",
     };
     const runner: CommandRunner = {

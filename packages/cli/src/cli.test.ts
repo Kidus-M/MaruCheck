@@ -294,6 +294,8 @@ describe("maru CLI", () => {
     expect(verificationRun).toHaveBeenCalledWith(root, now);
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification: FAILED"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Blocking failures: 1"));
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("subscription-management#SUB-003"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("subscription-management#SUB-003"),
+    );
   });
 });

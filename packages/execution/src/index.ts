@@ -1,6 +1,6 @@
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { basename, dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
   createAndWriteVerificationPlan,
   type VerificationAdapter,
@@ -192,11 +192,7 @@ function groupSteps(
   }));
 }
 
-function resultError(
-  code: string,
-  message: string,
-  remediation: string,
-): VerificationResultError {
+function resultError(code: string, message: string, remediation: string): VerificationResultError {
   return { code, message, remediation };
 }
 
@@ -280,10 +276,7 @@ async function writeOutputArtifacts(
   await mkdir(directory, { recursive: true });
   const stdoutPath = resolve(directory, "stdout.txt");
   const stderrPath = resolve(directory, "stderr.txt");
-  await Promise.all([
-    writeFile(stdoutPath, stdout, "utf8"),
-    writeFile(stderrPath, stderr, "utf8"),
-  ]);
+  await Promise.all([writeFile(stdoutPath, stdout, "utf8"), writeFile(stderrPath, stderr, "utf8")]);
   return { stderr: relativePath(root, stderrPath), stdout: relativePath(root, stdoutPath) };
 }
 
@@ -331,14 +324,7 @@ async function executeAutomatedGroup(
   const args =
     group.adapter === "vitest"
       ? [binary, "run", ...testFiles, "--reporter=default"]
-      : [
-          binary,
-          "test",
-          ...testFiles,
-          "--reporter=line",
-          "--output",
-          outputDirectory,
-        ];
+      : [binary, "test", ...testFiles, "--reporter=line", "--output", outputDirectory];
   const command = { args, executable: process.execPath } as const;
 
   try {

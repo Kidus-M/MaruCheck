@@ -230,7 +230,13 @@ function temporaryTests(input: Record<string, unknown>): TemporaryTest[] {
     throw new ToolInputError("temporaryTests must be an array containing at most 20 tests.");
   }
   return value.map((item, index) => {
-    const test = objectArguments(item, ["adapter", "id", "requirementRefs", "source", "targetPath"]);
+    const test = objectArguments(item, [
+      "adapter",
+      "id",
+      "requirementRefs",
+      "source",
+      "targetPath",
+    ]);
     if (test.adapter !== "vitest" && test.adapter !== "playwright") {
       throw new ToolInputError(`temporaryTests[${index}].adapter must be vitest or playwright.`);
     }
