@@ -9,8 +9,11 @@ export default defineConfig({
     alias: {
       "@maru/contracts": packageSource("contracts"),
       "@maru/core": packageSource("core"),
+      "@maru/execution": packageSource("execution"),
       "@maru/git": packageSource("git"),
       "@maru/mcp-server": packageSource("mcp-server"),
+      "@maru/planner": packageSource("planner"),
+      "@maru/risk": packageSource("risk"),
       "@maru/shared": packageSource("shared"),
     },
   },

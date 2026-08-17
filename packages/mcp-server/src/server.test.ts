@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes eight namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes nine namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -76,6 +76,7 @@ describe("MaruCheck MCP server", () => {
       "maru_analyze_diff",
       "maru_assess_risk",
       "maru_create_verification_plan",
+      "maru_run_verification",
     ]);
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
@@ -91,6 +92,13 @@ describe("MaruCheck MCP server", () => {
     });
     expect(
       MARU_MCP_TOOLS.find((tool) => tool.name === "maru_create_verification_plan")?.annotations,
+    ).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      readOnlyHint: false,
+    });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_run_verification")?.annotations,
     ).toMatchObject({
       destructiveHint: false,
       idempotentHint: false,
@@ -251,6 +259,58 @@ describe("MaruCheck MCP server", () => {
       },
     });
     expect(createVerificationPlan).toHaveBeenCalledWith(root, new Date("2026-08-16T12:00:00.000Z"));
+  });
+
+  it("runs verification with optional requirement-tagged temporary tests", async () => {
+    const runVerification = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/runs/run-id/run.json",
+      run: {
+        generatedTests: [
+          {
+            adapter: "vitest",
+            artifactPath: ".maru/artifacts/runs/run-id/generated/vitest-cancel.test.ts",
+            id: "cancel-immediately",
+            requirementRefs: ["web-foundation#WEB-001"],
+            targetPath: "tests/.maru-cancel.test.ts",
+          },
+        ],
+        status: "failed",
+        summary: { blockingFailures: 1, failed: 1 },
+      },
+    });
+    const temporaryTests = [
+      {
+        adapter: "vitest",
+        id: "cancel-immediately",
+        requirementRefs: ["web-foundation#WEB-001"],
+        source: "test('cancel', () => expect(false).toBe(true));",
+        targetPath: "tests/.maru-cancel.test.ts",
+      },
+    ];
+
+    const result = await callMaruTool(
+      "maru_run_verification",
+      { temporaryTests },
+      {
+        now: () => new Date("2026-08-17T09:30:00.000Z"),
+        root,
+        runVerification,
+      },
+    );
+
+    expect(result).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        path: ".maru/artifacts/runs/run-id/run.json",
+        run: { status: "failed", summary: { blockingFailures: 1 } },
+      },
+    });
+    expect(runVerification).toHaveBeenCalledWith(
+      root,
+      new Date("2026-08-17T09:30:00.000Z"),
+      { temporaryTests },
+    );
   });
 
   it("enforces initialization before listing or calling tools", async () => {

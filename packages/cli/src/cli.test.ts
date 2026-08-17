@@ -244,4 +244,56 @@ describe("maru CLI", () => {
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Affected tests: 1"));
     expect(output.error).not.toHaveBeenCalled();
   });
+
+  it("runs verification for the current diff and blocks failed required evidence", async () => {
+    const root = await createProject();
+    const now = new Date("2026-08-17T09:30:00.000Z");
+    const output = { error: vi.fn(), log: vi.fn() };
+    const verificationRun = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/runs/2026-08-17T09-30-00-000Z/run.json",
+      run: {
+        artifactDirectory: ".maru/artifacts/runs/2026-08-17T09-30-00-000Z",
+        completedAt: "2026-08-17T09:30:00.000Z",
+        generatedTests: [],
+        planPath: ".maru/generated/verification-plan.json",
+        results: [
+          {
+            adapter: "vitest",
+            artifacts: {},
+            blocking: true,
+            durationMs: 12,
+            exitCode: 1,
+            requirementRefs: ["subscription-management#SUB-003"],
+            status: "failed",
+            stepIds: ["step-01-unit"],
+            testFiles: ["tests/subscription-cancellation.test.ts"],
+          },
+        ],
+        schemaVersion: 1,
+        startedAt: "2026-08-17T09:30:00.000Z",
+        status: "failed",
+        summary: {
+          blockingFailures: 1,
+          error: 0,
+          failed: 1,
+          passed: 0,
+          skipped: 0,
+          unavailable: 0,
+        },
+      },
+    });
+
+    await expect(
+      runCli(["verify", "--diff"], output, {
+        cwd: root,
+        now: () => now,
+        verificationRun,
+      }),
+    ).resolves.toBe(1);
+
+    expect(verificationRun).toHaveBeenCalledWith(root, now);
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification: FAILED"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Blocking failures: 1"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("subscription-management#SUB-003"));
+  });
 });

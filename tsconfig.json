@@ -7,6 +7,7 @@
     { "path": "./packages/git" },
     { "path": "./packages/risk" },
     { "path": "./packages/planner" },
+    { "path": "./packages/execution" },
     { "path": "./packages/cli" },
     { "path": "./packages/mcp-server" }
   ]
