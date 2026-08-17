@@ -46,19 +46,27 @@ function amendedContract(
   contract: QualityContract,
   observations: readonly ObservedBehavior[],
 ): QualityContract {
-  const replacements = new Map(
-    observations.map((item) => [item.requirementRef.split("#")[1], item.observed]),
-  );
+  const requirementReplacements = new Map<string, string>();
+  const invariantReplacements = new Map<string, string>();
+  for (const observation of observations) {
+    const id = observation.requirementRef.split("#")[1];
+    if (id === undefined) continue;
+    if (contract.requirements.some((item) => item.id === id)) {
+      requirementReplacements.set(id, observation.observed);
+    } else if (contract.invariants.some((item) => item.id === id)) {
+      invariantReplacements.set(id, observation.observed);
+    }
+  }
   return {
     ...contract,
     approval: undefined,
     invariants: contract.invariants.map((item) => ({
       ...item,
-      statement: replacements.get(item.id) ?? item.statement,
+      statement: invariantReplacements.get(item.id) ?? item.statement,
     })),
     requirements: contract.requirements.map((item) => ({
       ...item,
-      statement: replacements.get(item.id) ?? item.statement,
+      statement: requirementReplacements.get(item.id) ?? item.statement,
     })),
     status: "amended",
   };
@@ -217,24 +225,35 @@ export async function approveContractAmendment(
     );
   }
   const approvedBy = options.approvedBy.trim();
-  if (
-    proposal.approval.eligibleApprovers.length > 0 &&
-    !proposal.approval.eligibleApprovers.some(
-      (owner) => owner.trim().toLocaleLowerCase() === approvedBy.toLocaleLowerCase(),
-    )
-  ) {
-    throw new DriftError(
-      "DRIFT_APPROVAL_REQUIRED",
-      `${approvedBy} is not an eligible owner for ${proposal.contractId}.`,
-      `Use one of the contract owners: ${proposal.approval.eligibleApprovers.join(", ")}.`,
-    );
-  }
   const current = await getContract(root, proposal.contractId);
   if (contractVersionHash(current) !== proposal.baseVersionHash) {
     throw new DriftError(
       "DRIFT_PROPOSAL_STALE",
       "The contract changed after this amendment was proposed.",
       "Review the current contract and create a new amendment proposal.",
+    );
+  }
+  if (
+    current.owners.length > 0 &&
+    !current.owners.some(
+      (owner) => owner.trim().toLocaleLowerCase() === approvedBy.toLocaleLowerCase(),
+    )
+  ) {
+    throw new DriftError(
+      "DRIFT_APPROVAL_REQUIRED",
+      `${approvedBy} is not an eligible owner for ${proposal.contractId}.`,
+      `Use one of the current contract owners: ${current.owners.join(", ")}.`,
+    );
+  }
+  const recordedChanges = JSON.stringify(proposal.changes);
+  const actualChanges = JSON.stringify(
+    diffQualityContracts(current, proposal.proposedContract).changes,
+  );
+  if (recordedChanges !== actualChanges) {
+    throw new DriftError(
+      "DRIFT_PROPOSAL_INVALID",
+      "The proposal's ContractChange audit does not match its proposed contract.",
+      "Review the file for edits and create a fresh amendment proposal.",
     );
   }
   const approvedAt = options.now ?? new Date();
