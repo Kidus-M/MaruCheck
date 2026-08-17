@@ -111,5 +111,5 @@ The deliberately broken implementation leaves a cancelled subscription `active`.
 - One adapter batch can cover several tests and requirements; the report does not claim which individual test caused a batch failure unless the raw adapter provides that structure.
 - Finding lifecycle commands and bug reproduction capsules are future work.
 - Phase 8 will prevent semantic contract drift; Phase 7 reports against the current contract without amending it.
-
+- Check
 See [ADR-007](../decisions/0007-normalize-raw-runs-into-conservative-evidence-and-findings.md) for the decision rationale.
