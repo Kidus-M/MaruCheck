@@ -1,9 +1,10 @@
-import { access } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { startVitest } from "vitest/node";
-import { runVerificationPlan } from "../packages/execution/dist/index.js";
+import { createAndWriteVerificationReport } from "../packages/evidence/dist/index.js";
 
 const temporaryPath = "packages/execution/src/.maru-subscription-cancellation.test.ts";
-const requirementRef = "subscription-management#SUB-003";
+const planPath = ".maru/artifacts/acceptance-subscription-plan.json";
+const requirementRef = "subscription-management#SUB-004";
 const plan = {
   affectedTests: [],
   changeSummary: { additions: 1, changedFiles: 1, deletions: 1 },
@@ -12,7 +13,18 @@ const plan = {
   risk: { level: "critical", score: 95 },
   schemaVersion: 1,
   scope: "working-tree",
-  selectedRequirements: [],
+  selectedRequirements: [
+    {
+      blocking: true,
+      contractId: "subscription-management",
+      contractTitle: "Subscription Management",
+      id: "SUB-004",
+      kind: "requirement",
+      priority: "required",
+      reasons: ["Selected by the contract evidence policy."],
+      statement: "Cancellation keeps Pro access active until period_end.",
+    },
+  ],
   steps: [
     {
       adapter: "vitest",
@@ -29,13 +41,16 @@ const plan = {
     affectedTests: 0,
     automatedSteps: 1,
     manualSteps: 0,
-    selectedRequirements: 0,
+    selectedRequirements: 1,
     unavailableSteps: 0,
   },
   uncoveredRequirements: [],
 };
 
-const result = await runVerificationPlan(process.cwd(), plan, {
+await mkdir(".maru/artifacts", { recursive: true });
+await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+
+const result = await createAndWriteVerificationReport(process.cwd(), new Date(), {
   commandRunner: {
     async run(request) {
       if (!request.args.includes(temporaryPath)) {
@@ -58,15 +73,21 @@ const result = await runVerificationPlan(process.cwd(), plan, {
       );
       const modules = vitest.state.getTestModules();
       const failed = modules.length === 0 || modules.some((module) => !module.ok());
+      const errors = modules.flatMap((module) =>
+        [...module.children.allTests()].flatMap((test) =>
+          (test.result().errors ?? []).map((error) => error.message),
+        ),
+      );
       process.exitCode = previousExitCode;
       return {
         durationMs: Date.now() - startedAt,
         exitCode: failed ? 1 : 0,
-        stderr: failed ? "Broken cancellation assertion failed as required." : "",
+        stderr: errors.join("\n"),
         stdout: `${modules.length} acceptance module executed.`,
       };
     },
   },
+  createPlan: async () => ({ path: planPath, plan }),
   temporaryTests: [
     {
       adapter: "vitest",
@@ -88,8 +109,24 @@ it("marks a cancelled subscription as cancelled", () => {
   ],
 });
 
-if (result.run.status !== "failed" || result.run.summary.blockingFailures !== 1) {
+if (result.run.status !== "failed" || result.report.gate.status !== "blocked") {
   throw new Error(`Broken cancellation was not blocked: ${JSON.stringify(result.run.summary)}`);
+}
+
+const blockingFindings = result.report.findings.filter((finding) => finding.blocking);
+if (blockingFindings.length !== 1) {
+  throw new Error(`Expected one blocking finding: ${JSON.stringify(result.report.findings)}`);
+}
+for (const finding of blockingFindings) {
+  const complete =
+    finding.contractId === "subscription-management" &&
+    finding.requirementId === "SUB-004" &&
+    finding.expected.length > 0 &&
+    finding.actual.length > 0 &&
+    finding.reproduction.command.length > 0 &&
+    finding.reproduction.steps.length > 0 &&
+    finding.evidenceIds.length > 0;
+  if (!complete) throw new Error(`Blocking finding is incomplete: ${JSON.stringify(finding)}`);
 }
 
 try {
@@ -99,4 +136,4 @@ try {
   if (error instanceof Error && !error.message.includes("ENOENT")) throw error;
 }
 
-console.log(`Broken subscription cancellation detected. Artifact: ${result.path}`);
+console.log(`Broken subscription cancellation detected. Report: ${result.path}`);
