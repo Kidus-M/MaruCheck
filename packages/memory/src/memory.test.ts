@@ -148,4 +148,22 @@ describe("QA memory", () => {
       code: "MEMORY_NOT_INITIALIZED",
     });
   });
+
+  it("reports corrupt stored records as read failures", async () => {
+    const root = await project();
+    await writeFile(
+      join(root, ".maru", "memory", "MEM-0001.json"),
+      JSON.stringify({
+        ...IDOR_MEMORY,
+        createdAt: "2026-08-18T08:00:00.000Z",
+        id: "MEM-0001",
+        relatedFiles: ["../outside.ts"],
+        schemaVersion: 1,
+        status: "active",
+      }),
+      "utf8",
+    );
+
+    await expect(listMemoryRecords(root)).rejects.toMatchObject({ code: "MEMORY_READ_FAILED" });
+  });
 });
