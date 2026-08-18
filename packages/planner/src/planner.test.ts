@@ -64,6 +64,7 @@ const ASSESSMENT: RiskAssessment = {
     summary: { additions: 8, changedFiles: 1, deletions: 2 },
   },
   level: "critical",
+  historicalRisks: [],
   reasons: [{ code: "billing", message: "Touches billing.", points: 30 }],
   recommendedTestCategories: [
     "api",
@@ -266,5 +267,88 @@ describe("verification planner", () => {
       code: "PLAN_WRITE_FAILED",
       remediation: expect.stringContaining("permissions"),
     });
+  });
+
+  it("automatically includes a regression test from matched invoice IDOR memory", () => {
+    const project = scan();
+    const plan = buildVerificationPlan({
+      assessment: {
+        ...ASSESSMENT,
+        analysis: {
+          clean: false,
+          files: [
+            {
+              additions: 4,
+              binary: false,
+              classifications: ["authorization", "billing", "security-sensitive"],
+              deletions: 1,
+              hunks: [],
+              path: "src/services/invoices/authorization.ts",
+              status: "modified",
+              symbols: ["authorizeInvoiceRead"],
+            },
+          ],
+          summary: { additions: 4, changedFiles: 1, deletions: 1 },
+        },
+        historicalRisks: [
+          {
+            exactFileMatches: [],
+            matchedTerms: ["authorization", "invoices"],
+            memoryId: "MEM-0143",
+            reasons: ["Matches historical authorization and invoice terms."],
+            regressionTests: [
+              {
+                adapter: "vitest",
+                id: "invoice-cross-account-access",
+                path: "tests/regressions/cross-account.test.ts",
+                requirementRefs: ["invoice-access#INV-001"],
+              },
+            ],
+            relatedContracts: ["invoice-access"],
+            severity: "critical",
+            title: "Cross-account invoice access",
+            type: "security-regression",
+          },
+        ],
+        recommendedTestCategories: ["contract-regression", "security", "unit"],
+      },
+      contracts: [],
+      generatedAt: "2026-08-18T10:00:00.000Z",
+      project: {
+        ...project,
+        tests: {
+          ...project.tests,
+          files: [
+            ...project.tests.files,
+            { framework: "vitest", path: "tests/regressions/cross-account.test.ts" },
+          ],
+        },
+      },
+    });
+
+    expect(plan.historicalRegressions).toEqual([
+      expect.objectContaining({
+        availableTestFiles: ["tests/regressions/cross-account.test.ts"],
+        memoryId: "MEM-0143",
+      }),
+    ]);
+    expect(plan.affectedTests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          historicalMemoryIds: ["MEM-0143"],
+          path: "tests/regressions/cross-account.test.ts",
+          requirementRefs: ["invoice-access#INV-001"],
+        }),
+      ]),
+    );
+    expect(plan.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          adapter: "vitest",
+          testFiles: expect.arrayContaining(["tests/regressions/cross-account.test.ts"]),
+        }),
+      ]),
+    );
+    expect(plan.summary.historicalRegressions).toBe(1);
   });
 });

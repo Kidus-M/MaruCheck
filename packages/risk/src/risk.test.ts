@@ -1,5 +1,6 @@
 import type { QualityContract } from "@maru/contracts";
 import type { GitDiffAnalysis, GitFileChange } from "@maru/git";
+import type { QAMemoryRecord } from "@maru/memory";
 import { describe, expect, it } from "vitest";
 import { assessRisk, riskLevelForScore } from "./index.js";
 
@@ -129,5 +130,59 @@ describe("deterministic risk engine", () => {
       expect.arrayContaining(["missing-contract", "tests-unchanged"]),
     );
     expect(result.relatedContracts).toEqual([]);
+  });
+
+  it("raises risk when an invoice authorization change matches a critical historical bug", () => {
+    const memory: QAMemoryRecord = {
+      createdAt: "2026-08-18T08:00:00.000Z",
+      id: "MEM-0143",
+      regressionTests: [
+        {
+          adapter: "vitest",
+          id: "invoice-cross-account-access",
+          path: "tests/regressions/cross-account.test.ts",
+          requirementRefs: ["invoice-access#INV-001"],
+        },
+      ],
+      relatedContracts: ["invoice-access"],
+      relatedFiles: ["src/services/invoices.ts"],
+      rootCause: "Missing ownership check.",
+      schemaVersion: 1,
+      severity: "critical",
+      source: "manual",
+      status: "active",
+      summary: "A user could read another account's invoice.",
+      tags: ["authorization", "idor", "invoices"],
+      title: "Cross-account invoice access",
+      type: "security-regression",
+    };
+    const result = assessRisk(
+      analysis([
+        file({
+          classifications: [
+            "authorization",
+            "billing",
+            "business-logic",
+            "security-sensitive",
+          ],
+          path: "src/services/invoices/authorization.ts",
+          symbols: ["authorizeInvoiceRead"],
+        }),
+      ]),
+      [],
+      [memory],
+    );
+
+    expect(result.historicalRisks).toEqual([
+      expect.objectContaining({ memoryId: "MEM-0143", severity: "critical" }),
+    ]);
+    expect(result.reasons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "historical-regression", points: 25 }),
+      ]),
+    );
+    expect(result.recommendedTestCategories).toEqual(
+      expect.arrayContaining(["contract-regression", "security"]),
+    );
   });
 });
