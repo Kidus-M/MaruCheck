@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import {
+  CiError,
+  installGitHubWorkflow,
+  runPullRequestVerification,
+  type GitHubWorkflowInstallResult,
+  type PullRequestVerificationResult,
+} from "@maru/ci";
+import {
   ContractError,
   approveContract,
   createContractFromRequirements,
@@ -58,6 +65,11 @@ export interface CliOutput {
 }
 
 export interface CliDependencies {
+  readonly ciVerification?: (
+    root: string,
+    now: Date,
+  ) => Promise<PullRequestVerificationResult>;
+  readonly ciWorkflowInstaller?: (root: string) => Promise<GitHubWorkflowInstallResult>;
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;
   readonly mcpServer?: (root: string) => Promise<void>;
@@ -81,6 +93,7 @@ Commands:
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
   verify     Execute tests and write evidence, findings, and a JSON report
+  ci         Install and run GitHub pull-request verification
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
@@ -110,6 +123,10 @@ Planning commands:
 
 Verification commands:
   maru verify --diff
+
+CI commands:
+  maru ci init
+  maru ci verify
 
 Options:
   -h, --help       Show help
@@ -602,6 +619,36 @@ export async function runCli(
       return result.report.gate.status === "blocked" ? 1 : 0;
     }
 
+    if (command === "ci") {
+      const action = args[1];
+      if (args.length !== 2 || (action !== "init" && action !== "verify")) {
+        output.error("Invalid CI command.\nRun maru ci init or maru ci verify.");
+        return 1;
+      }
+      if (action === "init") {
+        const result = await (dependencies.ciWorkflowInstaller ?? installGitHubWorkflow)(root);
+        output.log(
+          result.created
+            ? `GitHub workflow installed: ${result.path}\nNext: commit the workflow and open a pull request.`
+            : `GitHub workflow already installed: ${result.path}`,
+        );
+        return 0;
+      }
+      const result = await (dependencies.ciVerification ?? runPullRequestVerification)(
+        root,
+        dependencies.now?.() ?? new Date(),
+      );
+      output.log(
+        [
+          `ProofLayer: ${result.conclusion.toUpperCase()}`,
+          `Evidence report: ${result.reportPath}`,
+          `GitHub summary: ${result.summaryPath}`,
+          `Published to GitHub: ${result.publishedToGitHub ? "yes" : "no (local run)"}`,
+        ].join("\n"),
+      );
+      return result.conclusion === "failure" ? 1 : 0;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -638,6 +685,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof MemoryError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof CiError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

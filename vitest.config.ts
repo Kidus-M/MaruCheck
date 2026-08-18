@@ -7,6 +7,7 @@ const packageSource = (name: string) =>
 export default defineConfig({
   resolve: {
     alias: {
+      "@maru/ci": packageSource("ci"),
       "@maru/contracts": packageSource("contracts"),
       "@maru/core": packageSource("core"),
       "@maru/execution": packageSource("execution"),
