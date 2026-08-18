@@ -133,7 +133,7 @@ describe("QA memory", () => {
 
     expect(matches).toEqual([
       expect.objectContaining({
-        matchedTerms: expect.arrayContaining(["authorization", "invoices"]),
+        matchedTerms: expect.arrayContaining(["authorization", "invoice"]),
         memoryId: "MEM-0143",
         regressionTests: [
           expect.objectContaining({ path: "tests/regressions/cross-account.test.ts" }),

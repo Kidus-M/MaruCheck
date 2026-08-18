@@ -201,9 +201,23 @@ export function parseStoredMemoryRecord(value: unknown, path: string): QAMemoryR
       "Repair or remove the invalid memory file, then retry.",
     );
   }
-  const parsed = parseMemoryRecordInput(input, {
+  const parsed = parseMemoryRecordInput(
+    {
+      regressionTests: input.regressionTests,
+      relatedContracts: input.relatedContracts,
+      relatedFiles: input.relatedFiles,
+      rootCause: input.rootCause,
+      severity: input.severity,
+      source: input.source,
+      summary: input.summary,
+      tags: input.tags,
+      title: input.title,
+      type: input.type,
+    },
+    {
     defaultSource: typeof input.source === "string" ? (input.source as MemorySource) : undefined,
-  });
+    },
+  );
   return {
     ...parsed,
     createdAt: input.createdAt,
