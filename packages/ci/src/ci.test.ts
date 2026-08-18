@@ -190,7 +190,7 @@ describe("GitHub pull-request verification", () => {
     expect(summary).toContain("invoice-access#INV-001");
     expect(summary).toContain("Users can only read invoices owned by their account.");
     expect(summary).toContain("maru verify --diff");
-    expect(summary).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(summary).toContain("&lt;script&gt;alert\\(1\\)&lt;/script&gt;");
     expect(summary).not.toContain("<script>");
     expect(summary).toContain("\\[details\\]\\(javascript:alert\\(1\\)\\)");
     expect(summary).not.toContain("[details](javascript:alert(1))");
