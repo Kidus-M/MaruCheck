@@ -7,6 +7,7 @@ import {
   type RequirementPriority,
 } from "@maru/contracts";
 import { scanProject, type ProjectScan } from "@maru/core";
+import type { MemorySeverity } from "@maru/memory";
 import {
   assessProjectRisk,
   type RecommendedTestCategory,
@@ -46,7 +47,7 @@ export interface HistoricalRegression {
   readonly missingTestFiles: readonly string[];
   readonly reasons: readonly string[];
   readonly requirementRefs: readonly string[];
-  readonly severity: import("@maru/memory").MemorySeverity;
+  readonly severity: MemorySeverity;
   readonly title: string;
 }
 

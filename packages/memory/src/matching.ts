@@ -21,6 +21,8 @@ const STOP_WORDS = new Set([
   "missing",
   "record",
   "regression",
+  "security",
+  "service",
   "services",
   "tests",
   "users",

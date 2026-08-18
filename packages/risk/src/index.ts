@@ -219,6 +219,13 @@ function recommendations(
   ) {
     result.add("security");
   }
+  if (
+    historicalRisks.some((memory) =>
+      memory.regressionTests.some((test) => test.adapter === "playwright"),
+    )
+  ) {
+    result.add("e2e");
+  }
   if (level === "high" || level === "critical") result.add("e2e");
   if (level === "critical") result.add("adversarial-edge-cases");
   return [...result].sort();
