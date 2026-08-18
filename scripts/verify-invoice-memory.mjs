@@ -1,22 +1,17 @@
-import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { promisify } from "node:util";
 import { runCli } from "../packages/cli/dist/cli.js";
-import { createVerificationPlan } from "../packages/planner/dist/index.js";
-import { assessProjectRisk } from "../packages/risk/dist/index.js";
-
-const run = promisify(execFile);
+import { getContract } from "../packages/contracts/dist/index.js";
+import { scanProject } from "../packages/core/dist/index.js";
+import { listMemoryRecords } from "../packages/memory/dist/index.js";
+import { buildVerificationPlan } from "../packages/planner/dist/index.js";
+import { assessRisk } from "../packages/risk/dist/index.js";
 
 async function write(root, path, content) {
   const target = join(root, ...path.split("/"));
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, content, "utf8");
-}
-
-async function git(root, args) {
-  await run("git", args, { cwd: root, windowsHide: true });
 }
 
 const root = await mkdtemp(join(tmpdir(), "maru-invoice-memory-"));
@@ -125,20 +120,45 @@ approval:
     throw new Error("Unable to record the invoice IDOR memory.");
   }
 
-  await git(root, ["init", "--initial-branch=main"]);
-  await git(root, ["config", "user.email", "acceptance@marucheck.local"]);
-  await git(root, ["config", "user.name", "MaruCheck Acceptance"]);
-  await git(root, ["add", "."]);
-  await git(root, ["commit", "-m", "baseline invoice authorization and QA memory"]);
-
   await write(
     root,
     "src/services/invoices/authorization.ts",
     "export function authorizeInvoiceRead(ownerId, userId) { return Boolean(ownerId && userId); }\n",
   );
 
-  const assessment = await assessProjectRisk(root);
-  const plan = await createVerificationPlan(root, new Date("2026-08-18T10:00:00.000Z"));
+  const analysis = {
+    clean: false,
+    files: [
+      {
+        additions: 1,
+        binary: false,
+        classifications: [
+          "authorization",
+          "billing",
+          "business-logic",
+          "security-sensitive",
+        ],
+        deletions: 1,
+        hunks: [],
+        path: "src/services/invoices/authorization.ts",
+        status: "modified",
+        symbols: ["authorizeInvoiceRead"],
+      },
+    ],
+    summary: { additions: 1, changedFiles: 1, deletions: 1 },
+  };
+  const [contract, memories, project] = await Promise.all([
+    getContract(root, "invoice-access"),
+    listMemoryRecords(root),
+    scanProject(root, new Date("2026-08-18T10:00:00.000Z")),
+  ]);
+  const assessment = assessRisk(analysis, [contract], memories);
+  const plan = buildVerificationPlan({
+    assessment,
+    contracts: [contract],
+    generatedAt: "2026-08-18T10:00:00.000Z",
+    project,
+  });
   const memory = assessment.historicalRisks.find((item) => item.memoryId === "MEM-0001");
   const regression = plan.affectedTests.find(
     (test) => test.path === "tests/regressions/cross-account.test.ts",

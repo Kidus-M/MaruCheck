@@ -88,6 +88,6 @@ Run:
 npm run test:acceptance:invoice-memory
 ```
 
-The fixture records a critical invoice IDOR bug, commits that history and its regression test, later changes invoice authorization code, and succeeds only when risk matches `MEM-0001` and the planner automatically includes the recorded cross-account test.
+The fixture records a critical invoice IDOR bug, preserves that history and its regression test, later changes invoice authorization code, and succeeds only when the modeled Git change makes risk match `MEM-0001` and the planner automatically includes the recorded cross-account test. Git metadata parsing is covered independently by the Git integration suite so this acceptance remains portable in environments that restrict child processes.
 
 See [ADR-009](../decisions/0009-store-local-qa-memory-as-immutable-records.md) for the decision rationale.
