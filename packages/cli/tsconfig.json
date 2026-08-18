@@ -16,6 +16,7 @@
     { "path": "../execution" },
     { "path": "../git" },
     { "path": "../mcp-server" },
+    { "path": "../memory" },
     { "path": "../planner" },
     { "path": "../risk" }
   ]

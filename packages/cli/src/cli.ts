@@ -36,6 +36,14 @@ import {
   proposeContractAmendment,
 } from "@maru/drift";
 import { GitAnalysisError } from "@maru/git";
+import {
+  MemoryError,
+  createMemoryRecord,
+  getMemoryRecord,
+  listMemoryRecords,
+  parseMemoryRecordInput,
+  searchMemoryRecords,
+} from "@maru/memory";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
   VerificationPlanError,
@@ -69,6 +77,7 @@ Commands:
   doctor     Diagnose local prerequisites and configuration
   contract   Create, validate, inspect, diff, and approve Quality Contracts
   drift      Check protected expectations and manage contract amendments
+  memory     Record, list, search, and inspect historical QA knowledge
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
   verify     Execute tests and write evidence, findings, and a JSON report
@@ -86,6 +95,12 @@ Semantic drift commands:
   maru drift check --from observations.json
   maru drift propose <contract-id> --from observations.json --reason "Why" --by <proposer>
   maru drift approve <proposal-path> --by <contract-owner>
+
+QA memory commands:
+  maru memory add --from memory.json
+  maru memory list
+  maru memory search "authorization"
+  maru memory show <MEM-id>
 
 Risk commands:
   maru risk --diff
@@ -133,6 +148,7 @@ function formatRiskAssessment(assessment: RiskAssessment): string {
     `Risk: ${assessment.level.toUpperCase()} (${assessment.score}/100)`,
     `Changed files: ${assessment.analysis.summary.changedFiles} (+${assessment.analysis.summary.additions} -${assessment.analysis.summary.deletions})`,
     `Related contracts: ${related.length === 0 ? "none" : related}`,
+    `Historical risks: ${assessment.historicalRisks.length === 0 ? "none" : assessment.historicalRisks.map((memory) => memory.memoryId).join(", ")}`,
     "Why:",
     ...assessment.reasons.map((reason) => `  +${reason.points} ${reason.message}`),
     `Recommended tests: ${assessment.recommendedTestCategories.join(", ") || "none"}`,
@@ -146,6 +162,7 @@ function formatVerificationPlan(result: VerificationPlanResult): string {
     `Risk: ${plan.risk.level.toUpperCase()} (${plan.risk.score}/100)`,
     `Requirements: ${plan.summary.selectedRequirements}`,
     `Affected tests: ${plan.summary.affectedTests}`,
+    `Historical regressions: ${plan.summary.historicalRegressions}`,
     `Steps: ${plan.steps.length} (${plan.summary.automatedSteps} automated, ${plan.summary.manualSteps} manual, ${plan.summary.unavailableSteps} unavailable)`,
     `Uncovered requirements: ${plan.uncoveredRequirements.length}`,
   ].join("\n");
@@ -379,6 +396,97 @@ async function runDriftCommand(
   );
 }
 
+async function memoryInputFromFile(root: string, path: string) {
+  try {
+    return parseMemoryRecordInput(
+      JSON.parse(await readFile(resolveInsideRoot(root, path), "utf8")) as unknown,
+    );
+  } catch (error) {
+    if (error instanceof MemoryError) throw error;
+    throw new MemoryError(
+      "MEMORY_INVALID",
+      `Unable to read QA memory input from ${path}.`,
+      "Provide a valid JSON file inside the project root.",
+      { cause: error },
+    );
+  }
+}
+
+async function runMemoryCommand(
+  args: readonly string[],
+  root: string,
+  output: CliOutput,
+  now: Date,
+): Promise<number> {
+  const [action, ...actionArgs] = args;
+  if (action === "add") {
+    const sourcePath = option(actionArgs, "--from");
+    if (sourcePath === undefined) {
+      throw new MemoryError(
+        "MEMORY_INVALID",
+        "A QA memory input file is required.",
+        "Run maru memory add --from memory.json.",
+      );
+    }
+    const result = await createMemoryRecord(root, await memoryInputFromFile(root, sourcePath), {
+      now,
+    });
+    output.log(
+      `QA memory recorded: ${result.record.id}\nSeverity: ${result.record.severity}\nPath: ${result.path}\nRegression tests: ${result.record.regressionTests.length}`,
+    );
+    return 0;
+  }
+
+  if (action === "list") {
+    const records = await listMemoryRecords(root);
+    output.log(
+      records.length === 0
+        ? "No QA memory records found."
+        : records
+            .map(
+              (record) =>
+                `${record.id}\t${record.severity}\t${record.type}\t${record.title}`,
+            )
+            .join("\n"),
+    );
+    return 0;
+  }
+
+  if (action === "search") {
+    const query = actionArgs.join(" ").trim();
+    const matches = await searchMemoryRecords(root, query);
+    output.log(
+      [
+        `Memory matches: ${matches.length}`,
+        ...matches.map(
+          (match) =>
+            `${match.record.id}\t${match.record.severity}\t${match.record.title}\n  Terms: ${match.matchedTerms.join(", ")}\n  Fields: ${match.matchedFields.join(", ")}`,
+        ),
+      ].join("\n"),
+    );
+    return 0;
+  }
+
+  if (action === "show") {
+    const id = actionArgs[0];
+    if (id === undefined) {
+      throw new MemoryError(
+        "MEMORY_INVALID",
+        "A QA memory identifier is required.",
+        "Run maru memory show <MEM-id>.",
+      );
+    }
+    output.log(JSON.stringify(await getMemoryRecord(root, id), null, 2));
+    return 0;
+  }
+
+  throw new MemoryError(
+    "MEMORY_INVALID",
+    `Unknown memory command: ${action ?? "(missing)"}`,
+    "Run maru --help for QA memory command usage.",
+  );
+}
+
 /**
  * Execute a MaruCheck CLI command against a project directory.
  *
@@ -452,6 +560,10 @@ export async function runCli(
       return await runDriftCommand(args.slice(1), root, output, dependencies.now?.() ?? new Date());
     }
 
+    if (command === "memory") {
+      return await runMemoryCommand(args.slice(1), root, output, dependencies.now?.() ?? new Date());
+    }
+
     if (command === "risk") {
       if (args.length !== 2 || args[1] !== "--diff") {
         output.error("Invalid risk command.\nRun maru risk --diff.");
@@ -520,6 +632,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof DriftError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof MemoryError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
