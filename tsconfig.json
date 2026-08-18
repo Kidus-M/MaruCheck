@@ -5,6 +5,7 @@
     { "path": "./packages/core" },
     { "path": "./packages/contracts" },
     { "path": "./packages/git" },
+    { "path": "./packages/memory" },
     { "path": "./packages/risk" },
     { "path": "./packages/planner" },
     { "path": "./packages/execution" },
