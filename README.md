@@ -28,6 +28,8 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
+node ../maru-cli/packages/cli/dist/index.js ci init
+node ../maru-cli/packages/cli/dist/index.js ci verify
 node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
 node ../maru-cli/packages/cli/dist/index.js memory search "authorization"
 node ../maru-cli/packages/cli/dist/index.js mcp
@@ -57,6 +59,8 @@ The published developer experience will use `npx maru <command>`.
 | `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                              |
+| `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                        |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
 | `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests              |
 
@@ -92,6 +96,7 @@ The published developer experience will use `npx maru <command>`.
 
 ```text
 packages/
+|-- ci/           # GitHub workflow installation, summaries, and check conclusions
 |-- cli/          # maru command-line interface
 |-- contracts/    # Quality Contract schemas and versioning
 |-- core/         # verification domain and orchestration
@@ -110,13 +115,12 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 9 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, semantic drift protection, and historical QA memory.
+Phases 0 through 10 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
 Known Phase 1 limitations:
 
 - route discovery follows common Next.js filesystem conventions and does not interpret custom runtime routing;
 - doctor validates declared tooling and executables but does not install browser binaries;
-- GitHub Actions configuration remains in a later planned phase;
 - no cloud account or AI provider is used or required.
 
 Quality Contract YAML intentionally supports the documented MaruCheck schema rather than every YAML feature. Anchors, aliases, tags, merge keys, unsafe identifiers, duplicate keys, and paths outside the project root are rejected.
@@ -164,6 +168,12 @@ See the [Phase 8 semantic drift guide](docs/guides/phase-8-semantic-drift.md) an
 Confirmed bugs can be stored under `.maru/memory` with their root cause, related contracts/files, tags, and regression tests. Future diffs automatically match that history, increase risk, and force available recorded regression files into verification plans.
 
 See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009](docs/decisions/0009-store-local-qa-memory-as-immutable-records.md).
+
+### GitHub pull-request verification
+
+`maru ci init` installs a pull-request-only workflow with read-only repository permissions. `maru ci verify` writes the evidence report and an escaped GitHub job summary before mapping the release gate to the process exit code. The workflow uploads `.maru` evidence even when a blocking contract finding fails the ProofLayer check; no GitHub App is required.
+
+See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-request-verification.md) and [ADR-010](docs/decisions/0010-use-workflow-native-pull-request-verification.md).
 
 ## Contributing
 
