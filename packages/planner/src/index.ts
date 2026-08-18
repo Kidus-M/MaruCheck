@@ -34,9 +34,20 @@ export interface SelectedRequirement {
 
 export interface AffectedTest {
   readonly framework: TestFramework | "unknown";
+  readonly historicalMemoryIds: readonly string[];
   readonly matchedTerms: readonly string[];
   readonly path: string;
   readonly requirementRefs: readonly string[];
+}
+
+export interface HistoricalRegression {
+  readonly availableTestFiles: readonly string[];
+  readonly memoryId: string;
+  readonly missingTestFiles: readonly string[];
+  readonly reasons: readonly string[];
+  readonly requirementRefs: readonly string[];
+  readonly severity: import("@maru/memory").MemorySeverity;
+  readonly title: string;
 }
 
 export interface VerificationStep {
@@ -54,6 +65,7 @@ export interface VerificationPlan {
   readonly affectedTests: readonly AffectedTest[];
   readonly changeSummary: RiskAssessment["analysis"]["summary"];
   readonly generatedAt: string;
+  readonly historicalRegressions: readonly HistoricalRegression[];
   readonly project: {
     readonly name: string;
     readonly testFrameworks: readonly TestFramework[];
@@ -69,6 +81,7 @@ export interface VerificationPlan {
   readonly summary: {
     readonly affectedTests: number;
     readonly automatedSteps: number;
+    readonly historicalRegressions: number;
     readonly manualSteps: number;
     readonly selectedRequirements: number;
     readonly unavailableSteps: number;
