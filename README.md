@@ -11,7 +11,7 @@ Requirements: Node.js 24 LTS and npm 11 or newer.
 ```bash
 npm install
 npm run check
-npm run maru -- --help 
+npm run maru -- --help
 ```
 
 During local development, build the CLI and invoke it from the project you want to inspect:
@@ -29,6 +29,7 @@ node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
 node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
+node ../maru-cli/packages/cli/dist/index.js memory search "authorization"
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
@@ -57,6 +58,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
+| `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests               |
 
 ### Quality Contract commands
 
@@ -77,6 +79,15 @@ The published developer experience will use `npx maru <command>`.
 | `maru drift propose <id> --from observations.json --reason "Why" --by <proposer>` | Write an immutable pending amendment without changing the contract |
 | `maru drift approve <proposal-path> --by <contract-owner>`                        | Apply a reviewed amendment with an owner approval and audit record |
 
+### QA memory commands
+
+| Command                                      | Description                                                    |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `maru memory add --from memory.json`          | Store one immutable versioned historical QA record             |
+| `maru memory list`                            | List active records newest first                               |
+| `maru memory search "invoice authorization"` | Search IDs, defects, root causes, paths, contracts, and tags    |
+| `maru memory show <MEM-id>`                   | Print one complete record including linked regression tests    |
+
 ## Repository structure
 
 ```text
@@ -89,6 +100,7 @@ packages/
 |-- execution/    # Vitest/Playwright execution and raw run artifacts
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
+|-- memory/       # historical bugs, matching, and regression links
 |-- planner/      # requirement-linked verification planning
 |-- risk/         # deterministic risk scoring and contract matching
 `-- shared/       # stable cross-package primitives
@@ -98,7 +110,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 8 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, and semantic drift protection.
+Phases 0 through 9 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, semantic drift protection, and historical QA memory.
 
 Known Phase 1 limitations:
 
@@ -113,7 +125,7 @@ See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.
 
 ### MCP server
 
-`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, validation, bounded Git/risk/planning tools, and local verification execution. It never approves contracts or sends repository content to a cloud service.
+`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, QA memory recording/querying, validation, bounded Git/risk/planning tools, and local verification execution. It never approves contracts or sends repository content to a cloud service.
 
 See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
 
@@ -146,6 +158,12 @@ See the [Phase 7 evidence and findings guide](docs/guides/phase-7-evidence-and-f
 `maru drift check` compares explicit observed behavior with requirement-linked contract expectations. Approved meaning changes block without rewriting the contract. MCP clients may create an immutable pending proposal, but only a current contract owner can approve it through the separate CLI action.
 
 See the [Phase 8 semantic drift guide](docs/guides/phase-8-semantic-drift.md) and [ADR-008](docs/decisions/0008-separate-semantic-drift-detection-proposal-and-approval.md).
+
+### QA memory
+
+Confirmed bugs can be stored under `.maru/memory` with their root cause, related contracts/files, tags, and regression tests. Future diffs automatically match that history, increase risk, and force available recorded regression files into verification plans.
+
+See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009](docs/decisions/0009-store-local-qa-memory-as-immutable-records.md).
 
 ## Contributing
 
