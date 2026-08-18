@@ -213,8 +213,7 @@ function recommendations(
   if (relatedContracts.length > 0 || historicalRisks.length > 0) result.add("contract-regression");
   if (
     historicalRisks.some(
-      (memory) =>
-        memory.type === "security-finding" || memory.type === "security-regression",
+      (memory) => memory.type === "security-finding" || memory.type === "security-regression",
     )
   ) {
     result.add("security");

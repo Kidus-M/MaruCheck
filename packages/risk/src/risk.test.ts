@@ -159,12 +159,7 @@ describe("deterministic risk engine", () => {
     const result = assessRisk(
       analysis([
         file({
-          classifications: [
-            "authorization",
-            "billing",
-            "business-logic",
-            "security-sensitive",
-          ],
+          classifications: ["authorization", "billing", "business-logic", "security-sensitive"],
           path: "src/services/invoices/authorization.ts",
           symbols: ["authorizeInvoiceRead"],
         }),

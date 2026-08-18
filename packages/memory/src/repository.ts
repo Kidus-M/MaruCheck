@@ -134,7 +134,9 @@ export async function createMemoryRecord(
 export async function listMemoryRecords(root: string): Promise<QAMemoryRecord[]> {
   await requireInitialization(root);
   const records = await Promise.all(
-    (await memoryFileNames(root)).map((name) => readMemoryFile(root, `${MEMORY_DIRECTORY}/${name}`)),
+    (await memoryFileNames(root)).map((name) =>
+      readMemoryFile(root, `${MEMORY_DIRECTORY}/${name}`),
+    ),
   );
   return records.sort(
     (left, right) =>

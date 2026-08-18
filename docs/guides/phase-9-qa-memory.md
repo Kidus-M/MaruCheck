@@ -15,10 +15,7 @@ Create an input file such as `invoice-idor.json`:
   "severity": "critical",
   "source": "manual",
   "relatedContracts": ["invoice-access"],
-  "relatedFiles": [
-    "src/app/api/invoices/[invoiceId]/route.ts",
-    "src/services/invoices.ts"
-  ],
+  "relatedFiles": ["src/app/api/invoices/[invoiceId]/route.ts", "src/services/invoices.ts"],
   "regressionTests": [
     {
       "id": "invoice-cross-account-access",

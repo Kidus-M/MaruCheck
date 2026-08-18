@@ -328,8 +328,7 @@ function createSteps(
           ? `Links ${requirementRefs.length} selected contract requirement${requirementRefs.length === 1 ? "" : "s"}.`
           : "No related contract requirement was selected.",
         ...(affectedTests.some(
-          (test) =>
-            test.framework === selection.adapter && test.historicalMemoryIds.length > 0,
+          (test) => test.framework === selection.adapter && test.historicalMemoryIds.length > 0,
         )
           ? ["Includes regression tests selected by matched historical QA memory."]
           : []),

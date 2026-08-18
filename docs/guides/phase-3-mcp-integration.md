@@ -31,8 +31,8 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 | `maru_run_verification`           | Execute tests and persist raw artifacts, evidence, findings, and JSON report        | Local write and code execution |
 | `maru_check_semantic_drift`       | Compare observations with protected contract expectations                           | Read-only                      |
 | `maru_propose_contract_amendment` | Write an immutable pending amendment; never approve or rewrite the current contract | Local write                    |
-| `maru_record_bug`                  | Record a confirmed bug, root cause, links, tags, and regression tests                | Local write                    |
-| `maru_query_memory`                | Search historical QA memory with explainable matches                                 | Read-only                      |
+| `maru_record_bug`                 | Record a confirmed bug, root cause, links, tags, and regression tests               | Local write                    |
+| `maru_query_memory`               | Search historical QA memory with explainable matches                                | Read-only                      |
 
 Every tool publishes a closed JSON input schema, a structured JSON result, and a JSON text fallback. Tool execution errors include a stable code, safe message, remediation, and validation issues when available.
 

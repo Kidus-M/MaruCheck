@@ -429,11 +429,10 @@ evidence_policy:`,
       type: "security-regression",
     };
 
-    const recorded = await callMaruTool(
-      "maru_record_bug",
-      memory,
-      { now: () => new Date("2026-08-18T08:00:00.000Z"), root },
-    );
+    const recorded = await callMaruTool("maru_record_bug", memory, {
+      now: () => new Date("2026-08-18T08:00:00.000Z"),
+      root,
+    });
     const queried = await callMaruTool(
       "maru_query_memory",
       { query: "invoice authorization" },
@@ -451,9 +450,7 @@ evidence_policy:`,
     expect(queried).toMatchObject({
       isError: false,
       structuredContent: {
-        matches: [
-          expect.objectContaining({ record: expect.objectContaining({ id: "MEM-0001" }) }),
-        ],
+        matches: [expect.objectContaining({ record: expect.objectContaining({ id: "MEM-0001" }) })],
         ok: true,
       },
     });

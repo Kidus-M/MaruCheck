@@ -443,10 +443,7 @@ async function runMemoryCommand(
       records.length === 0
         ? "No QA memory records found."
         : records
-            .map(
-              (record) =>
-                `${record.id}\t${record.severity}\t${record.type}\t${record.title}`,
-            )
+            .map((record) => `${record.id}\t${record.severity}\t${record.type}\t${record.title}`)
             .join("\n"),
     );
     return 0;
@@ -561,7 +558,12 @@ export async function runCli(
     }
 
     if (command === "memory") {
-      return await runMemoryCommand(args.slice(1), root, output, dependencies.now?.() ?? new Date());
+      return await runMemoryCommand(
+        args.slice(1),
+        root,
+        output,
+        dependencies.now?.() ?? new Date(),
+      );
     }
 
     if (command === "risk") {

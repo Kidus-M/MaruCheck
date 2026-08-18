@@ -23,10 +23,7 @@ const IDOR_MEMORY: CreateMemoryRecordInput = {
     },
   ],
   relatedContracts: ["invoice-access"],
-  relatedFiles: [
-    "src/app/api/invoices/[invoiceId]/route.ts",
-    "src/services/invoices.ts",
-  ],
+  relatedFiles: ["src/app/api/invoices/[invoiceId]/route.ts", "src/services/invoices.ts"],
   rootCause: "Missing server-side invoice ownership check.",
   severity: "critical",
   source: "manual",
@@ -43,12 +40,7 @@ function invoiceAuthorizationDiff(): GitDiffAnalysis {
       {
         additions: 5,
         binary: false,
-        classifications: [
-          "authorization",
-          "billing",
-          "business-logic",
-          "security-sensitive",
-        ],
+        classifications: ["authorization", "billing", "business-logic", "security-sensitive"],
         deletions: 2,
         hunks: [],
         path: "src/services/invoices/authorization.ts",

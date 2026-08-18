@@ -1,9 +1,5 @@
 import type { GitDiffAnalysis } from "@maru/git";
-import type {
-  HistoricalRiskMatch,
-  MemorySearchMatch,
-  QAMemoryRecord,
-} from "./model.js";
+import type { HistoricalRiskMatch, MemorySearchMatch, QAMemoryRecord } from "./model.js";
 import { MemoryError } from "./model.js";
 import { listMemoryRecords } from "./repository.js";
 
@@ -125,9 +121,7 @@ export function matchHistoricalRisks(
   return records
     .map((record): HistoricalRiskMatch | undefined => {
       if (record.status !== "active") return undefined;
-      const exactFileMatches = record.relatedFiles
-        .filter((path) => changedPaths.has(path))
-        .sort();
+      const exactFileMatches = record.relatedFiles.filter((path) => changedPaths.has(path)).sort();
       const memoryTerms = terms(Object.values(searchableFields(record)).join(" "));
       const matchedTerms = intersection(changedTerms, memoryTerms);
       if (exactFileMatches.length === 0 && matchedTerms.length < 2) return undefined;

@@ -14,7 +14,7 @@
   ],
   "dependencies": {
     "@maru/contracts": "0.1.0",
-    "@maru/git": "0.1.0"
-    ,"@maru/memory": "0.1.0"
+    "@maru/git": "0.1.0",
+    "@maru/memory": "0.1.0"
   }
 }

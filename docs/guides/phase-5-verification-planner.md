@@ -39,7 +39,7 @@ Schema version 1 includes:
 | `changeSummary`         | Changed-file and added/deleted-line totals                            |
 | `selectedRequirements`  | Related requirements/invariants, blocking status, and selection why   |
 | `affectedTests`         | Existing tests matched to change and requirement terms                |
-| `historicalRegressions` | Matched memory with available/missing regression files and reasons     |
+| `historicalRegressions` | Matched memory with available/missing regression files and reasons    |
 | `steps`                 | Category, adapter, execution mode, requirements, tests, and reasons   |
 | `uncoveredRequirements` | Selected requirement references with no matching existing test        |
 | `summary`               | Counts for automated, manual, unavailable, test, and requirement work |

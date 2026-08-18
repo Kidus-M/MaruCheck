@@ -44,7 +44,12 @@ try {
     "tests/regressions/cross-account.test.ts",
     "import { test, expect } from 'vitest'; test('blocks cross-account invoices', () => expect(true).toBe(true));\n",
   );
-  const output = { error: (message) => { throw new Error(message); }, log: () => {} };
+  const output = {
+    error: (message) => {
+      throw new Error(message);
+    },
+    log: () => {},
+  };
   const now = () => new Date("2026-08-18T08:00:00.000Z");
   if ((await runCli(["init"], output, { cwd: root, now })) !== 0) {
     throw new Error("Unable to initialize the invoice memory fixture.");

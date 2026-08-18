@@ -43,11 +43,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function stringValue(
-  input: Record<string, unknown>,
-  key: string,
-  maximum: number,
-): string {
+function stringValue(input: Record<string, unknown>, key: string, maximum: number): string {
   const value = input[key];
   if (typeof value !== "string" || value.trim().length === 0 || value.length > maximum) {
     invalid(
@@ -215,7 +211,7 @@ export function parseStoredMemoryRecord(value: unknown, path: string): QAMemoryR
       type: input.type,
     },
     {
-    defaultSource: typeof input.source === "string" ? (input.source as MemorySource) : undefined,
+      defaultSource: typeof input.source === "string" ? (input.source as MemorySource) : undefined,
     },
   );
   return {

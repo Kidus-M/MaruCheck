@@ -354,10 +354,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
     "maru_query_memory",
     "Query QA memory",
     "Search historical bugs, incidents, root causes, paths, contracts, and regression tests with explainable deterministic matches.",
-    schema(
-      { query: { maxLength: 500, minLength: 1, type: "string" } },
-      ["query"],
-    ),
+    schema({ query: { maxLength: 500, minLength: 1, type: "string" } }, ["query"]),
     true,
   ),
 ];
@@ -676,7 +673,9 @@ export async function callMaruTool(
 
     if (name === "maru_query_memory") {
       const input = objectArguments(args, ["query"]);
-      return success({ matches: await searchMemoryRecords(root, requiredString(input, "query", 500)) });
+      return success({
+        matches: await searchMemoryRecords(root, requiredString(input, "query", 500)),
+      });
     }
 
     objectArguments(args, []);

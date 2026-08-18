@@ -58,7 +58,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
-| `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests               |
+| `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests              |
 
 ### Quality Contract commands
 
@@ -81,12 +81,12 @@ The published developer experience will use `npx maru <command>`.
 
 ### QA memory commands
 
-| Command                                      | Description                                                    |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `maru memory add --from memory.json`          | Store one immutable versioned historical QA record             |
-| `maru memory list`                            | List active records newest first                               |
-| `maru memory search "invoice authorization"` | Search IDs, defects, root causes, paths, contracts, and tags    |
-| `maru memory show <MEM-id>`                   | Print one complete record including linked regression tests    |
+| Command                                      | Description                                                  |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| `maru memory add --from memory.json`         | Store one immutable versioned historical QA record           |
+| `maru memory list`                           | List active records newest first                             |
+| `maru memory search "invoice authorization"` | Search IDs, defects, root causes, paths, contracts, and tags |
+| `maru memory show <MEM-id>`                  | Print one complete record including linked regression tests  |
 
 ## Repository structure
 
