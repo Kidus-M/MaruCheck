@@ -254,13 +254,18 @@ function historicalRegressions(
   assessment: RiskAssessment,
   project: ProjectScan,
 ): HistoricalRegression[] {
-  const discovered = new Set(project.tests.files.map((test) => test.path));
+  const discovered = new Map(project.tests.files.map((test) => [test.path, test.framework]));
   return assessment.historicalRisks.map((memory) => {
-    const testFiles = memory.regressionTests.map((test) => test.path);
+    const available = memory.regressionTests.filter(
+      (test) => discovered.get(test.path) === test.adapter,
+    );
+    const unavailable = memory.regressionTests.filter(
+      (test) => discovered.get(test.path) !== test.adapter,
+    );
     return {
-      availableTestFiles: testFiles.filter((path) => discovered.has(path)).sort(),
+      availableTestFiles: available.map((test) => test.path).sort(),
       memoryId: memory.memoryId,
-      missingTestFiles: testFiles.filter((path) => !discovered.has(path)).sort(),
+      missingTestFiles: unavailable.map((test) => test.path).sort(),
       reasons: memory.reasons,
       requirementRefs: [
         ...new Set(memory.regressionTests.flatMap((test) => test.requirementRefs)),

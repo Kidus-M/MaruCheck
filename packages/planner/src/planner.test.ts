@@ -303,6 +303,12 @@ describe("verification planner", () => {
                 path: "tests/regressions/cross-account.test.ts",
                 requirementRefs: ["invoice-access#INV-001"],
               },
+              {
+                adapter: "playwright",
+                id: "invoice-browser-boundary",
+                path: "tests/profile.test.ts",
+                requirementRefs: ["invoice-access#INV-001"],
+              },
             ],
             relatedContracts: ["invoice-access"],
             severity: "critical",
@@ -330,6 +336,7 @@ describe("verification planner", () => {
       expect.objectContaining({
         availableTestFiles: ["tests/regressions/cross-account.test.ts"],
         memoryId: "MEM-0143",
+        missingTestFiles: ["tests/profile.test.ts"],
       }),
     ]);
     expect(plan.affectedTests).toEqual(
