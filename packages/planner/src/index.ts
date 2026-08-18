@@ -201,7 +201,7 @@ function findAffectedTests(
     ].join(" "),
   );
 
-  return project.tests.files
+  const affected = project.tests.files
     .map((test): AffectedTest | undefined => {
       const testTerms = terms(test.path);
       const matchedTerms = intersection(changeVocabulary, testTerms);
@@ -215,13 +215,59 @@ function findAffectedTests(
         .map(requirementRef);
       return {
         framework: test.framework,
+        historicalMemoryIds: [],
         matchedTerms,
         path: test.path,
         requirementRefs,
       };
     })
-    .filter((test): test is AffectedTest => test !== undefined)
-    .sort((left, right) => left.path.localeCompare(right.path));
+    .filter((test): test is AffectedTest => test !== undefined);
+  const byPath = new Map(affected.map((test) => [test.path, test]));
+  const discovered = new Map(project.tests.files.map((test) => [test.path, test]));
+
+  for (const memory of assessment.historicalRisks) {
+    for (const regression of memory.regressionTests) {
+      const test = discovered.get(regression.path);
+      if (test === undefined || test.framework !== regression.adapter) continue;
+      const existing = byPath.get(test.path);
+      byPath.set(test.path, {
+        framework: test.framework,
+        historicalMemoryIds: [
+          ...new Set([...(existing?.historicalMemoryIds ?? []), memory.memoryId]),
+        ].sort(),
+        matchedTerms: [
+          ...new Set([...(existing?.matchedTerms ?? []), ...memory.matchedTerms]),
+        ].sort(),
+        path: test.path,
+        requirementRefs: [
+          ...new Set([...(existing?.requirementRefs ?? []), ...regression.requirementRefs]),
+        ].sort(),
+      });
+    }
+  }
+
+  return [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function historicalRegressions(
+  assessment: RiskAssessment,
+  project: ProjectScan,
+): HistoricalRegression[] {
+  const discovered = new Set(project.tests.files.map((test) => test.path));
+  return assessment.historicalRisks.map((memory) => {
+    const testFiles = memory.regressionTests.map((test) => test.path);
+    return {
+      availableTestFiles: testFiles.filter((path) => discovered.has(path)).sort(),
+      memoryId: memory.memoryId,
+      missingTestFiles: testFiles.filter((path) => !discovered.has(path)).sort(),
+      reasons: memory.reasons,
+      requirementRefs: [
+        ...new Set(memory.regressionTests.flatMap((test) => test.requirementRefs)),
+      ].sort(),
+      severity: memory.severity,
+      title: memory.title,
+    };
+  });
 }
 
 function adapterFor(
@@ -247,7 +293,14 @@ function createSteps(
   requirements: readonly SelectedRequirement[],
   affectedTests: readonly AffectedTest[],
 ): VerificationStep[] {
-  const requirementRefs = requirements.map(requirementRef);
+  const requirementRefs = [
+    ...new Set([
+      ...requirements.map(requirementRef),
+      ...affectedTests
+        .filter((test) => test.historicalMemoryIds.length > 0)
+        .flatMap((test) => test.requirementRefs),
+    ]),
+  ].sort();
   const blocking =
     assessment.level === "high" ||
     assessment.level === "critical" ||
@@ -273,6 +326,12 @@ function createSteps(
         requirementRefs.length > 0
           ? `Links ${requirementRefs.length} selected contract requirement${requirementRefs.length === 1 ? "" : "s"}.`
           : "No related contract requirement was selected.",
+        ...(affectedTests.some(
+          (test) =>
+            test.framework === selection.adapter && test.historicalMemoryIds.length > 0,
+        )
+          ? ["Includes regression tests selected by matched historical QA memory."]
+          : []),
       ];
       return {
         adapter: selection.adapter,
@@ -296,6 +355,7 @@ export function buildVerificationPlan(input: {
 }): VerificationPlan {
   const selectedRequirements = selectRequirements(input.assessment, input.contracts);
   const affectedTests = findAffectedTests(input.assessment, input.project, selectedRequirements);
+  const memoryRegressions = historicalRegressions(input.assessment, input.project);
   const steps = createSteps(input.assessment, input.project, selectedRequirements, affectedTests);
   const covered = new Set(affectedTests.flatMap((test) => test.requirementRefs));
   const uncoveredRequirements = selectedRequirements
@@ -306,6 +366,7 @@ export function buildVerificationPlan(input: {
     affectedTests,
     changeSummary: input.assessment.analysis.summary,
     generatedAt: input.generatedAt,
+    historicalRegressions: memoryRegressions,
     project: {
       name: input.project.project.name,
       testFrameworks: input.project.tests.frameworks,
@@ -318,6 +379,7 @@ export function buildVerificationPlan(input: {
     summary: {
       affectedTests: affectedTests.length,
       automatedSteps: steps.filter((step) => step.execution === "automated").length,
+      historicalRegressions: memoryRegressions.length,
       manualSteps: steps.filter((step) => step.execution === "manual").length,
       selectedRequirements: selectedRequirements.length,
       unavailableSteps: steps.filter((step) => step.execution === "unavailable").length,
