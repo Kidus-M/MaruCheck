@@ -10,6 +10,12 @@ import {
   type GitDiffAnalysis,
   type GitFileChange,
 } from "@maru/git";
+import {
+  listMemoryRecords,
+  matchHistoricalRisks,
+  type HistoricalRiskMatch,
+  type QAMemoryRecord,
+} from "@maru/memory";
 
 export type RiskLevel = "low" | "moderate" | "high" | "critical";
 export type RecommendedTestCategory =
@@ -41,6 +47,7 @@ export interface RelatedContractMatch {
 
 export interface RiskAssessment {
   readonly analysis: GitDiffAnalysis;
+  readonly historicalRisks: readonly HistoricalRiskMatch[];
   readonly level: RiskLevel;
   readonly reasons: readonly RiskReason[];
   readonly recommendedTestCategories: readonly RecommendedTestCategory[];
@@ -190,6 +197,7 @@ function recommendations(
   level: RiskLevel,
   classifications: Set<ChangeClassification>,
   relatedContracts: readonly RelatedContractMatch[],
+  historicalRisks: readonly HistoricalRiskMatch[],
 ): RecommendedTestCategory[] {
   const result = new Set<RecommendedTestCategory>(["unit"]);
   if (
@@ -202,7 +210,15 @@ function recommendations(
   }
   if (classifications.has("security-sensitive")) result.add("security");
   if (classifications.has("ui-only")) result.add("accessibility");
-  if (relatedContracts.length > 0) result.add("contract-regression");
+  if (relatedContracts.length > 0 || historicalRisks.length > 0) result.add("contract-regression");
+  if (
+    historicalRisks.some(
+      (memory) =>
+        memory.type === "security-finding" || memory.type === "security-regression",
+    )
+  ) {
+    result.add("security");
+  }
   if (level === "high" || level === "critical") result.add("e2e");
   if (level === "critical") result.add("adversarial-edge-cases");
   return [...result].sort();
@@ -212,10 +228,12 @@ function recommendations(
 export function assessRisk(
   analysis: GitDiffAnalysis,
   contracts: readonly QualityContract[],
+  memories: readonly QAMemoryRecord[] = [],
 ): RiskAssessment {
   if (analysis.clean) {
     return {
       analysis,
+      historicalRisks: [],
       level: "low",
       reasons: [{ code: "clean", message: "The Git working tree has no changes.", points: 0 }],
       recommendedTestCategories: [],
@@ -225,6 +243,7 @@ export function assessRisk(
   }
 
   const reasons: RiskReason[] = [];
+  const historicalRisks = matchHistoricalRisks(analysis, memories);
   const classifications = new Set(analysis.files.flatMap((file) => file.classifications));
   for (const [classification, factor] of Object.entries(CLASSIFICATION_POINTS) as [
     ChangeClassification,
@@ -324,14 +343,34 @@ export function assessRisk(
     );
   }
 
+  if (historicalRisks.length > 0) {
+    const severityPoints = { critical: 25, high: 18, info: 2, low: 5, medium: 10 } as const;
+    const highest = historicalRisks.reduce((left, right) =>
+      severityPoints[left.severity] >= severityPoints[right.severity] ? left : right,
+    );
+    addReason(
+      reasons,
+      "historical-regression",
+      `Touches code related to ${historicalRisks.length} historical QA memor${historicalRisks.length === 1 ? "y" : "ies"}; highest is ${highest.memoryId} (${highest.severity}): ${highest.title}.`,
+      severityPoints[highest.severity],
+      [...new Set(historicalRisks.flatMap((memory) => memory.exactFileMatches))].sort(),
+    );
+  }
+
   const rawScore = reasons.reduce((total, reason) => total + reason.points, 0);
   const score = Math.min(100, rawScore);
   const level = riskLevelForScore(score);
   return {
     analysis,
+    historicalRisks,
     level,
     reasons,
-    recommendedTestCategories: recommendations(level, classifications, relatedContracts),
+    recommendedTestCategories: recommendations(
+      level,
+      classifications,
+      relatedContracts,
+      historicalRisks,
+    ),
     relatedContracts,
     score,
   };
@@ -339,7 +378,11 @@ export function assessRisk(
 
 /** Analyze the current Git change set, load local contracts, and calculate deterministic risk. */
 export async function assessProjectRisk(root: string): Promise<RiskAssessment> {
-  const [analysis, summaries] = await Promise.all([analyzeGitDiff(root), listContracts(root)]);
+  const [analysis, summaries, memories] = await Promise.all([
+    analyzeGitDiff(root),
+    listContracts(root),
+    listMemoryRecords(root),
+  ]);
   const contracts = await Promise.all(summaries.map((summary) => getContract(root, summary.id)));
-  return assessRisk(analysis, contracts);
+  return assessRisk(analysis, contracts, memories);
 }
