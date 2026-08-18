@@ -15,6 +15,7 @@
     { "path": "../evidence" },
     { "path": "../execution" },
     { "path": "../git" },
+    { "path": "../memory" },
     { "path": "../planner" },
     { "path": "../risk" }
   ]

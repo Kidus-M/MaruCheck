@@ -19,6 +19,12 @@ import {
   parseObservedBehaviors,
   proposeContractAmendment,
 } from "@maru/drift";
+import {
+  MemoryError,
+  createMemoryRecord,
+  parseMemoryRecordInput,
+  searchMemoryRecords,
+} from "@maru/memory";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
   VerificationPlanError,
@@ -65,6 +71,31 @@ const OBSERVATION_SCHEMA = {
     },
   },
   required: ["observed", "requirementRef"],
+  type: "object",
+} as const;
+const MEMORY_REGRESSION_TEST_SCHEMA = {
+  additionalProperties: false,
+  properties: {
+    adapter: { enum: ["playwright", "vitest"], type: "string" },
+    id: {
+      maxLength: 100,
+      minLength: 1,
+      pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      type: "string",
+    },
+    path: { maxLength: 500, minLength: 1, type: "string" },
+    requirementRefs: {
+      items: {
+        maxLength: 241,
+        minLength: 3,
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,119}#[A-Za-z0-9][A-Za-z0-9._-]{0,119}$",
+        type: "string",
+      },
+      maxItems: 100,
+      type: "array",
+    },
+  },
+  required: ["adapter", "id", "path", "requirementRefs"],
   type: "object",
 } as const;
 
@@ -252,6 +283,83 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
     ),
     false,
   ),
+  definition(
+    "maru_record_bug",
+    "Record a QA bug memory",
+    "Persist an immutable historical bug, its root cause, affected files/contracts, tags, and executable regression tests for future verification.",
+    schema(
+      {
+        regressionTests: {
+          items: MEMORY_REGRESSION_TEST_SCHEMA,
+          maxItems: 50,
+          type: "array",
+        },
+        relatedContracts: {
+          items: {
+            maxLength: 120,
+            minLength: 1,
+            pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            type: "string",
+          },
+          maxItems: 50,
+          type: "array",
+        },
+        relatedFiles: {
+          items: { maxLength: 500, minLength: 1, type: "string" },
+          maxItems: 100,
+          type: "array",
+        },
+        rootCause: { maxLength: 5000, minLength: 1, type: "string" },
+        severity: {
+          enum: ["critical", "high", "info", "low", "medium"],
+          type: "string",
+        },
+        summary: { maxLength: 10000, minLength: 1, type: "string" },
+        tags: {
+          items: { maxLength: 80, minLength: 1, type: "string" },
+          maxItems: 100,
+          type: "array",
+        },
+        title: { maxLength: 300, minLength: 1, type: "string" },
+        type: {
+          enum: [
+            "bug",
+            "contract-amendment",
+            "flaky-test",
+            "production-incident",
+            "regression",
+            "risk-override",
+            "security-finding",
+            "security-regression",
+            "sensitive-integration",
+          ],
+          type: "string",
+        },
+      },
+      [
+        "regressionTests",
+        "relatedContracts",
+        "relatedFiles",
+        "rootCause",
+        "severity",
+        "summary",
+        "tags",
+        "title",
+        "type",
+      ],
+    ),
+    false,
+  ),
+  definition(
+    "maru_query_memory",
+    "Query QA memory",
+    "Search historical bugs, incidents, root causes, paths, contracts, and regression tests with explainable deterministic matches.",
+    schema(
+      { query: { maxLength: 500, minLength: 1, type: "string" } },
+      ["query"],
+    ),
+    true,
+  ),
 ];
 
 class ToolInputError extends Error {
@@ -406,6 +514,7 @@ function failure(error: unknown): McpToolResult {
   if (
     error instanceof ContractError ||
     error instanceof DriftError ||
+    error instanceof MemoryError ||
     error instanceof EvidenceReportError ||
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
@@ -543,6 +652,31 @@ export async function callMaruTool(
         },
       );
       return success({ ...result, approvalRequired: true });
+    }
+
+    if (name === "maru_record_bug") {
+      const input = objectArguments(args, [
+        "regressionTests",
+        "relatedContracts",
+        "relatedFiles",
+        "rootCause",
+        "severity",
+        "summary",
+        "tags",
+        "title",
+        "type",
+      ]);
+      const result = await createMemoryRecord(
+        root,
+        parseMemoryRecordInput({ ...input, source: "coding-agent" }),
+        { now: dependencies.now?.() ?? new Date() },
+      );
+      return success(result);
+    }
+
+    if (name === "maru_query_memory") {
+      const input = objectArguments(args, ["query"]);
+      return success({ matches: await searchMemoryRecords(root, requiredString(input, "query", 500)) });
     }
 
     objectArguments(args, []);

@@ -85,7 +85,7 @@ export class MaruMcpServer {
       return response(id, {
         capabilities: { tools: { listChanged: false } },
         instructions:
-          "Query MaruCheck project context and Quality Contracts before changing behavior. Check observed behavior for semantic drift before changing protected expectations. Analyze the diff, assess risk, create an inspectable verification plan, and run verification with evidence and findings after edits. Drafts and amendment proposals never approve product intent.",
+          "Query MaruCheck project context, Quality Contracts, and relevant QA memory before changing behavior. Check observed behavior for semantic drift before changing protected expectations. Record confirmed bugs with regression tests so future risk and planning include them. Analyze the diff, assess risk, create an inspectable verification plan, and run verification with evidence and findings after edits. Drafts and amendment proposals never approve product intent.",
         protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.has(protocolVersion)
           ? protocolVersion
           : MCP_PROTOCOL_VERSION,

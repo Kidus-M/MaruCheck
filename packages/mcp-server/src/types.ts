@@ -35,6 +35,8 @@ export type MaruMcpToolName =
   | "maru_get_contract"
   | "maru_get_project_context"
   | "maru_list_contracts"
+  | "maru_query_memory"
+  | "maru_record_bug"
   | "maru_propose_contract_amendment"
   | "maru_run_verification"
   | "maru_validate_contract";

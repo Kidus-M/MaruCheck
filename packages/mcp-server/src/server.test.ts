@@ -451,7 +451,9 @@ evidence_policy:`,
     expect(queried).toMatchObject({
       isError: false,
       structuredContent: {
-        matches: [expect.objectContaining({ record: { id: "MEM-0001" } })],
+        matches: [
+          expect.objectContaining({ record: expect.objectContaining({ id: "MEM-0001" }) }),
+        ],
         ok: true,
       },
     });

@@ -300,6 +300,7 @@ approval:
         summary: { additions: 8, changedFiles: 1, deletions: 1 },
       },
       level: "critical",
+      historicalRisks: [],
       reasons: [
         { code: "billing", message: "Touches billing and payments.", points: 30 },
         { code: "external-integration", message: "Touches a webhook.", points: 15 },
