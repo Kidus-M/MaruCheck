@@ -41,7 +41,8 @@ function blockedReport(): VerificationReport {
     ],
     findings: [
       {
-        actual: "Received another account's invoice <script>alert(1)</script>",
+        actual:
+          "Received another account's invoice <script>alert(1)</script> [details](javascript:alert(1))",
         artifactRefs: [".maru/artifacts/runs/pr-42/vitest/stderr.txt"],
         blocking: true,
         contractId: "invoice-access",
@@ -191,6 +192,8 @@ describe("GitHub pull-request verification", () => {
     expect(summary).toContain("maru verify --diff");
     expect(summary).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(summary).not.toContain("<script>");
+    expect(summary).toContain("\\[details\\]\\(javascript:alert\\(1\\)\\)");
+    expect(summary).not.toContain("[details](javascript:alert(1))");
   });
 
   it("writes the artifact summary, publishes it to GitHub, and returns a failed conclusion", async () => {

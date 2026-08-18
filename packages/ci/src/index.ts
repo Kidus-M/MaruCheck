@@ -164,8 +164,7 @@ function safeInline(value: string, limit = 500): string {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll("|", "\\|")
-    .replaceAll("`", "\\`")
+    .replace(/([\\`*_[\]{}()#!|~])/gu, "\\$1")
     .replace(/\s+/gu, " ")
     .trim()
     .slice(0, limit);
