@@ -132,12 +132,7 @@ approval:
       {
         additions: 1,
         binary: false,
-        classifications: [
-          "authorization",
-          "billing",
-          "business-logic",
-          "security-sensitive",
-        ],
+        classifications: ["authorization", "billing", "business-logic", "security-sensitive"],
         deletions: 1,
         hunks: [],
         path: "src/services/invoices/authorization.ts",
