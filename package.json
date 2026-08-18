@@ -22,6 +22,7 @@
     "test": "vitest run --configLoader native --pool=threads",
     "test:acceptance:broken-subscription": "npm run build && node scripts/verify-broken-subscription.mjs",
     "test:acceptance:invoice-memory": "npm run build && node scripts/verify-invoice-memory.mjs",
+    "test:acceptance:pull-request-check": "npm run build && node scripts/verify-pull-request-check.mjs",
     "test:acceptance:semantic-drift": "npm run build && node scripts/verify-semantic-drift.mjs",
     "test:watch": "vitest --configLoader native --pool=threads",
     "typecheck": "tsc -b --pretty false"
