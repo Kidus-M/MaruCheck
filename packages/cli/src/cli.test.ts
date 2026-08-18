@@ -459,4 +459,44 @@ approval:
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Actual: Received: active"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("JSON report:"));
   });
+
+  it("installs GitHub pull-request verification from the CLI", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const dependencies = { cwd: root };
+    await runCli(["init"], output, dependencies);
+
+    await expect(runCli(["ci", "init"], output, dependencies)).resolves.toBe(0);
+
+    await expect(
+      readFile(join(root, ".github", "workflows", "marucheck.yml"), "utf8"),
+    ).resolves.toContain("npx --no-install maru ci verify");
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("GitHub workflow installed"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
+  it("fails the CI command after publishing a readable blocking summary", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const ciVerification = vi.fn().mockResolvedValue({
+      conclusion: "failure",
+      publishedToGitHub: true,
+      reportPath: ".maru/artifacts/runs/pr-42/report.json",
+      summaryPath: ".maru/generated/github-summary.md",
+    });
+
+    await expect(
+      runCli(["ci", "verify"], output, {
+        ciVerification,
+        cwd: root,
+        now: () => new Date("2026-08-18T10:00:00.000Z"),
+      }),
+    ).resolves.toBe(1);
+
+    expect(ciVerification).toHaveBeenCalledWith(root, expect.any(Date));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("ProofLayer: FAILURE"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("GitHub summary: .maru/generated/github-summary.md"),
+    );
+  });
 });
