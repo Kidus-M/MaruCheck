@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes eleven namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes thirteen namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -79,6 +79,8 @@ describe("MaruCheck MCP server", () => {
       "maru_run_verification",
       "maru_check_semantic_drift",
       "maru_propose_contract_amendment",
+      "maru_record_bug",
+      "maru_query_memory",
     ]);
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
@@ -112,6 +114,12 @@ describe("MaruCheck MCP server", () => {
     expect(
       MARU_MCP_TOOLS.find((tool) => tool.name === "maru_propose_contract_amendment")?.annotations,
     ).toMatchObject({ readOnlyHint: false });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_record_bug")?.annotations,
+    ).toMatchObject({ readOnlyHint: false });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_query_memory")?.annotations,
+    ).toMatchObject({ readOnlyHint: true });
   });
 
   it("lets an agent query project context and a contract before editing code", async () => {
@@ -399,6 +407,54 @@ evidence_policy:`,
     expect(await readFile(join(root, ".maru/contracts/web-foundation.yml"), "utf8")).toContain(
       "The health endpoint returns a successful JSON response.",
     );
+  });
+
+  it("records a historical bug and returns it to any compatible coding agent", async () => {
+    const memory = {
+      regressionTests: [
+        {
+          adapter: "vitest",
+          id: "invoice-cross-account-access",
+          path: "tests/regressions/cross-account.test.ts",
+          requirementRefs: ["invoice-access#INV-001"],
+        },
+      ],
+      relatedContracts: ["invoice-access"],
+      relatedFiles: ["src/services/invoices.ts"],
+      rootCause: "Missing ownership check.",
+      severity: "critical",
+      summary: "Users could access another account's invoice.",
+      tags: ["authorization", "idor", "invoices"],
+      title: "Cross-account invoice access",
+      type: "security-regression",
+    };
+
+    const recorded = await callMaruTool(
+      "maru_record_bug",
+      memory,
+      { now: () => new Date("2026-08-18T08:00:00.000Z"), root },
+    );
+    const queried = await callMaruTool(
+      "maru_query_memory",
+      { query: "invoice authorization" },
+      { root },
+    );
+
+    expect(recorded).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        path: ".maru/memory/MEM-0001.json",
+        record: { id: "MEM-0001", source: "coding-agent" },
+      },
+    });
+    expect(queried).toMatchObject({
+      isError: false,
+      structuredContent: {
+        matches: [expect.objectContaining({ record: { id: "MEM-0001" } })],
+        ok: true,
+      },
+    });
   });
 
   it("enforces initialization before listing or calling tools", async () => {

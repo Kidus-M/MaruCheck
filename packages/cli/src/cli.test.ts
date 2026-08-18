@@ -240,6 +240,56 @@ approval:
     expect(output.error).not.toHaveBeenCalled();
   });
 
+  it("adds, lists, searches, and shows local QA memory", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const dependencies = {
+      cwd: root,
+      now: () => new Date("2026-08-18T08:00:00.000Z"),
+    };
+    await runCli(["init"], output, dependencies);
+    await writeFile(
+      join(root, "invoice-idor.json"),
+      JSON.stringify({
+        regressionTests: [
+          {
+            adapter: "vitest",
+            id: "invoice-cross-account-access",
+            path: "tests/regressions/cross-account.test.ts",
+            requirementRefs: ["invoice-access#INV-001"],
+          },
+        ],
+        relatedContracts: ["invoice-access"],
+        relatedFiles: ["src/services/invoices.ts"],
+        rootCause: "Missing ownership check.",
+        severity: "critical",
+        source: "manual",
+        summary: "Users could access another account's invoice by changing invoiceId.",
+        tags: ["authorization", "idor", "invoices"],
+        title: "Cross-account invoice access",
+        type: "security-regression",
+      }),
+      "utf8",
+    );
+
+    await expect(
+      runCli(["memory", "add", "--from", "invoice-idor.json"], output, dependencies),
+    ).resolves.toBe(0);
+    await expect(runCli(["memory", "list"], output, dependencies)).resolves.toBe(0);
+    await expect(
+      runCli(["memory", "search", "invoice authorization"], output, dependencies),
+    ).resolves.toBe(0);
+    await expect(runCli(["memory", "show", "MEM-0001"], output, dependencies)).resolves.toBe(0);
+
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("QA memory recorded: MEM-0001"),
+    );
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("MEM-0001\tcritical"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Memory matches: 1"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining('"rootCause"'));
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
   it("prints an inspectable deterministic risk assessment for the current diff", async () => {
     const root = await createProject();
     const output = { error: vi.fn(), log: vi.fn() };
