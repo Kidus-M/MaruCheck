@@ -42,8 +42,15 @@ Classification factors are applied once per change set rather than once per file
 | UI-only change                               |      2 |
 | Missing related contract for production code |      8 |
 | Production code without a changed test file  |      7 |
+| Highest matched historical severity          |   2-25 |
 
-Change size contributes up to 15 points and changed-file blast radius contributes up to 15. The highest related contract adds 2, 7, 15, or 25 points for low, medium, high, or critical intent. An unapproved related contract adds 5 points. The final score is capped at 100.
+Change size contributes up to 15 points and changed-file blast radius contributes up to 15. The highest related contract adds 2, 7, 15, or 25 points for low, medium, high, or critical intent. An unapproved related contract adds 5 points. Matched QA memory adds the highest historical severity once: 2, 5, 10, 18, or 25 points for info through critical. The final score is capped at 100.
+
+## Historical risks
+
+Phase 9 loads immutable `.maru/memory` records automatically. Exact related-file matches are included. When paths have moved, at least two filtered terms must overlap across changed paths/symbols/classifications and memory titles, summaries, root causes, tags, contracts, files, or regression tests.
+
+Every match returns the memory ID, severity, exact paths, matched terms, reasons, related contracts, and recorded regression tests. Any match recommends contract regression; security history recommends security verification; recorded Playwright regressions recommend E2E verification.
 
 ## Change analysis
 
@@ -79,7 +86,7 @@ Both tools are read-only. Coding agents should call `maru_analyze_diff` and `mar
 
 - No full language AST or call graph is built yet.
 - Untracked file contents and binary contents are not inspected.
-- Historical regressions, measured coverage, AI-generated-code percentage, and organization risk overrides are not Phase 4 inputs.
+- Measured coverage, AI-generated-code percentage, and organization risk overrides are not current inputs.
 - Recommendations are categories; `maru plan --diff` converts them into an inspectable Phase 5 plan, while execution remains Phase 6.
 
 See [ADR-004](../decisions/0004-use-deterministic-metadata-risk-scoring.md) for the design rationale.
