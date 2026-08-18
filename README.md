@@ -59,8 +59,8 @@ The published developer experience will use `npx maru <command>`.
 | `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
-| `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                              |
-| `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                        |
+| `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
+| `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
 | `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests              |
 

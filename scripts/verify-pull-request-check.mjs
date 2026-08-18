@@ -117,7 +117,9 @@ try {
       throw new Error(`Expected both summaries to include: ${value}`);
     }
   }
-  console.log("Acceptance passed: a blocking contract violation fails ProofLayer with a readable summary.");
+  console.log(
+    "Acceptance passed: a blocking contract violation fails ProofLayer with a readable summary.",
+  );
 } finally {
   await rm(root, { force: true, recursive: true });
 }

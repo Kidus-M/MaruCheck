@@ -65,10 +65,7 @@ export interface CliOutput {
 }
 
 export interface CliDependencies {
-  readonly ciVerification?: (
-    root: string,
-    now: Date,
-  ) => Promise<PullRequestVerificationResult>;
+  readonly ciVerification?: (root: string, now: Date) => Promise<PullRequestVerificationResult>;
   readonly ciWorkflowInstaller?: (root: string) => Promise<GitHubWorkflowInstallResult>;
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;

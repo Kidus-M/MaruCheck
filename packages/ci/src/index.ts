@@ -34,10 +34,7 @@ export interface GitHubWorkflowInstallResult {
 
 export interface PullRequestVerificationOptions {
   readonly githubStepSummaryPath?: string;
-  readonly verificationReport?: (
-    root: string,
-    now: Date,
-  ) => Promise<VerificationReportResult>;
+  readonly verificationReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
 }
 
 export interface PullRequestVerificationResult {
@@ -193,7 +190,9 @@ function findingSummary(report: VerificationReport): string[] {
     "",
   ]);
   if (report.findings.length > visible.length) {
-    lines.push(`_${report.findings.length - visible.length} additional finding(s) are in the JSON report._`);
+    lines.push(
+      `_${report.findings.length - visible.length} additional finding(s) are in the JSON report._`,
+    );
   }
   return ["## Findings", "", ...lines];
 }
