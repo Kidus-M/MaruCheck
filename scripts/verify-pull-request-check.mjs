@@ -95,7 +95,7 @@ try {
   });
   const output = { error: console.error, log: console.log };
   const verification = await runPullRequestVerification(root, new Date(report.generatedAt), {
-    githubStepSummaryPath,
+    githubStepSummaryPath: githubSummaryPath,
     verificationReport,
   });
   const exitCode = await runCli(["ci", "verify"], output, {
