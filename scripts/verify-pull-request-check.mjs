@@ -94,12 +94,12 @@ try {
     runPath: report.artifacts.run,
   });
   const output = { error: console.error, log: console.log };
+  const verification = await runPullRequestVerification(root, new Date(report.generatedAt), {
+    githubStepSummaryPath,
+    verificationReport,
+  });
   const exitCode = await runCli(["ci", "verify"], output, {
-    ciVerification: (projectRoot, now) =>
-      runPullRequestVerification(projectRoot, now, {
-        githubStepSummaryPath,
-        verificationReport,
-      }),
+    ciVerification: async () => verification,
     cwd: root,
     now: () => new Date(report.generatedAt),
   });
