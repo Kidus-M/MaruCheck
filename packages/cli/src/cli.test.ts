@@ -460,6 +460,71 @@ approval:
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("JSON report:"));
   });
 
+  it("runs bounded mutation verification and blocks when verification is weak", async () => {
+    const root = await createProject();
+    const now = new Date("2026-08-20T12:00:00.000Z");
+    const output = { error: vi.fn(), log: vi.fn() };
+    const mutationVerification = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/mutations/run/report.json",
+      report: {
+        baseline: { artifactRefs: [], resultStatuses: ["passed"], status: "passed" },
+        completedAt: now.toISOString(),
+        generatedAt: now.toISOString(),
+        gate: { reasons: ["1 mutation survived selected tests."], status: "blocked" },
+        mutations: [
+          {
+            artifactRefs: [],
+            candidate: {
+              column: 3,
+              description: "Remove ownership guard.",
+              file: "src/access.ts",
+              id: "MUT-0001",
+              kind: "remove-ownership-condition",
+              line: 4,
+              original: "if (ownerId !== userId) return false;",
+              replacement: "",
+            },
+            durationMs: 9,
+            outcome: "survived",
+            resultStatuses: ["passed"],
+          },
+        ],
+        project: { name: "cli-fixture" },
+        schemaVersion: 1,
+        scope: "working-tree",
+        summary: { candidates: 1, executed: 1, inconclusive: 0, killed: 0, survived: 1 },
+        worktreeCleaned: true,
+      },
+    });
+
+    await expect(
+      runCli(["mutate", "--diff", "--max", "8"], output, {
+        cwd: root,
+        mutationVerification,
+        now: () => now,
+      }),
+    ).resolves.toBe(1);
+
+    expect(mutationVerification).toHaveBeenCalledWith(root, now, 8);
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("WEAK VERIFICATION DETECTED"),
+    );
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Worktree cleaned: yes"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed mutation commands before running a worktree", async () => {
+    const output = { error: vi.fn(), log: vi.fn() };
+    const mutationVerification = vi.fn();
+
+    await expect(
+      runCli(["mutate", "--max", "4"], output, { mutationVerification }),
+    ).resolves.toBe(1);
+
+    expect(mutationVerification).not.toHaveBeenCalled();
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru mutate --diff"));
+  });
+
   it("installs GitHub pull-request verification from the CLI", async () => {
     const root = await createProject();
     const output = { error: vi.fn(), log: vi.fn() };
