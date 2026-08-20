@@ -2,8 +2,11 @@ import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import {
   ChallengeError,
-  createAndWriteChallengeReport,
+  formatChallengeBrief,
   formatChallengeReport,
+  prepareAndWriteChallengeBrief,
+  submitChallengeFromFile,
+  type ChallengeBriefResult,
   type ChallengeReportResult,
 } from "@maru/challenger";
 import {
@@ -69,7 +72,6 @@ import {
   createAndWriteVerificationPlan,
   type VerificationPlanResult,
 } from "@maru/planner";
-import { ReasoningError, reasoningProviderFromEnvironment } from "@maru/reasoning";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 
 export interface CliOutput {
@@ -78,15 +80,19 @@ export interface CliOutput {
 }
 
 export interface CliDependencies {
-  readonly challengeReport?: (
+  readonly challengeBrief?: (
     root: string,
     now: Date,
     options: {
       readonly explicit: true;
-      readonly maxCostUsd?: number;
-      readonly maxOutputTokens?: number;
       readonly releaseVerification?: boolean;
     },
+  ) => Promise<ChallengeBriefResult>;
+  readonly challengeSubmission?: (
+    root: string,
+    briefPath: string,
+    responsePath: string,
+    now: Date,
   ) => Promise<ChallengeReportResult>;
   readonly ciVerification?: (root: string, now: Date) => Promise<PullRequestVerificationResult>;
   readonly ciWorkflowInstaller?: (root: string) => Promise<GitHubWorkflowInstallResult>;
@@ -109,7 +115,7 @@ const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
 Usage: maru <command>
 
 Commands:
-  challenge  Run bounded independent adversarial reasoning for the current diff
+  challenge  Prepare and submit an isolated adversarial QA review
   init       Initialize MaruCheck in the current repository
   scan       Inventory project architecture, routes, tests, and dependencies
   doctor     Diagnose local prerequisites and configuration
@@ -155,7 +161,8 @@ Mutation commands:
   maru mutate --diff [--max 20]
 
 Challenger commands:
-  maru challenge --diff [--release] [--max-cost 1] [--max-output-tokens 2000]
+  maru challenge prepare --diff [--release]
+  maru challenge submit --brief <brief.json> --from <response.json>
 
 CI commands:
   maru ci init
@@ -230,46 +237,6 @@ function option(args: readonly string[], name: string): string | undefined {
     );
   }
   return value;
-}
-
-function challengeOptions(args: readonly string[]):
-  | {
-      readonly maxCostUsd?: number;
-      readonly maxOutputTokens?: number;
-      readonly releaseVerification?: boolean;
-    }
-  | undefined {
-  if (args[0] !== "--diff") return undefined;
-  let maxCostUsd: number | undefined;
-  let maxOutputTokens: number | undefined;
-  let releaseVerification = false;
-  const seen = new Set<string>();
-  for (let index = 1; index < args.length; index += 1) {
-    const name = args[index];
-    if (name === undefined || seen.has(name)) return undefined;
-    seen.add(name);
-    if (name === "--release") {
-      releaseVerification = true;
-      continue;
-    }
-    if (name !== "--max-cost" && name !== "--max-output-tokens") return undefined;
-    const raw = args[index + 1];
-    if (raw === undefined || raw.startsWith("--")) return undefined;
-    index += 1;
-    const value = Number(raw);
-    if (name === "--max-cost") {
-      if (!Number.isFinite(value) || value < 0 || value > 100) return undefined;
-      maxCostUsd = value;
-    } else {
-      if (!Number.isSafeInteger(value) || value < 100 || value > 10_000) return undefined;
-      maxOutputTokens = value;
-    }
-  }
-  return {
-    ...(maxCostUsd === undefined ? {} : { maxCostUsd }),
-    ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
-    ...(releaseVerification ? { releaseVerification: true } : {}),
-  };
 }
 
 function resolveInsideRoot(root: string, path: string): string {
@@ -716,24 +683,45 @@ export async function runCli(
     }
 
     if (command === "challenge") {
-      const parsed = challengeOptions(args.slice(1));
-      if (parsed === undefined) {
+      const action = args[1];
+      if (
+        action === "prepare" &&
+        ((args.length === 3 && args[2] === "--diff") ||
+          (args.length === 4 && args[2] === "--diff" && args[3] === "--release"))
+      ) {
+        const result = await (dependencies.challengeBrief ?? prepareAndWriteChallengeBrief)(
+          root,
+          dependencies.now?.() ?? new Date(),
+          { explicit: true, ...(args[3] === "--release" ? { releaseVerification: true } : {}) },
+        );
+        output.log(formatChallengeBrief(result));
+        return 0;
+      }
+      if (action === "submit" && args.length === 6) {
+        const briefPath = option(args.slice(2), "--brief");
+        const responsePath = option(args.slice(2), "--from");
+        const allowed = new Set(["--brief", briefPath, "--from", responsePath]);
+        if (
+          briefPath !== undefined &&
+          responsePath !== undefined &&
+          args.slice(2).every((argument) => allowed.has(argument))
+        ) {
+          const result = await (dependencies.challengeSubmission ?? submitChallengeFromFile)(
+            root,
+            briefPath,
+            responsePath,
+            dependencies.now?.() ?? new Date(),
+          );
+          output.log(formatChallengeReport(result));
+          return result.report.gate.status === "blocked" ? 1 : 0;
+        }
+      }
+      {
         output.error(
-          "Invalid Challenger command.\nRun maru challenge --diff [--release] [--max-cost 1] [--max-output-tokens 2000].",
+          "Invalid Challenger command.\nRun maru challenge prepare --diff [--release] or maru challenge submit --brief <brief.json> --from <response.json>.",
         );
         return 1;
       }
-      const generatedAt = dependencies.now?.() ?? new Date();
-      const result = await (
-        dependencies.challengeReport ??
-        ((projectRoot, date, options) =>
-          createAndWriteChallengeReport(projectRoot, date, {
-            ...options,
-            provider: reasoningProviderFromEnvironment(),
-          }))
-      )(root, generatedAt, { explicit: true, ...parsed });
-      output.log(formatChallengeReport(result));
-      return result.report.gate.status === "blocked" ? 1 : 0;
     }
 
     if (command === "ci") {
@@ -751,30 +739,14 @@ export async function runCli(
         );
         return 0;
       }
-      const result = await (
-        dependencies.ciVerification ??
-        (async (projectRoot, date) => {
-          const provider = reasoningProviderFromEnvironment();
-          return runPullRequestVerification(projectRoot, date, {
-            ...(provider === undefined
-              ? {}
-              : {
-                  challengeReport: (challengeRoot, challengeDate, challengeOptions) =>
-                    createAndWriteChallengeReport(challengeRoot, challengeDate, {
-                      ...challengeOptions,
-                      provider,
-                    }),
-                }),
-          });
-        })
-      )(root, dependencies.now?.() ?? new Date());
+      const result = await (dependencies.ciVerification ?? runPullRequestVerification)(
+        root,
+        dependencies.now?.() ?? new Date(),
+      );
       output.log(
         [
           `ProofLayer: ${result.conclusion.toUpperCase()}`,
           `Evidence report: ${result.reportPath}`,
-          ...(result.challengeReportPath === undefined
-            ? []
-            : [`Challenger report: ${result.challengeReportPath}`]),
           `GitHub summary: ${result.summaryPath}`,
           `Published to GitHub: ${result.publishedToGitHub ? "yes" : "no (local run)"}`,
         ].join("\n"),
@@ -825,7 +797,7 @@ export async function runCli(
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
-    if (error instanceof ChallengeError || error instanceof ReasoningError) {
+    if (error instanceof ChallengeError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
