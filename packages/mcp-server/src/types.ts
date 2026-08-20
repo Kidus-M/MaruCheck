@@ -39,6 +39,7 @@ export type MaruMcpToolName =
   | "maru_record_bug"
   | "maru_propose_contract_amendment"
   | "maru_run_verification"
+  | "maru_run_mutation_verification"
   | "maru_validate_contract";
 
 export interface McpToolResult {

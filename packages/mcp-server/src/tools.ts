@@ -27,6 +27,11 @@ import {
 } from "@maru/memory";
 import { GitAnalysisError, analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
+  MutationVerificationError,
+  runMutationVerification,
+  type MutationReportResult,
+} from "@maru/mutation";
+import {
   VerificationPlanError,
   createAndWriteVerificationPlan,
   type VerificationPlanResult,
@@ -237,6 +242,20 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
         },
         maxItems: 20,
         type: "array",
+      },
+    }),
+    false,
+  ),
+  definition(
+    "maru_run_mutation_verification",
+    "Run isolated mutation verification",
+    "Prove selected local tests reject bounded TypeScript mutations in a detached temporary Git worktree. This executes project tests, writes local artifacts, and never mutates the active checkout.",
+    schema({
+      maxMutations: {
+        description: "Maximum deterministic mutation candidates to execute",
+        maximum: 100,
+        minimum: 1,
+        type: "integer",
       },
     }),
     false,
@@ -516,6 +535,7 @@ function failure(error: unknown): McpToolResult {
     error instanceof ProjectError ||
     error instanceof GitAnalysisError ||
     error instanceof VerificationExecutionError ||
+    error instanceof MutationVerificationError ||
     error instanceof VerificationPlanError ||
     error instanceof ToolInputError
   ) {
@@ -537,6 +557,11 @@ export interface MaruToolDependencies {
   readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
   readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
+  readonly mutationVerification?: (
+    root: string,
+    now: Date,
+    options: { readonly maxMutations?: number },
+  ) => Promise<MutationReportResult>;
   readonly root: string;
   readonly verificationReport?: (
     root: string,
@@ -624,6 +649,26 @@ export async function callMaruTool(
         run: result.run,
         runPath: result.runPath,
       });
+    }
+
+    if (name === "maru_run_mutation_verification") {
+      const input = objectArguments(args, ["maxMutations"]);
+      const maximum = input.maxMutations;
+      if (
+        maximum !== undefined &&
+        (typeof maximum !== "number" ||
+          !Number.isInteger(maximum) ||
+          maximum < 1 ||
+          maximum > 100)
+      ) {
+        throw new ToolInputError("maxMutations must be an integer from 1 to 100.");
+      }
+      const result = await (dependencies.mutationVerification ?? runMutationVerification)(
+        root,
+        dependencies.now?.() ?? new Date(),
+        { ...(maximum === undefined ? {} : { maxMutations: maximum }) },
+      );
+      return success({ path: result.path, report: result.report });
     }
 
     if (name === "maru_check_semantic_drift") {

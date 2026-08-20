@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes thirteen namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes fourteen namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -77,6 +77,7 @@ describe("MaruCheck MCP server", () => {
       "maru_assess_risk",
       "maru_create_verification_plan",
       "maru_run_verification",
+      "maru_run_mutation_verification",
       "maru_check_semantic_drift",
       "maru_propose_contract_amendment",
       "maru_record_bug",
@@ -103,6 +104,13 @@ describe("MaruCheck MCP server", () => {
     });
     expect(
       MARU_MCP_TOOLS.find((tool) => tool.name === "maru_run_verification")?.annotations,
+    ).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      readOnlyHint: false,
+    });
+    expect(
+      MARU_MCP_TOOLS.find((tool) => tool.name === "maru_run_mutation_verification")?.annotations,
     ).toMatchObject({
       destructiveHint: false,
       idempotentHint: false,
@@ -351,6 +359,51 @@ describe("MaruCheck MCP server", () => {
     });
     expect(verificationReport).toHaveBeenCalledWith(root, new Date("2026-08-17T09:30:00.000Z"), {
       temporaryTests,
+    });
+  });
+
+  it("lets any compatible agent run bounded isolated mutation verification", async () => {
+    const now = new Date("2026-08-20T12:00:00.000Z");
+    const mutationVerification = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/mutations/run/report.json",
+      report: {
+        baseline: { artifactRefs: [], resultStatuses: ["passed"], status: "passed" },
+        completedAt: now.toISOString(),
+        generatedAt: now.toISOString(),
+        gate: { reasons: ["All 1 executed mutations were killed."], status: "passed" },
+        mutations: [],
+        project: { name: "mcp-fixture" },
+        schemaVersion: 1,
+        scope: "working-tree",
+        summary: { candidates: 1, executed: 1, inconclusive: 0, killed: 1, survived: 0 },
+        worktreeCleaned: true,
+      },
+    });
+
+    const result = await callMaruTool(
+      "maru_run_mutation_verification",
+      { maxMutations: 6 },
+      { mutationVerification, now: () => now, root },
+    );
+
+    expect(result).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        path: ".maru/artifacts/mutations/run/report.json",
+        report: { gate: { status: "passed" }, worktreeCleaned: true },
+      },
+    });
+    expect(mutationVerification).toHaveBeenCalledWith(root, now, { maxMutations: 6 });
+
+    const invalid = await callMaruTool(
+      "maru_run_mutation_verification",
+      { maxMutations: 0 },
+      { mutationVerification, root },
+    );
+    expect(invalid).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "MCP_INVALID_PARAMS" } },
     });
   });
 
