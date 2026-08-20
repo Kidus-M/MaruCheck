@@ -208,7 +208,14 @@ function recommendations(
     result.add("api");
     result.add("integration");
   }
-  if (classifications.has("security-sensitive")) result.add("security");
+  if (
+    classifications.has("security-sensitive") ||
+    classifications.has("authentication") ||
+    classifications.has("authorization") ||
+    classifications.has("billing")
+  ) {
+    result.add("security");
+  }
   if (classifications.has("ui-only")) result.add("accessibility");
   if (relatedContracts.length > 0 || historicalRisks.length > 0) result.add("contract-regression");
   if (

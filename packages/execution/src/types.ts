@@ -3,7 +3,11 @@ import type { VerificationAdapter, VerificationPlan } from "@maru/planner";
 export const VERIFICATION_RUN_SCHEMA_VERSION = 1;
 export const VERIFICATION_ARTIFACTS_DIRECTORY = ".maru/artifacts/runs";
 
-export type AutomatedVerificationAdapter = Extract<VerificationAdapter, "playwright" | "vitest">;
+export type AutomatedVerificationAdapter = Extract<
+  VerificationAdapter,
+  "axe" | "gitleaks" | "playwright" | "semgrep" | "vitest"
+>;
+export type TestVerificationAdapter = Extract<VerificationAdapter, "playwright" | "vitest">;
 export type VerificationResultStatus = "error" | "failed" | "passed" | "skipped" | "unavailable";
 export type VerificationRunStatus = "error" | "failed" | "incomplete" | "passed";
 
@@ -28,7 +32,7 @@ export interface CommandRunner {
 }
 
 export interface TemporaryTest {
-  readonly adapter: AutomatedVerificationAdapter;
+  readonly adapter: TestVerificationAdapter;
   readonly id: string;
   readonly requirementRefs: readonly string[];
   readonly source: string;
@@ -36,7 +40,7 @@ export interface TemporaryTest {
 }
 
 export interface GeneratedTestArtifact {
-  readonly adapter: AutomatedVerificationAdapter;
+  readonly adapter: TestVerificationAdapter;
   readonly artifactPath: string;
   readonly id: string;
   readonly requirementRefs: readonly string[];
@@ -53,6 +57,7 @@ export interface AdapterExecutionResult {
   readonly adapter: VerificationAdapter;
   readonly artifacts: {
     readonly outputDirectory?: string;
+    readonly report?: string;
     readonly stderr?: string;
     readonly stdout?: string;
   };
@@ -67,6 +72,7 @@ export interface AdapterExecutionResult {
   readonly requirementRefs: readonly string[];
   readonly status: VerificationResultStatus;
   readonly stepIds: readonly string[];
+  readonly targetFiles?: readonly string[];
   readonly testFiles: readonly string[];
 }
 

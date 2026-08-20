@@ -18,7 +18,14 @@ import {
 export const VERIFICATION_PLAN_SCHEMA_VERSION = 1;
 export const VERIFICATION_PLAN_PATH = ".maru/generated/verification-plan.json";
 
-export type VerificationAdapter = "manual-review" | "playwright" | "unavailable" | "vitest";
+export type VerificationAdapter =
+  | "axe"
+  | "gitleaks"
+  | "manual-review"
+  | "playwright"
+  | "semgrep"
+  | "unavailable"
+  | "vitest";
 export type VerificationExecution = "automated" | "manual" | "unavailable";
 type TestFramework = ProjectScan["tests"]["frameworks"][number];
 
@@ -59,6 +66,7 @@ export interface VerificationStep {
   readonly id: string;
   readonly reasons: readonly string[];
   readonly requirementRefs: readonly string[];
+  readonly targetFiles?: readonly string[];
   readonly testFiles: readonly string[];
 }
 
@@ -276,21 +284,43 @@ function historicalRegressions(
   });
 }
 
-function adapterFor(
+interface AdapterSelection {
+  readonly adapter: VerificationAdapter;
+  readonly execution: VerificationExecution;
+  readonly testFramework?: TestFramework;
+}
+
+function adapterSelectionsFor(
   category: RecommendedTestCategory,
-  frameworks: readonly TestFramework[],
-): { adapter: VerificationAdapter; execution: VerificationExecution } {
-  if (category === "security" || category === "adversarial-edge-cases") {
-    return { adapter: "manual-review", execution: "manual" };
+  project: ProjectScan,
+): AdapterSelection[] {
+  if (category === "security") {
+    return [
+      { adapter: "gitleaks", execution: "automated" },
+      { adapter: "semgrep", execution: "automated" },
+    ];
   }
-  if (category === "e2e" || category === "accessibility") {
-    return frameworks.includes("playwright")
-      ? { adapter: "playwright", execution: "automated" }
-      : { adapter: "unavailable", execution: "unavailable" };
+  if (category === "adversarial-edge-cases") {
+    return [{ adapter: "manual-review", execution: "manual" }];
   }
-  return frameworks.includes("vitest")
-    ? { adapter: "vitest", execution: "automated" }
-    : { adapter: "unavailable", execution: "unavailable" };
+  if (category === "accessibility") {
+    const dependencies = new Set([
+      ...project.dependencies.development,
+      ...project.dependencies.production,
+    ]);
+    return project.tests.frameworks.includes("playwright") &&
+      dependencies.has("@axe-core/playwright")
+      ? [{ adapter: "axe", execution: "automated", testFramework: "playwright" }]
+      : [{ adapter: "unavailable", execution: "unavailable" }];
+  }
+  if (category === "e2e") {
+    return project.tests.frameworks.includes("playwright")
+      ? [{ adapter: "playwright", execution: "automated", testFramework: "playwright" }]
+      : [{ adapter: "unavailable", execution: "unavailable" }];
+  }
+  return project.tests.frameworks.includes("vitest")
+    ? [{ adapter: "vitest", execution: "automated", testFramework: "vitest" }]
+    : [{ adapter: "unavailable", execution: "unavailable" }];
 }
 
 function createSteps(
@@ -312,17 +342,28 @@ function createSteps(
     assessment.level === "critical" ||
     requirements.some((requirement) => requirement.blocking);
 
-  return [...assessment.recommendedTestCategories]
+  const targetFiles = assessment.analysis.files
+    .filter((file) => file.status !== "deleted" && !file.binary)
+    .map((file) => file.path)
+    .sort();
+  const selected = [...assessment.recommendedTestCategories]
     .sort()
-    .map((category, index): VerificationStep => {
-      const selection = adapterFor(category, project.tests.frameworks);
+    .flatMap((category) =>
+      adapterSelectionsFor(category, project).map((selection) => ({ category, selection })),
+    );
+
+  return selected.map(({ category, selection }, index): VerificationStep => {
       const testFiles = affectedTests
-        .filter((test) => test.framework === selection.adapter)
+        .filter((test) => test.framework === selection.testFramework)
         .map((test) => test.path);
       const reasons = [
         `The ${assessment.level} risk assessment recommends ${category} verification.`,
         selection.execution === "automated"
-          ? `${selection.adapter} is detected for automated execution.`
+          ? selection.adapter === "axe"
+            ? "@axe-core/playwright and Playwright are detected for automated accessibility execution."
+            : selection.adapter === "semgrep" || selection.adapter === "gitleaks"
+              ? `${selection.adapter} is selected; local executable availability is checked at execution time.`
+              : `${selection.adapter} is detected for automated execution.`
           : selection.execution === "manual"
             ? `${category} requires manual review until a supported adapter is available.`
             : `No supported ${category} execution adapter is configured.`,
@@ -333,7 +374,8 @@ function createSteps(
           ? `Links ${requirementRefs.length} selected contract requirement${requirementRefs.length === 1 ? "" : "s"}.`
           : "No related contract requirement was selected.",
         ...(affectedTests.some(
-          (test) => test.framework === selection.adapter && test.historicalMemoryIds.length > 0,
+          (test) =>
+            test.framework === selection.testFramework && test.historicalMemoryIds.length > 0,
         )
           ? ["Includes regression tests selected by matched historical QA memory."]
           : []),
@@ -346,6 +388,9 @@ function createSteps(
         id: `step-${String(index + 1).padStart(2, "0")}-${category}`,
         reasons,
         requirementRefs,
+        ...(selection.adapter === "semgrep" || selection.adapter === "gitleaks"
+          ? { targetFiles }
+          : {}),
         testFiles,
       };
     });
