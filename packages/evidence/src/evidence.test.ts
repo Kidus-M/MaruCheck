@@ -191,6 +191,43 @@ describe("verification evidence and findings", () => {
     expect(report.findings).toEqual([]);
   });
 
+  it("normalizes scanner results as security-scan evidence with changed-file targets", () => {
+    const inputPlan = plan();
+    const inputRun = run("failed");
+    const report = buildVerificationReport({
+      diagnostics: ["Semgrep found an authorization bypass."],
+      generatedAt: NOW.toISOString(),
+      plan: {
+        ...inputPlan,
+        steps: inputPlan.steps.map((item) => ({
+          ...item,
+          adapter: "semgrep" as const,
+          category: "security" as const,
+          targetFiles: ["src/auth/authorize.ts"],
+          testFiles: [],
+        })),
+      },
+      run: {
+        ...inputRun,
+        results: inputRun.results.map((item) => ({
+          ...item,
+          adapter: "semgrep" as const,
+          artifacts: { report: `${RUN_DIRECTORY}/semgrep/report.json` },
+          targetFiles: ["src/auth/authorize.ts"],
+          testFiles: [],
+        })),
+      },
+    });
+
+    expect(report.evidence[0]).toMatchObject({
+      adapter: "semgrep",
+      artifactRefs: expect.arrayContaining([expect.stringContaining("semgrep/report.json")]),
+      categories: ["security"],
+      targetFiles: ["src/auth/authorize.ts"],
+      type: "security-scan",
+    });
+  });
+
   it("reports missing tooling as inconclusive evidence instead of a confirmed product failure", () => {
     const report = buildVerificationReport({
       diagnostics: [""],
