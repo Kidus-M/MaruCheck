@@ -102,7 +102,7 @@ packages/
 |-- core/         # verification domain and orchestration
 |-- drift/        # protected expectations and contract amendment workflow
 |-- evidence/     # requirement evidence, findings, gates, and reports
-|-- execution/    # Vitest/Playwright execution and raw run artifacts
+|-- execution/    # test, accessibility, and security adapters plus raw run artifacts
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
 |-- memory/       # historical bugs, matching, and regression links
@@ -115,7 +115,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-Phases 0 through 10 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local Vitest/Playwright execution, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
+CLI phases 0 through 10 and Phase 12 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
 Known Phase 1 limitations:
 
@@ -147,7 +147,7 @@ See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-pl
 
 ### Verification execution
 
-`maru verify --diff` executes the plan's selected local Vitest and Playwright files, distinguishes failures from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
+`maru verify --diff` executes selected local Vitest, Playwright, axe, Semgrep, and Gitleaks work, distinguishes findings from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
 
 See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) and [ADR-006](docs/decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md).
 
@@ -174,6 +174,12 @@ See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009
 `maru ci init` installs a pull-request-only workflow with read-only repository permissions. `maru ci verify` writes the evidence report and an escaped GitHub job summary before mapping the release gate to the process exit code. The workflow uploads `.maru` evidence even when a blocking contract finding fails the ProofLayer check; no GitHub App is required.
 
 See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-request-verification.md) and [ADR-010](docs/decisions/0010-use-workflow-native-pull-request-verification.md).
+
+### Security and accessibility adapters
+
+UI changes can select axe-backed Playwright accessibility suites. Authentication, authorization, billing, and other security-sensitive changes select both Semgrep static analysis and Gitleaks secret scanning. Missing tools or reviewed local Semgrep rules remain explicit incomplete verification; MaruCheck does not download scanners or registry rules during a run.
+
+See the [Phase 12 security and accessibility guide](docs/guides/phase-12-security-accessibility-adapters.md) and [ADR-011](docs/decisions/0011-run-risk-selected-local-security-and-accessibility-adapters.md).
 
 ## Contributing
 

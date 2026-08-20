@@ -66,13 +66,15 @@ This is targeted lexical matching, not a claim of full call-graph coverage. Requ
 
 ## Adapter selection
 
-| Recommended category                        | Selected adapter                                         |
-| ------------------------------------------- | -------------------------------------------------------- |
-| Unit, API, integration, contract regression | Vitest when detected; otherwise `unavailable`            |
-| E2E and accessibility                       | Playwright when detected; otherwise `unavailable`        |
-| Security and adversarial edge cases         | `manual-review` until a supported adapter is implemented |
+| Recommended category                        | Selected adapter                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------- |
+| Unit, API, integration, contract regression | Vitest when detected; otherwise `unavailable`                          |
+| E2E                                         | Playwright when detected; otherwise `unavailable`                      |
+| Accessibility                               | axe-backed Playwright when both dependencies are detected              |
+| Security                                    | Separate Semgrep and Gitleaks steps; availability checked at execution |
+| Adversarial edge cases                      | `manual-review`                                                        |
 
-Adapters in a Phase 5 plan describe intended execution. Phase 6 executes Vitest and Playwright steps through `maru verify --diff`. An unavailable step is never counted as successful verification.
+Adapters in a plan describe intended execution. Phase 12 extends `maru verify --diff` with axe, Semgrep, and Gitleaks. An unavailable step is never counted as successful verification.
 
 ## MCP
 
@@ -91,7 +93,7 @@ Recommended coding-agent sequence:
 ## Current limits
 
 - `maru plan --diff` remains inspection-only; `maru verify --diff` performs execution.
-- Vitest and Playwright are the planned automated adapters; Jest is detected but not yet executable by MaruCheck.
+- Vitest, Playwright, axe, Semgrep, and Gitleaks are planned automated adapters; Jest is detected but not yet executable by MaruCheck.
 - Matching is lexical and path-based rather than a complete dependency graph.
 - Phase 6 supports temporary generated tests and raw artifacts. Phase 7 adds normalized evidence, findings, reproduction instructions, and a deterministic gate. Phase 9 adds historical regression selection.
 

@@ -19,13 +19,7 @@ export const VERIFICATION_PLAN_SCHEMA_VERSION = 1;
 export const VERIFICATION_PLAN_PATH = ".maru/generated/verification-plan.json";
 
 export type VerificationAdapter =
-  | "axe"
-  | "gitleaks"
-  | "manual-review"
-  | "playwright"
-  | "semgrep"
-  | "unavailable"
-  | "vitest";
+  "axe" | "gitleaks" | "manual-review" | "playwright" | "semgrep" | "unavailable" | "vitest";
 export type VerificationExecution = "automated" | "manual" | "unavailable";
 type TestFramework = ProjectScan["tests"]["frameworks"][number];
 
@@ -353,49 +347,48 @@ function createSteps(
     );
 
   return selected.map(({ category, selection }, index): VerificationStep => {
-      const testFiles = affectedTests
-        .filter((test) => test.framework === selection.testFramework)
-        .map((test) => test.path);
-      const reasons = [
-        `The ${assessment.level} risk assessment recommends ${category} verification.`,
-        selection.execution === "automated"
-          ? selection.adapter === "axe"
-            ? "@axe-core/playwright and Playwright are detected for automated accessibility execution."
-            : selection.adapter === "semgrep" || selection.adapter === "gitleaks"
-              ? `${selection.adapter} is selected; local executable availability is checked at execution time.`
-              : `${selection.adapter} is detected for automated execution.`
-          : selection.execution === "manual"
-            ? `${category} requires manual review until a supported adapter is available.`
-            : `No supported ${category} execution adapter is configured.`,
-        testFiles.length > 0
-          ? `Matched ${testFiles.length} existing affected test file${testFiles.length === 1 ? "" : "s"}.`
-          : "No existing affected test file matches this step.",
-        requirementRefs.length > 0
-          ? `Links ${requirementRefs.length} selected contract requirement${requirementRefs.length === 1 ? "" : "s"}.`
-          : "No related contract requirement was selected.",
-        ...(affectedTests.some(
-          (test) =>
-            test.framework === selection.testFramework && test.historicalMemoryIds.length > 0,
-        )
-          ? ["Includes regression tests selected by matched historical QA memory."]
-          : []),
-      ];
-      return {
-        adapter: selection.adapter,
-        blocking,
-        category,
-        execution: selection.execution,
-        id: `step-${String(index + 1).padStart(2, "0")}-${category}${
-          category === "security" ? `-${selection.adapter}` : ""
-        }`,
-        reasons,
-        requirementRefs,
-        ...(selection.adapter === "semgrep" || selection.adapter === "gitleaks"
-          ? { targetFiles }
-          : {}),
-        testFiles,
-      };
-    });
+    const testFiles = affectedTests
+      .filter((test) => test.framework === selection.testFramework)
+      .map((test) => test.path);
+    const reasons = [
+      `The ${assessment.level} risk assessment recommends ${category} verification.`,
+      selection.execution === "automated"
+        ? selection.adapter === "axe"
+          ? "@axe-core/playwright and Playwright are detected for automated accessibility execution."
+          : selection.adapter === "semgrep" || selection.adapter === "gitleaks"
+            ? `${selection.adapter} is selected; local executable availability is checked at execution time.`
+            : `${selection.adapter} is detected for automated execution.`
+        : selection.execution === "manual"
+          ? `${category} requires manual review until a supported adapter is available.`
+          : `No supported ${category} execution adapter is configured.`,
+      testFiles.length > 0
+        ? `Matched ${testFiles.length} existing affected test file${testFiles.length === 1 ? "" : "s"}.`
+        : "No existing affected test file matches this step.",
+      requirementRefs.length > 0
+        ? `Links ${requirementRefs.length} selected contract requirement${requirementRefs.length === 1 ? "" : "s"}.`
+        : "No related contract requirement was selected.",
+      ...(affectedTests.some(
+        (test) => test.framework === selection.testFramework && test.historicalMemoryIds.length > 0,
+      )
+        ? ["Includes regression tests selected by matched historical QA memory."]
+        : []),
+    ];
+    return {
+      adapter: selection.adapter,
+      blocking,
+      category,
+      execution: selection.execution,
+      id: `step-${String(index + 1).padStart(2, "0")}-${category}${
+        category === "security" ? `-${selection.adapter}` : ""
+      }`,
+      reasons,
+      requirementRefs,
+      ...(selection.adapter === "semgrep" || selection.adapter === "gitleaks"
+        ? { targetFiles }
+        : {}),
+      testFiles,
+    };
+  });
 }
 
 /** Build one inspectable verification plan from already-collected local evidence. */

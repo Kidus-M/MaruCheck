@@ -151,7 +151,9 @@ describe("verification execution", () => {
   it("runs an axe-backed Playwright accessibility suite as a distinct adapter", async () => {
     const root = await project();
     const runner: CommandRunner = {
-      run: vi.fn().mockResolvedValue({ durationMs: 18, exitCode: 0, stderr: "", stdout: "axe passed" }),
+      run: vi
+        .fn()
+        .mockResolvedValue({ durationMs: 18, exitCode: 0, stderr: "", stdout: "axe passed" }),
     };
 
     const result = await runVerificationPlan(
@@ -174,7 +176,11 @@ describe("verification execution", () => {
     await installScanner(root, "gitleaks");
     await installScanner(root, "semgrep");
     await mkdir(join(root, "src", "billing"), { recursive: true });
-    await writeFile(join(root, "src", "billing", "checkout.ts"), "export const checkout = true;", "utf8");
+    await writeFile(
+      join(root, "src", "billing", "checkout.ts"),
+      "export const checkout = true;",
+      "utf8",
+    );
     await writeFile(join(root, ".semgrep.yml"), "rules: []\n", "utf8");
     const runner: CommandRunner = {
       run: vi.fn().mockImplementation(async ({ args }) => {
@@ -191,17 +197,23 @@ describe("verification execution", () => {
 
     const result = await runVerificationPlan(
       root,
-      plan([
-        step("gitleaks", { targetFiles }),
-        step("semgrep", { targetFiles }),
-      ]),
+      plan([step("gitleaks", { targetFiles }), step("semgrep", { targetFiles })]),
       { commandRunner: runner, now: () => NOW },
     );
 
     expect(result.run.status).toBe("passed");
     expect(result.run.results).toEqual([
-      expect.objectContaining({ adapter: "gitleaks", artifacts: expect.objectContaining({ report: expect.stringContaining("report.json") }), status: "passed" }),
-      expect.objectContaining({ adapter: "semgrep", artifacts: expect.objectContaining({ report: expect.stringContaining("report.json") }), status: "passed", targetFiles }),
+      expect.objectContaining({
+        adapter: "gitleaks",
+        artifacts: expect.objectContaining({ report: expect.stringContaining("report.json") }),
+        status: "passed",
+      }),
+      expect.objectContaining({
+        adapter: "semgrep",
+        artifacts: expect.objectContaining({ report: expect.stringContaining("report.json") }),
+        status: "passed",
+        targetFiles,
+      }),
     ]);
     expect(runner.run).toHaveBeenNthCalledWith(
       1,
@@ -210,7 +222,13 @@ describe("verification execution", () => {
     expect(runner.run).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        args: expect.arrayContaining(["scan", "--config", ".semgrep.yml", "--error", ...targetFiles]),
+        args: expect.arrayContaining([
+          "scan",
+          "--config",
+          ".semgrep.yml",
+          "--error",
+          ...targetFiles,
+        ]),
       }),
     );
   });
@@ -245,11 +263,10 @@ describe("verification execution", () => {
         .mockResolvedValueOnce({ durationMs: 4, exitCode: 2, stderr: "bad config", stdout: "" }),
     };
 
-    const findings = await runVerificationPlan(
-      root,
-      plan([step("gitleaks")]),
-      { commandRunner: runner, now: () => NOW },
-    );
+    const findings = await runVerificationPlan(root, plan([step("gitleaks")]), {
+      commandRunner: runner,
+      now: () => NOW,
+    });
     const error = await runVerificationPlan(
       root,
       plan([step("gitleaks", { id: "step-gitleaks-error" })]),

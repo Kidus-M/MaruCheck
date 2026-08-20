@@ -23,10 +23,13 @@ The command exits non-zero when a test fails, an adapter errors, or blocking wor
 | --------------- | ------------------------------------------------------------------------ |
 | `vitest`        | Runs deduplicated selected files once with the local Vitest CLI          |
 | `playwright`    | Runs deduplicated selected files once with the local Playwright test CLI |
+| `axe`           | Runs selected Playwright accessibility suites backed by axe              |
+| `semgrep`       | Scans current changed source targets using reviewed local rules          |
+| `gitleaks`      | Scans the current working tree and writes a redacted JSON report         |
 | `manual-review` | Records skipped work that still needs human review                       |
 | `unavailable`   | Records unsupported or unconfigured work; never treats it as passing     |
 
-MaruCheck resolves `node_modules/vitest/vitest.mjs` and the local Playwright CLI. It does not call `npx`, download dependencies, install browsers, or use a shell. Install the test framework and Playwright browsers using the package manager and versions chosen by the project.
+MaruCheck resolves project-local Node test tools and externally installed security scanner executables without a shell. It does not call `npx`, download dependencies or rules, or install browsers. Install the adapters using the package manager and platform tooling chosen by the project.
 
 An automated step with no selected file is `skipped` with `NO_TESTS_SELECTED`. This prevents an apparently successful empty test run.
 
@@ -47,7 +50,7 @@ Each run writes a unique directory:
     `-- test-output/
 ```
 
-`run.json` is schema version 1 and includes the source plan path, run status, adapter results, exit codes, durations, test files, plan step IDs, blocking state, and `contract-id#requirement-id` references. Stdout and stderr capture is bounded; framework-native output remains in its artifact directory.
+`run.json` is schema version 1 and includes the source plan path, run status, adapter results, exit codes, durations, test/target files, plan step IDs, blocking state, and `contract-id#requirement-id` references. Stdout and stderr capture is bounded; framework-native output and scanner JSON reports remain in the adapter artifact directory.
 
 Phase 6 artifacts are raw execution facts. Phase 7 turns them into normalized evidence and findings in the adjacent `report.json`.
 
@@ -87,7 +90,7 @@ The expected assertion shows that the implementation returned `active` when `can
 
 ## Current limits
 
-- Only Vitest and Playwright have automated adapters; other planned adapters remain unavailable or manual.
+- Vitest, Playwright, axe, Semgrep, and Gitleaks have automated adapters; adversarial edge cases remain manual.
 - Existing-test selection still uses the Phase 5 lexical matcher.
 - The default adapter timeout is two minutes.
 - Playwright uses the project's own configuration and browser installation.

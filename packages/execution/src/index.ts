@@ -253,9 +253,7 @@ interface AdapterInvocation {
 }
 
 async function findExecutableOnPath(name: string): Promise<string | undefined> {
-  const pathValue = Object.entries(process.env).find(
-    ([key]) => key.toLowerCase() === "path",
-  )?.[1];
+  const pathValue = Object.entries(process.env).find(([key]) => key.toLowerCase() === "path")?.[1];
   if (pathValue === undefined) return undefined;
   const extensions =
     process.platform === "win32"
@@ -295,7 +293,10 @@ async function findAdapterInvocation(
     return executable === undefined ? undefined : { executable, prefixArgs: [] };
   }
 
-  if (adapter === "axe" && !(await exists(resolve(root, "node_modules/@axe-core/playwright/package.json")))) {
+  if (
+    adapter === "axe" &&
+    !(await exists(resolve(root, "node_modules/@axe-core/playwright/package.json")))
+  ) {
     return undefined;
   }
   const candidates =
@@ -347,11 +348,14 @@ function unavailableAdapterResult(
     artifacts: {},
     blocking: group.steps.some((step) => step.blocking),
     durationMs: 0,
-    error: error ?? errors[group.adapter] ?? resultError(
-      "PLAN_ADAPTER_UNAVAILABLE",
-      `${group.adapter} is not available for execution.`,
-      "Install or configure the selected adapter, then retry.",
-    ),
+    error:
+      error ??
+      errors[group.adapter] ??
+      resultError(
+        "PLAN_ADAPTER_UNAVAILABLE",
+        `${group.adapter} is not available for execution.`,
+        "Install or configure the selected adapter, then retry.",
+      ),
     exitCode: null,
     requirementRefs: unique([
       ...group.steps.flatMap((step) => step.requirementRefs),
