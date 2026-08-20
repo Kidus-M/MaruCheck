@@ -6,7 +6,6 @@ import { analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
 import {
   createAndWriteVerificationPlan,
   type VerificationPlan,
-  type VerificationPlanResult,
 } from "@maru/planner";
 import {
   MUTATION_ARTIFACTS_DIRECTORY,
@@ -303,9 +302,8 @@ export async function runMutationVerification(
     options.runPlan ??
     ((worktreeRoot: string, verificationPlan: VerificationPlan) =>
       runVerificationPlan(worktreeRoot, verificationPlan, { now: clock }));
-  let baseline = emptyBaseline;
+  let baseline: MutationBaseline;
   const executions: MutationExecution[] = [];
-  let worktreeCleaned = false;
   try {
     try {
       const run = await runPlan(worktree.path, plan);
@@ -362,7 +360,6 @@ export async function runMutationVerification(
     }
   } finally {
     await worktree.cleanup();
-    worktreeCleaned = true;
   }
 
   const gate = gateFor(baseline, executions, candidates.length);
@@ -382,7 +379,7 @@ export async function runMutationVerification(
       killed: executions.filter((execution) => execution.outcome === "killed").length,
       survived: executions.filter((execution) => execution.outcome === "survived").length,
     },
-    worktreeCleaned,
+    worktreeCleaned: true,
   };
   return writeReport(root, reportDirectory, report);
 }
