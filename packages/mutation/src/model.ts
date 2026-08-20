@@ -30,12 +30,14 @@ export interface MutationExecution {
   readonly artifactRefs: readonly string[];
   readonly candidate: Omit<MutationCandidate, "end" | "start">;
   readonly durationMs: number;
+  readonly diagnostic?: string;
   readonly outcome: MutationOutcome;
   readonly resultStatuses: readonly VerificationResultStatus[];
 }
 
 export interface MutationBaseline {
   readonly artifactRefs: readonly string[];
+  readonly diagnostic?: string;
   readonly resultStatuses: readonly VerificationResultStatus[];
   readonly status: "inconclusive" | "passed";
 }
