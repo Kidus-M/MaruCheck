@@ -120,6 +120,8 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 CLI phases 0 through 10 and Phases 12 through 13 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
+This is currently a source-based MVP. The `@maru/cli` workspace package remains private, so the advertised `npx maru` installation experience has not been released. Phase 14 will add the first provider-neutral Challenger Agent; MaruCheck does not yet generate adversarial checks using its own model provider. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+
 Known Phase 1 limitations:
 
 - route discovery follows common Next.js filesystem conventions and does not interpret custom runtime routing;
