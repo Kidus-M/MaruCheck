@@ -13,6 +13,7 @@
     "dist"
   ],
   "dependencies": {
+    "@maru/challenger": "0.1.0",
     "@maru/contracts": "0.1.0",
     "@maru/core": "0.1.0",
     "@maru/drift": "0.1.0",
@@ -22,6 +23,7 @@
     "@maru/memory": "0.1.0",
     "@maru/mutation": "0.1.0",
     "@maru/planner": "0.1.0",
+    "@maru/reasoning": "0.1.0",
     "@maru/risk": "0.1.0"
   }
 }

@@ -9,6 +9,8 @@
     { "path": "./packages/risk" },
     { "path": "./packages/planner" },
     { "path": "./packages/execution" },
+    { "path": "./packages/reasoning" },
+    { "path": "./packages/challenger" },
     { "path": "./packages/mutation" },
     { "path": "./packages/evidence" },
     { "path": "./packages/ci" },

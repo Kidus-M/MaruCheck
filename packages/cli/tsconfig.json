@@ -9,6 +9,7 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
+    { "path": "../challenger" },
     { "path": "../ci" },
     { "path": "../contracts" },
     { "path": "../core" },
@@ -20,6 +21,7 @@
     { "path": "../memory" },
     { "path": "../mutation" },
     { "path": "../planner" },
+    { "path": "../reasoning" },
     { "path": "../risk" }
   ]
 }

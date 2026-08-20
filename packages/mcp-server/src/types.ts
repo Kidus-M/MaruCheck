@@ -29,6 +29,7 @@ export interface McpToolDefinition {
 export type MaruMcpToolName =
   | "maru_analyze_diff"
   | "maru_assess_risk"
+  | "maru_run_challenger"
   | "maru_check_semantic_drift"
   | "maru_create_contract"
   | "maru_create_verification_plan"

@@ -66,7 +66,7 @@ describe("MaruCheck MCP server", () => {
     await rm(root, { force: true, recursive: true });
   });
 
-  it("publishes fourteen namespaced tools with closed input schemas and safety annotations", () => {
+  it("publishes fifteen namespaced tools with closed input schemas and safety annotations", () => {
     expect(MARU_MCP_TOOLS.map((tool) => tool.name)).toEqual([
       "maru_get_project_context",
       "maru_list_contracts",
@@ -78,6 +78,7 @@ describe("MaruCheck MCP server", () => {
       "maru_create_verification_plan",
       "maru_run_verification",
       "maru_run_mutation_verification",
+      "maru_run_challenger",
       "maru_check_semantic_drift",
       "maru_propose_contract_amendment",
       "maru_record_bug",
@@ -86,7 +87,7 @@ describe("MaruCheck MCP server", () => {
     for (const tool of MARU_MCP_TOOLS) {
       expect(tool.inputSchema).toMatchObject({ additionalProperties: false, type: "object" });
       expect(tool.outputSchema).toMatchObject({ type: "object" });
-      expect(tool.annotations.openWorldHint).toBe(false);
+      expect(tool.annotations.openWorldHint).toBe(tool.name === "maru_run_challenger");
     }
     expect(
       MARU_MCP_TOOLS.find((tool) => tool.name === "maru_create_contract")?.annotations,
@@ -400,6 +401,53 @@ describe("MaruCheck MCP server", () => {
       "maru_run_mutation_verification",
       { maxMutations: 0 },
       { mutationVerification, root },
+    );
+    expect(invalid).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "INVALID_TOOL_ARGUMENTS" } },
+    });
+  });
+
+  it("lets compatible clients request a cost-bounded independent challenge", async () => {
+    const now = new Date("2026-08-20T20:15:00.000Z");
+    const challengeReport = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/challenges/challenge-id/report.json",
+      report: {
+        activation: { activated: true, triggers: ["explicit-request"] },
+        challenges: [{ id: "cross-tenant-read", priority: "critical" }],
+        gate: { reasons: [], status: "passed" },
+        provider: { id: "gateway", model: "challenger" },
+        schemaVersion: 1,
+        status: "completed",
+        usage: { calls: 1, estimatedCostUsd: 0.03, totalTokens: 300 },
+      },
+    });
+
+    const result = await callMaruTool(
+      "maru_run_challenger",
+      { maxCostUsd: 0.5, maxOutputTokens: 1500, releaseVerification: true },
+      { challengeReport, now: () => now, root },
+    );
+
+    expect(result).toMatchObject({
+      isError: false,
+      structuredContent: {
+        ok: true,
+        path: ".maru/artifacts/challenges/challenge-id/report.json",
+        report: { status: "completed" },
+      },
+    });
+    expect(challengeReport).toHaveBeenCalledWith(root, now, {
+      explicit: true,
+      maxCostUsd: 0.5,
+      maxOutputTokens: 1500,
+      releaseVerification: true,
+    });
+
+    const invalid = await callMaruTool(
+      "maru_run_challenger",
+      { maxCostUsd: -1 },
+      { challengeReport, root },
     );
     expect(invalid).toMatchObject({
       isError: true,

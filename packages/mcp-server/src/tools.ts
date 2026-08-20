@@ -37,6 +37,7 @@ import {
   type VerificationPlanResult,
 } from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
+import { ReasoningError, reasoningProviderFromEnvironment } from "@maru/reasoning";
 import type { JsonObject, MaruMcpToolName, McpToolDefinition, McpToolResult } from "./types.js";
 
 const CLOSED_EMPTY_SCHEMA = {
@@ -119,6 +120,7 @@ function definition(
   description: string,
   inputSchema: JsonObject,
   readOnly: boolean,
+  openWorld = false,
 ): McpToolDefinition {
   return {
     name,
@@ -129,7 +131,7 @@ function definition(
     annotations: {
       destructiveHint: false,
       idempotentHint: readOnly,
-      openWorldHint: false,
+      openWorldHint: openWorld,
       readOnlyHint: readOnly,
     },
   };
@@ -259,6 +261,31 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
       },
     }),
     false,
+  ),
+  definition(
+    "maru_run_challenger",
+    "Run independent adversarial reasoning",
+    "Ask a separately configured reasoning provider what ordinary verification is most likely to miss. The provider receives bounded diff metadata and protected intent, never source contents; its structured hypotheses are validated and are not treated as verified findings or executed as code.",
+    schema({
+      maxCostUsd: {
+        description: "Maximum allowed estimated cost for the single reasoning call",
+        maximum: 100,
+        minimum: 0,
+        type: "number",
+      },
+      maxOutputTokens: {
+        description: "Maximum output tokens requested from the reasoning provider",
+        maximum: 10000,
+        minimum: 100,
+        type: "integer",
+      },
+      releaseVerification: {
+        description: "Mark this as release verification in the activation audit",
+        type: "boolean",
+      },
+    }),
+    false,
+    true,
   ),
   definition(
     "maru_check_semantic_drift",
@@ -536,6 +563,8 @@ function failure(error: unknown): McpToolResult {
     error instanceof GitAnalysisError ||
     error instanceof VerificationExecutionError ||
     error instanceof MutationVerificationError ||
+    error instanceof ChallengeError ||
+    error instanceof ReasoningError ||
     error instanceof VerificationPlanError ||
     error instanceof ToolInputError
   ) {
@@ -556,6 +585,16 @@ export interface MaruToolDependencies {
   readonly analyzeDiff?: (root: string) => Promise<GitDiffAnalysis>;
   readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
   readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
+  readonly challengeReport?: (
+    root: string,
+    now: Date,
+    options: {
+      readonly explicit: true;
+      readonly maxCostUsd?: number;
+      readonly maxOutputTokens?: number;
+      readonly releaseVerification?: boolean;
+    },
+  ) => Promise<ChallengeReportResult>;
   readonly now?: () => Date;
   readonly mutationVerification?: (
     root: string,
@@ -668,6 +707,52 @@ export async function callMaruTool(
       return success({ path: result.path, report: result.report });
     }
 
+    if (name === "maru_run_challenger") {
+      const input = objectArguments(args, [
+        "maxCostUsd",
+        "maxOutputTokens",
+        "releaseVerification",
+      ]);
+      const maxCostUsd = input.maxCostUsd;
+      if (
+        maxCostUsd !== undefined &&
+        (typeof maxCostUsd !== "number" ||
+          !Number.isFinite(maxCostUsd) ||
+          maxCostUsd < 0 ||
+          maxCostUsd > 100)
+      ) {
+        throw new ToolInputError("maxCostUsd must be a number from 0 to 100.");
+      }
+      const maxOutputTokens = input.maxOutputTokens;
+      if (
+        maxOutputTokens !== undefined &&
+        (typeof maxOutputTokens !== "number" ||
+          !Number.isSafeInteger(maxOutputTokens) ||
+          maxOutputTokens < 100 ||
+          maxOutputTokens > 10_000)
+      ) {
+        throw new ToolInputError("maxOutputTokens must be an integer from 100 to 10000.");
+      }
+      const releaseVerification = input.releaseVerification;
+      if (releaseVerification !== undefined && typeof releaseVerification !== "boolean") {
+        throw new ToolInputError("releaseVerification must be a boolean.");
+      }
+      const result = await (
+        dependencies.challengeReport ??
+        ((projectRoot, date, options) =>
+          createAndWriteChallengeReport(projectRoot, date, {
+            ...options,
+            provider: reasoningProviderFromEnvironment(),
+          }))
+      )(root, dependencies.now?.() ?? new Date(), {
+        explicit: true,
+        ...(maxCostUsd === undefined ? {} : { maxCostUsd }),
+        ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
+        ...(releaseVerification === true ? { releaseVerification: true } : {}),
+      });
+      return success({ path: result.path, report: result.report });
+    }
+
     if (name === "maru_check_semantic_drift") {
       const input = objectArguments(args, ["observations"]);
       const observations = parseObservedBehaviors({ observations: input.observations });
@@ -738,3 +823,8 @@ export async function callMaruTool(
     return failure(error);
   }
 }
+import {
+  ChallengeError,
+  createAndWriteChallengeReport,
+  type ChallengeReportResult,
+} from "@maru/challenger";
