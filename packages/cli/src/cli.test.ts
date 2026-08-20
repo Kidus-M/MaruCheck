@@ -506,9 +506,7 @@ approval:
     ).resolves.toBe(1);
 
     expect(mutationVerification).toHaveBeenCalledWith(root, now, 8);
-    expect(output.log).toHaveBeenCalledWith(
-      expect.stringContaining("WEAK VERIFICATION DETECTED"),
-    );
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("WEAK VERIFICATION DETECTED"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Worktree cleaned: yes"));
     expect(output.error).not.toHaveBeenCalled();
   });
@@ -517,9 +515,9 @@ approval:
     const output = { error: vi.fn(), log: vi.fn() };
     const mutationVerification = vi.fn();
 
-    await expect(
-      runCli(["mutate", "--max", "4"], output, { mutationVerification }),
-    ).resolves.toBe(1);
+    await expect(runCli(["mutate", "--max", "4"], output, { mutationVerification })).resolves.toBe(
+      1,
+    );
 
     expect(mutationVerification).not.toHaveBeenCalled();
     expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru mutate --diff"));

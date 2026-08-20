@@ -55,10 +55,7 @@ describe("temporary mutation worktree", () => {
     await expect(access(join(worktree.path, "node_modules"))).resolves.toBeUndefined();
     await worktree.cleanup();
     await expect(access(worktree.path)).rejects.toThrow();
-    expect(runner.run).toHaveBeenCalledWith(
-      ["worktree", "remove", "--force", worktree.path],
-      root,
-    );
+    expect(runner.run).toHaveBeenCalledWith(["worktree", "remove", "--force", worktree.path], root);
     await expect(readFile(join(root, "src", "access.ts"), "utf8")).resolves.toBe(
       "current working content\n",
     );
@@ -76,7 +73,9 @@ describe("temporary mutation worktree", () => {
       }),
     };
 
-    await expect(createMutationWorktreeManager(runner).create(root, analysisFixture())).rejects.toMatchObject({
+    await expect(
+      createMutationWorktreeManager(runner).create(root, analysisFixture()),
+    ).rejects.toMatchObject({
       code: "MUTATION_WORKTREE_CREATE_FAILED",
       remediation: expect.stringContaining("Git worktree"),
     });

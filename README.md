@@ -28,6 +28,7 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
+node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
 node ../maru-cli/packages/cli/dist/index.js ci init
 node ../maru-cli/packages/cli/dist/index.js ci verify
 node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
@@ -59,6 +60,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru mutate --diff [--max 20]`             | Prove selected tests reject isolated TypeScript mutations                                      |
 | `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
 | `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
@@ -106,6 +108,7 @@ packages/
 |-- git/          # repository and diff analysis
 |-- mcp-server/   # coding-agent integration
 |-- memory/       # historical bugs, matching, and regression links
+|-- mutation/     # isolated TypeScript mutation discovery and verification
 |-- planner/      # requirement-linked verification planning
 |-- risk/         # deterministic risk scoring and contract matching
 `-- shared/       # stable cross-package primitives
@@ -115,7 +118,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-CLI phases 0 through 10 and Phase 12 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
+CLI phases 0 through 10 and Phases 12 through 13 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
 Known Phase 1 limitations:
 
@@ -180,6 +183,12 @@ See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-re
 UI changes can select axe-backed Playwright accessibility suites. Authentication, authorization, billing, and other security-sensitive changes select both Semgrep static analysis and Gitleaks secret scanning. Missing tools or reviewed local Semgrep rules remain explicit incomplete verification; MaruCheck does not download scanners or registry rules during a run.
 
 See the [Phase 12 security and accessibility guide](docs/guides/phase-12-security-accessibility-adapters.md) and [ADR-011](docs/decisions/0011-run-risk-selected-local-security-and-accessibility-adapters.md).
+
+### Mutation verification
+
+`maru mutate --diff` tests the tests. It mirrors current committed and uncommitted files into a detached temporary Git worktree, confirms the selected Vitest/Playwright baseline passes, and then applies one bounded TypeScript mutation at a time. A mutation that survives selected tests produces `WEAK VERIFICATION DETECTED` and blocks the mutation gate. Developer source files are never rewritten.
+
+See the [Phase 13 mutation verification guide](docs/guides/phase-13-mutation-verification.md) and [ADR-012](docs/decisions/0012-isolate-mutation-verification-in-temporary-git-worktrees.md).
 
 ## Contributing
 

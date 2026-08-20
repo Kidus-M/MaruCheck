@@ -203,9 +203,7 @@ function gateFor(
   }
   if (baseline.status !== "passed") {
     return {
-      reasons: [
-        "Baseline verification did not pass, so mutant outcomes would not be trustworthy.",
-      ],
+      reasons: ["Baseline verification did not pass, so mutant outcomes would not be trustworthy."],
       status: "blocked",
     };
   }
@@ -218,9 +216,7 @@ function gateFor(
           ? [`${survived} mutation${survived === 1 ? "" : "s"} survived selected tests.`]
           : []),
         ...(inconclusive > 0
-          ? [
-              `${inconclusive} mutation${inconclusive === 1 ? " was" : "s were"} inconclusive.`,
-            ]
+          ? [`${inconclusive} mutation${inconclusive === 1 ? " was" : "s were"} inconclusive.`]
           : []),
       ],
       status: "blocked",
@@ -343,13 +339,7 @@ export async function runMutationVerification(
                 ? "killed"
                 : "inconclusive";
           executions.push({
-            artifactRefs: await archiveRun(
-              root,
-              worktree.path,
-              reportDirectory,
-              candidate.id,
-              run,
-            ),
+            artifactRefs: await archiveRun(root, worktree.path, reportDirectory, candidate.id, run),
             candidate: publicCandidate(candidate),
             durationMs: runDuration(run),
             outcome,

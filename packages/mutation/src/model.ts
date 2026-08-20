@@ -6,10 +6,7 @@ export const MUTATION_REPORT_SCHEMA_VERSION = 1;
 export const MUTATION_ARTIFACTS_DIRECTORY = ".maru/artifacts/mutations";
 
 export type MutationKind =
-  | "change-comparison"
-  | "invert-boolean"
-  | "remove-guard"
-  | "remove-ownership-condition";
+  "change-comparison" | "invert-boolean" | "remove-guard" | "remove-ownership-condition";
 export type MutationOutcome = "inconclusive" | "killed" | "survived";
 export type MutationGateStatus = "blocked" | "passed";
 
