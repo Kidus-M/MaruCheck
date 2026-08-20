@@ -77,6 +77,7 @@ function request(
   reportId: string,
   assessment: RiskAssessment,
   requirements: readonly ContractRequirementContext[],
+  maxCostUsd: number,
   maxOutputTokens: number,
 ): ReasoningRequest {
   return {
@@ -112,6 +113,7 @@ function request(
       "Reference only the supplied requirement references and changed file paths.",
       "Do not output source code, shell commands, secrets, contract changes, pass/fail claims, or unsupported fields.",
     ].join(" "),
+    maxCostUsd,
     maxOutputTokens,
     outputSchema: CHALLENGE_OUTPUT_SCHEMA,
     requestId: reportId,
@@ -277,7 +279,7 @@ export async function createAndWriteChallengeReport(
   let response: Awaited<ReturnType<typeof options.provider.reason>> | undefined;
   try {
     response = await options.provider.reason(
-      request(artifact.runId, assessment, requirements, maxOutputTokens),
+      request(artifact.runId, assessment, requirements, maxCostUsd, maxOutputTokens),
     );
   } catch {
     return persist(artifact.absolute, artifact.path, {

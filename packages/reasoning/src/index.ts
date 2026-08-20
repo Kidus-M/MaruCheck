@@ -7,6 +7,7 @@ export type JsonSchema = Readonly<Record<string, unknown>>;
 export interface ReasoningRequest {
   readonly input: Readonly<Record<string, unknown>>;
   readonly instructions: string;
+  readonly maxCostUsd: number;
   readonly maxOutputTokens: number;
   readonly outputSchema: JsonSchema;
   readonly requestId: string;
@@ -145,6 +146,54 @@ function responsePayload(value: unknown): {
   return { output: record.output, usage: { estimatedCostUsd, inputTokens, outputTokens } };
 }
 
+async function boundedResponseText(response: Response): Promise<string> {
+  if (response.body === null) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  while (true) {
+    const item = await reader.read();
+    if (item.done) break;
+    length += item.value.byteLength;
+    if (length > MAX_REASONING_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new Error("Provider response exceeded the maximum size.");
+    }
+    chunks.push(item.value);
+  }
+  return Buffer.concat(chunks, length).toString("utf8");
+}
+
+function validateRequest(request: ReasoningRequest): void {
+  if (
+    request.schemaVersion !== REASONING_REQUEST_SCHEMA_VERSION ||
+    request.task !== "challenger-analysis" ||
+    request.requestId.length < 1 ||
+    request.requestId.length > 200 ||
+    request.instructions.length < 1 ||
+    request.instructions.length > 20_000 ||
+    !Number.isFinite(request.maxCostUsd) ||
+    request.maxCostUsd < 0 ||
+    request.maxCostUsd > 100 ||
+    !Number.isSafeInteger(request.maxOutputTokens) ||
+    request.maxOutputTokens < 100 ||
+    request.maxOutputTokens > 10_000
+  ) {
+    throw new ReasoningError(
+      "REASONING_CONFIG_INVALID",
+      "The structured reasoning request violates its safety bounds.",
+      "Use the versioned request schema and bounded cost, instructions, identifiers, and output tokens.",
+    );
+  }
+  if (Buffer.byteLength(JSON.stringify(request), "utf8") > MAX_REASONING_RESPONSE_BYTES) {
+    throw new ReasoningError(
+      "REASONING_CONFIG_INVALID",
+      "The structured reasoning request exceeds the maximum size.",
+      "Reduce the bounded reasoning context before calling the provider.",
+    );
+  }
+}
+
 /** Create a provider for the small vendor-neutral MaruCheck JSON reasoning protocol. */
 export function createJsonHttpReasoningProvider(
   options: JsonHttpReasoningProviderOptions,
@@ -166,6 +215,7 @@ export function createJsonHttpReasoningProvider(
     id,
     model,
     async reason(request) {
+      validateRequest(request);
       const startedAt = Date.now();
       try {
         const response = await fetchImplementation(endpoint, {
@@ -181,10 +231,7 @@ export function createJsonHttpReasoningProvider(
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (!response.ok) throw new Error(`Provider returned HTTP ${response.status}.`);
-        const body = await response.text();
-        if (Buffer.byteLength(body, "utf8") > MAX_REASONING_RESPONSE_BYTES) {
-          throw new Error("Provider response exceeded the maximum size.");
-        }
+        const body = await boundedResponseText(response);
         const parsed = responsePayload(JSON.parse(body) as unknown);
         const totalTokens =
           parsed.usage.inputTokens === null || parsed.usage.outputTokens === null

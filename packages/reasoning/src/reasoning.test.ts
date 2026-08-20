@@ -9,6 +9,7 @@ import {
 const request: ReasoningRequest = {
   input: { risk: "critical" },
   instructions: "Find failure modes.",
+  maxCostUsd: 1,
   maxOutputTokens: 1_000,
   outputSchema: { type: "object" },
   requestId: "challenge-001",

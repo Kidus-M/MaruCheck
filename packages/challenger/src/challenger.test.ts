@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -166,6 +166,57 @@ describe("Challenger report", () => {
       result.report,
     );
     expect(formatChallengeReport(result)).toContain("Cross-tenant invoice read");
+  });
+
+  it("loads protected requirement and invariant text from the real contract repository", async () => {
+    const root = await projectRoot();
+    await mkdir(join(root, ".maru", "contracts"), { recursive: true });
+    await writeFile(join(root, ".maru", "maru.yml"), "version: 1\n", "utf8");
+    await writeFile(
+      join(root, ".maru", "contracts", "invoice-access.yml"),
+      `version: 1
+id: invoice-access
+title: Invoice access
+status: approved
+criticality: critical
+intent: Enforce organization ownership for invoice reads.
+owners:
+  - security
+requirements:
+  - id: INV-001
+    statement: Users may only read invoices owned by their organization.
+    priority: required
+invariants:
+  - id: INV-INV-001
+    statement: Cross-organization invoice access is forbidden.
+edge_cases:
+  - an authenticated user guesses another organization invoice id
+security:
+  - enforce ownership after authentication
+data_integrity:
+  - every invoice belongs to one organization
+evidence_policy:
+  blocking_requirements:
+    - INV-001
+    - INV-INV-001
+`,
+      "utf8",
+    );
+    const reasoning = provider();
+
+    const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:01:30Z"), {
+      assessRisk: vi.fn().mockResolvedValue(risk("critical")),
+      provider: reasoning,
+    });
+
+    expect(result.report.status).toBe("completed");
+    const input = vi.mocked(reasoning.reason).mock.calls[0]![0].input as {
+      requirements: { statement: string }[];
+    };
+    expect(input.requirements.map((item) => item.statement)).toEqual([
+      "Users may only read invoices owned by their organization.",
+      "Cross-organization invoice access is forbidden.",
+    ]);
   });
 
   it.each([
