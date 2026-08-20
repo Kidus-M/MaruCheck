@@ -1,6 +1,6 @@
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { delimiter, dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
   createAndWriteVerificationPlan,
   type VerificationAdapter,
@@ -242,21 +242,69 @@ function passiveResult(group: AdapterGroup): AdapterExecutionResult {
     requirementRefs: unique(group.steps.flatMap((step) => step.requirementRefs)),
     status: manual ? "skipped" : "unavailable",
     stepIds: group.steps.map((step) => step.id),
+    targetFiles: unique(group.steps.flatMap((step) => step.targetFiles ?? [])),
     testFiles: unique(group.steps.flatMap((step) => step.testFiles)),
   };
 }
 
-async function findAdapterBinary(
+interface AdapterInvocation {
+  readonly executable: string;
+  readonly prefixArgs: readonly string[];
+}
+
+async function findExecutableOnPath(name: string): Promise<string | undefined> {
+  const pathValue = Object.entries(process.env).find(
+    ([key]) => key.toLowerCase() === "path",
+  )?.[1];
+  if (pathValue === undefined) return undefined;
+  const extensions =
+    process.platform === "win32"
+      ? (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
+          .split(";")
+          .filter(Boolean)
+          .map((extension) => extension.toLowerCase())
+      : [""];
+  for (const directory of pathValue.split(delimiter).filter(Boolean)) {
+    for (const extension of extensions) {
+      const candidate = resolve(directory, `${name}${extension}`);
+      try {
+        await access(candidate, process.platform === "win32" ? constants.F_OK : constants.X_OK);
+        return candidate;
+      } catch {
+        // Continue through PATH candidates without invoking a shell.
+      }
+    }
+  }
+  return undefined;
+}
+
+async function findAdapterInvocation(
   root: string,
   adapter: AutomatedVerificationAdapter,
-): Promise<string | undefined> {
+): Promise<AdapterInvocation | undefined> {
+  if (adapter === "semgrep" || adapter === "gitleaks") {
+    const localCandidates =
+      process.platform === "win32"
+        ? [`.venv/Scripts/${adapter}.exe`, `venv/Scripts/${adapter}.exe`]
+        : [`.venv/bin/${adapter}`, `venv/bin/${adapter}`];
+    for (const candidate of localCandidates) {
+      const path = resolve(root, candidate);
+      if (await exists(path)) return { executable: path, prefixArgs: [] };
+    }
+    const executable = await findExecutableOnPath(adapter);
+    return executable === undefined ? undefined : { executable, prefixArgs: [] };
+  }
+
+  if (adapter === "axe" && !(await exists(resolve(root, "node_modules/@axe-core/playwright/package.json")))) {
+    return undefined;
+  }
   const candidates =
     adapter === "vitest"
       ? ["node_modules/vitest/vitest.mjs"]
       : ["node_modules/@playwright/test/cli.js", "node_modules/playwright/cli.js"];
   for (const candidate of candidates) {
-    const path = resolve(root, candidate);
-    if (await exists(path)) return path;
+    const binary = resolve(root, candidate);
+    if (await exists(binary)) return { executable: process.execPath, prefixArgs: [binary] };
   }
   return undefined;
 }
@@ -264,19 +312,45 @@ async function findAdapterBinary(
 function unavailableAdapterResult(
   group: AdapterGroup,
   testFiles: readonly string[],
+  targetFiles: readonly string[],
+  error?: VerificationResultError,
 ): AdapterExecutionResult {
-  const playwright = group.adapter === "playwright";
+  const errors: Partial<Record<VerificationAdapter, VerificationResultError>> = {
+    axe: resultError(
+      "AXE_NOT_INSTALLED",
+      "The axe Playwright accessibility adapter is not installed in this project.",
+      "Install @axe-core/playwright and @playwright/test, add an axe-backed Playwright accessibility test, then retry.",
+    ),
+    gitleaks: resultError(
+      "GITLEAKS_NOT_INSTALLED",
+      "Gitleaks is not available in this project or on PATH.",
+      "Install the Gitleaks executable and ensure it is on PATH, then retry.",
+    ),
+    playwright: resultError(
+      "PLAYWRIGHT_NOT_INSTALLED",
+      "Playwright is not installed in this project.",
+      "Install @playwright/test in the project and install the required browser, then retry.",
+    ),
+    semgrep: resultError(
+      "SEMGREP_NOT_INSTALLED",
+      "Semgrep is not available in this project or on PATH.",
+      "Install the Semgrep executable and ensure it is on PATH, then retry.",
+    ),
+    vitest: resultError(
+      "VITEST_NOT_INSTALLED",
+      "Vitest is not installed in this project.",
+      "Install vitest in the project, then retry.",
+    ),
+  };
   return {
     adapter: group.adapter,
     artifacts: {},
     blocking: group.steps.some((step) => step.blocking),
     durationMs: 0,
-    error: resultError(
-      playwright ? "PLAYWRIGHT_NOT_INSTALLED" : "VITEST_NOT_INSTALLED",
-      `${playwright ? "Playwright" : "Vitest"} is not installed in this project.`,
-      playwright
-        ? "Install @playwright/test in the project and install the required browser, then retry."
-        : "Install vitest in the project, then retry.",
+    error: error ?? errors[group.adapter] ?? resultError(
+      "PLAN_ADAPTER_UNAVAILABLE",
+      `${group.adapter} is not available for execution.`,
+      "Install or configure the selected adapter, then retry.",
     ),
     exitCode: null,
     requirementRefs: unique([
@@ -285,8 +359,28 @@ function unavailableAdapterResult(
     ]),
     status: "unavailable",
     stepIds: group.steps.map((step) => step.id),
+    targetFiles,
     testFiles,
   };
+}
+
+async function semgrepConfig(root: string): Promise<string | undefined> {
+  for (const candidate of [".semgrep.yml", ".semgrep.yaml", "semgrep.yml", "semgrep.yaml"]) {
+    if (await exists(resolve(root, candidate))) return candidate;
+  }
+  return undefined;
+}
+
+async function existingTargets(root: string, paths: readonly string[]): Promise<string[]> {
+  const absoluteRoot = resolve(root);
+  const result: string[] = [];
+  for (const path of paths) {
+    if (isAbsolute(path)) continue;
+    const target = resolve(absoluteRoot, path);
+    if (!target.startsWith(`${absoluteRoot}${sep}`) || !(await exists(target))) continue;
+    result.push(portablePath(path));
+  }
+  return unique(result);
 }
 
 async function writeOutputArtifacts(
@@ -314,6 +408,7 @@ async function executeAutomatedGroup(
     ...group.steps.flatMap((step) => step.testFiles),
     ...group.temporaryTests.map((test) => portablePath(test.targetPath)),
   ]);
+  const targetFiles = unique(group.steps.flatMap((step) => step.targetFiles ?? []));
   const requirementRefs = unique([
     ...group.steps.flatMap((step) => step.requirementRefs),
     ...group.temporaryTests.flatMap((test) => test.requirementRefs),
@@ -323,10 +418,13 @@ async function executeAutomatedGroup(
     blocking: group.steps.some((step) => step.blocking),
     requirementRefs,
     stepIds: group.steps.map((step) => step.id),
+    targetFiles,
     testFiles,
   } as const;
 
-  if (testFiles.length === 0) {
+  const testAdapter =
+    group.adapter === "axe" || group.adapter === "playwright" || group.adapter === "vitest";
+  if (testAdapter && testFiles.length === 0) {
     return {
       ...base,
       artifacts: {},
@@ -341,20 +439,78 @@ async function executeAutomatedGroup(
     };
   }
 
-  const binary = await findAdapterBinary(root, group.adapter);
-  if (binary === undefined) return unavailableAdapterResult(group, testFiles);
+  const invocation = await findAdapterInvocation(root, group.adapter);
+  if (invocation === undefined) return unavailableAdapterResult(group, testFiles, targetFiles);
 
   const outputDirectory = resolve(runDirectory, group.adapter, "test-output");
-  const args =
-    group.adapter === "vitest"
-      ? [binary, "run", ...testFiles, "--reporter=default"]
-      : [binary, "test", ...testFiles, "--reporter=line", "--output", outputDirectory];
-  const command = { args, executable: process.execPath } as const;
+  const reportPath = resolve(runDirectory, group.adapter, "report.json");
+  const portableReportPath = relativePath(root, reportPath);
+  let adapterArgs: string[];
+  if (group.adapter === "vitest") {
+    adapterArgs = ["run", ...testFiles, "--reporter=default"];
+  } else if (group.adapter === "playwright" || group.adapter === "axe") {
+    adapterArgs = ["test", ...testFiles, "--reporter=line", "--output", outputDirectory];
+  } else if (group.adapter === "semgrep") {
+    const config = await semgrepConfig(root);
+    if (config === undefined) {
+      return unavailableAdapterResult(
+        group,
+        testFiles,
+        targetFiles,
+        resultError(
+          "SEMGREP_CONFIG_NOT_FOUND",
+          "No local Semgrep rule configuration was found.",
+          "Add .semgrep.yml or .semgrep.yaml with reviewed local rules, then retry.",
+        ),
+      );
+    }
+    const targets = await existingTargets(root, targetFiles);
+    if (targets.length === 0) {
+      return {
+        ...base,
+        artifacts: {},
+        durationMs: 0,
+        error: resultError(
+          "NO_SECURITY_TARGETS_SELECTED",
+          "No existing changed source files were selected for Semgrep.",
+          "Recreate the verification plan from a working tree with scannable source changes.",
+        ),
+        exitCode: null,
+        status: "skipped",
+      };
+    }
+    await mkdir(dirname(reportPath), { recursive: true });
+    adapterArgs = [
+      "scan",
+      "--config",
+      config,
+      "--json",
+      "--output",
+      portableReportPath,
+      "--error",
+      ...targets,
+    ];
+  } else {
+    await mkdir(dirname(reportPath), { recursive: true });
+    adapterArgs = [
+      "dir",
+      "--no-banner",
+      "--no-color",
+      "--redact",
+      "--report-format",
+      "json",
+      "--report-path",
+      portableReportPath,
+      ".",
+    ];
+  }
+  const args = [...invocation.prefixArgs, ...adapterArgs];
+  const command = { args, executable: invocation.executable } as const;
 
   try {
     const executed = await options.commandRunner.run({
       args,
-      command: process.execPath,
+      command: invocation.executable,
       cwd: root,
       env: { CI: "1", FORCE_COLOR: "0", NO_COLOR: "1" },
       timeoutMs: options.timeoutMs,
@@ -366,12 +522,19 @@ async function executeAutomatedGroup(
       executed.stdout,
       executed.stderr,
     );
+    const scanner = group.adapter === "semgrep" || group.adapter === "gitleaks";
     const status: VerificationResultStatus =
-      executed.exitCode === 0 ? "passed" : executed.exitCode === null ? "error" : "failed";
+      executed.exitCode === 0
+        ? "passed"
+        : executed.exitCode === null || (scanner && executed.exitCode !== 1)
+          ? "error"
+          : "failed";
+    const reportExists = scanner && (await exists(reportPath));
     return {
       ...base,
       artifacts: {
         ...artifacts,
+        ...(reportExists ? { report: portableReportPath } : {}),
         ...(group.adapter === "playwright"
           ? { outputDirectory: relativePath(root, outputDirectory) }
           : {}),
@@ -386,7 +549,7 @@ async function executeAutomatedGroup(
               "Inspect the captured output, fix hanging tests, or configure a longer timeout.",
             ),
           }
-        : executed.exitCode === null
+        : executed.exitCode === null || (scanner && executed.exitCode !== 1)
           ? {
               error: resultError(
                 "ADAPTER_EXECUTION_FAILED",
@@ -464,7 +627,13 @@ export async function runVerificationPlan(
   try {
     const results: AdapterExecutionResult[] = [];
     for (const group of groupSteps(plan, temporaryTests)) {
-      if (group.adapter === "vitest" || group.adapter === "playwright") {
+      if (
+        group.adapter === "axe" ||
+        group.adapter === "gitleaks" ||
+        group.adapter === "playwright" ||
+        group.adapter === "semgrep" ||
+        group.adapter === "vitest"
+      ) {
         results.push(
           await executeAutomatedGroup(
             root,

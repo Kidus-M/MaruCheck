@@ -385,7 +385,9 @@ function createSteps(
         blocking,
         category,
         execution: selection.execution,
-        id: `step-${String(index + 1).padStart(2, "0")}-${category}`,
+        id: `step-${String(index + 1).padStart(2, "0")}-${category}${
+          category === "security" ? `-${selection.adapter}` : ""
+        }`,
         reasons,
         requirementRefs,
         ...(selection.adapter === "semgrep" || selection.adapter === "gitleaks"

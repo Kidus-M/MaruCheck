@@ -13,7 +13,13 @@ export const VERIFICATION_REPORT_SCHEMA_VERSION = 1;
 
 export type EvidenceStatus = "failed" | "inconclusive" | "passed";
 export type EvidenceType =
-  "accessibility" | "api-test" | "e2e-test" | "manual" | "planning-gap" | "unit-test";
+  | "accessibility"
+  | "api-test"
+  | "e2e-test"
+  | "manual"
+  | "planning-gap"
+  | "security-scan"
+  | "unit-test";
 export type FindingKind = "execution-error" | "requirement-failure" | "verification-gap";
 export type FindingSeverity = "critical" | "high" | "info" | "low" | "medium";
 export type FindingStatus =
@@ -34,6 +40,7 @@ export interface Evidence {
   readonly runId: string;
   readonly status: EvidenceStatus;
   readonly stepIds: readonly string[];
+  readonly targetFiles?: readonly string[];
   readonly testFiles: readonly string[];
   readonly tool: string;
   readonly type: EvidenceType;
