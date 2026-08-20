@@ -222,6 +222,33 @@ describe("mutation verification orchestration", () => {
     expect(project.cleaned.value).toBe(true);
   });
 
+  it("records a mutant runner crash as inconclusive and still restores and cleans up", async () => {
+    const project = await fixture();
+    const runPlan = vi
+      .fn()
+      .mockImplementationOnce((root: string) => runResult(root, 1, "passed"))
+      .mockRejectedValueOnce(new Error("test worker crashed"));
+
+    const result = await runMutationVerification(project.root, NOW, {
+      analysis: async () => analysis(),
+      createPlan: async () => plan(),
+      maxMutations: 1,
+      now: () => NOW,
+      runPlan,
+      worktrees: project.worktrees,
+    });
+
+    expect(result.report.mutations).toEqual([
+      expect.objectContaining({
+        diagnostic: "test worker crashed",
+        outcome: "inconclusive",
+      }),
+    ]);
+    expect(result.report.gate).toMatchObject({ status: "blocked" });
+    expect(project.cleaned.value).toBe(true);
+    await expect(readFile(join(project.root, "src", "access.ts"), "utf8")).resolves.toBe(SOURCE);
+  });
+
   it("reports an unsupported diff without creating a worktree", async () => {
     const project = await fixture();
     await writeFile(join(project.root, "src", "access.ts"), "export const answer = 42;\n", "utf8");

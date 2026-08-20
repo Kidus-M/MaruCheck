@@ -333,9 +333,16 @@ export async function runMutationVerification(
           const outcome =
             run.run.status === "passed"
               ? "survived"
-              : statuses.some((status) => status === "failed")
-                ? "killed"
-                : "inconclusive";
+              : statuses.some(
+                    (status) =>
+                      status === "error" ||
+                      status === "skipped" ||
+                      status === "unavailable",
+                  )
+                ? "inconclusive"
+                : statuses.some((status) => status === "failed")
+                  ? "killed"
+                  : "inconclusive";
           executions.push({
             artifactRefs: await archiveRun(root, worktree.path, reportDirectory, candidate.id, run),
             candidate: publicCandidate(candidate),

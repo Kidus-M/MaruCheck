@@ -6,6 +6,7 @@ import { defaultCommandRunner } from "@maru/execution";
 import type { GitDiffAnalysis } from "@maru/git";
 import {
   MutationVerificationError,
+  type MutationCommandResult,
   type MutationCommandRunner,
   type MutationWorktree,
   type MutationWorktreeManager,
@@ -84,6 +85,34 @@ function assertTemporaryParent(path: string): void {
   }
 }
 
+async function removeWorktree(input: {
+  readonly parent: string;
+  readonly root: string;
+  readonly runner: MutationCommandRunner;
+  readonly worktree: string;
+}): Promise<MutationCommandResult | undefined> {
+  assertTemporaryParent(input.parent);
+  let removed: MutationCommandResult | undefined;
+  try {
+    removed = await input.runner.run(
+      ["worktree", "remove", "--force", input.worktree],
+      input.root,
+    );
+  } catch {
+    removed = undefined;
+  } finally {
+    await rm(input.parent, { force: true, recursive: true });
+  }
+  if (removed === undefined || removed.exitCode !== 0) {
+    try {
+      await input.runner.run(["worktree", "prune"], input.root);
+    } catch {
+      // The typed cleanup error below retains the manual recovery command.
+    }
+  }
+  return removed;
+}
+
 export const defaultMutationCommandRunner: MutationCommandRunner = {
   async run(args, cwd) {
     const started = performance.now();
@@ -140,23 +169,23 @@ export function createMutationWorktreeManager(
           async cleanup() {
             if (cleaned) return;
             cleaned = true;
-            assertTemporaryParent(parent);
-            const removed = await runner.run(["worktree", "remove", "--force", worktree], root);
-            await rm(parent, { force: true, recursive: true });
-            if (removed.exitCode !== 0) {
-              await runner.run(["worktree", "prune"], root);
+            const removed = await removeWorktree({ parent, root, runner, worktree });
+            if (removed === undefined || removed.exitCode !== 0) {
               throw new MutationVerificationError(
                 "MUTATION_WORKTREE_CLEANUP_FAILED",
                 "The temporary files were removed, but Git could not unregister the mutation worktree.",
-                `Run git worktree prune in ${root}. ${removed.stderr.trim()}`.trim(),
+                `Run git worktree prune in ${root}. ${removed?.stderr.trim() ?? ""}`.trim(),
               );
             }
           },
         };
       } catch (error) {
         assertTemporaryParent(parent);
-        if (registered) await runner.run(["worktree", "remove", "--force", worktree], root);
-        await rm(parent, { force: true, recursive: true });
+        if (registered) {
+          await removeWorktree({ parent, root, runner, worktree });
+        } else {
+          await rm(parent, { force: true, recursive: true });
+        }
         if (error instanceof MutationVerificationError) throw error;
         throw new MutationVerificationError(
           "MUTATION_WORKTREE_CREATE_FAILED",

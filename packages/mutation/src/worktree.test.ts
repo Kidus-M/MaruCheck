@@ -80,6 +80,31 @@ describe("temporary mutation worktree", () => {
       remediation: expect.stringContaining("Git worktree"),
     });
   });
+
+  it("removes temporary files and requests a prune when unregistering fails", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maru-worktree-cleanup-root-"));
+    temporaryDirectories.push(root);
+    const runner: MutationCommandRunner = {
+      run: vi.fn().mockImplementation(async (args: readonly string[]) => {
+        if (args[0] === "worktree" && args[1] === "add") {
+          await mkdir(args[3]!, { recursive: true });
+          return { durationMs: 1, exitCode: 0, stderr: "", stdout: "" };
+        }
+        if (args[0] === "worktree" && args[1] === "remove") {
+          return { durationMs: 1, exitCode: 1, stderr: "registration locked", stdout: "" };
+        }
+        return { durationMs: 1, exitCode: 0, stderr: "", stdout: "" };
+      }),
+    };
+    const worktree = await createMutationWorktreeManager(runner).create(root, analysisFixture());
+
+    await expect(worktree.cleanup()).rejects.toMatchObject({
+      code: "MUTATION_WORKTREE_CLEANUP_FAILED",
+      remediation: expect.stringContaining("git worktree prune"),
+    });
+    await expect(access(worktree.path)).rejects.toThrow();
+    expect(runner.run).toHaveBeenCalledWith(["worktree", "prune"], root);
+  });
 });
 
 function analysisFixture(): GitDiffAnalysis {
