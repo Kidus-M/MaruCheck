@@ -656,10 +656,7 @@ export async function callMaruTool(
       const maximum = input.maxMutations;
       if (
         maximum !== undefined &&
-        (typeof maximum !== "number" ||
-          !Number.isInteger(maximum) ||
-          maximum < 1 ||
-          maximum > 100)
+        (typeof maximum !== "number" || !Number.isInteger(maximum) || maximum < 1 || maximum > 100)
       ) {
         throw new ToolInputError("maxMutations must be an integer from 1 to 100.");
       }

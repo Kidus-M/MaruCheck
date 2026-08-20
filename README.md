@@ -132,7 +132,7 @@ See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.
 
 ### MCP server
 
-`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, QA memory recording/querying, validation, bounded Git/risk/planning tools, and local verification execution. It never approves contracts or sends repository content to a cloud service.
+`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, QA memory recording/querying, validation, bounded Git/risk/planning tools, local verification, and isolated mutation verification. It never approves contracts or sends repository content to a cloud service.
 
 See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
 

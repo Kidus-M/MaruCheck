@@ -22,6 +22,8 @@ Create a dedicated `@maru/mutation` package and expose it through:
 maru mutate --diff [--max N]
 ```
 
+Expose the same bounded operation as `maru_run_mutation_verification` over the existing client-neutral local stdio MCP server.
+
 Use the TypeScript compiler parser to discover deterministic single-edit candidates in changed production `.ts`/`.tsx` files. Phase 13 supports boolean inversion, comparison changes, standalone guard removal, and ownership/authorization guard removal. Candidate and report text is bounded.
 
 For execution:

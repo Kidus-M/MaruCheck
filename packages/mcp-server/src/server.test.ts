@@ -403,7 +403,7 @@ describe("MaruCheck MCP server", () => {
     );
     expect(invalid).toMatchObject({
       isError: true,
-      structuredContent: { error: { code: "MCP_INVALID_PARAMS" } },
+      structuredContent: { error: { code: "INVALID_TOOL_ARGUMENTS" } },
     });
   });
 

@@ -9,6 +9,8 @@ maru mutate --diff --max 8
 
 The default limit is 20 mutations and the accepted range is 1–100. The command is explicit; normal `maru verify --diff` does not silently multiply test execution time.
 
+Coding agents using Codex, Claude Code, Cursor, or another compatible MCP client can call `maru_run_mutation_verification` with an optional `maxMutations`. It uses the same local implementation and returns the complete report; no client-specific behavior or cloud execution is required.
+
 ## Execution sequence
 
 1. Analyze the current staged, unstaged, and untracked diff.
