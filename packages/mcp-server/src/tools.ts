@@ -1,4 +1,12 @@
 import {
+  CHALLENGE_RESPONSE_SCHEMA,
+  ChallengeError,
+  prepareAndWriteChallengeBrief,
+  submitChallengeResponse,
+  type ChallengeBriefResult,
+  type ChallengeReportResult,
+} from "@maru/challenger";
+import {
   ContractError,
   contractVersionHash,
   createContractFromRequirements,
@@ -37,7 +45,6 @@ import {
   type VerificationPlanResult,
 } from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
-import { ReasoningError, reasoningProviderFromEnvironment } from "@maru/reasoning";
 import type { JsonObject, MaruMcpToolName, McpToolDefinition, McpToolResult } from "./types.js";
 
 const CLOSED_EMPTY_SCHEMA = {
@@ -52,6 +59,41 @@ const BASE_OUTPUT_SCHEMA = {
   type: "object",
 } as const;
 const MAX_CONTEXT_ITEMS = 100;
+const CHALLENGE_SUBMISSION_SCHEMA = {
+  additionalProperties: false,
+  properties: {
+    briefHash: { maxLength: 64, minLength: 64, pattern: "^[a-f0-9]{64}$", type: "string" },
+    briefId: { maxLength: 200, minLength: 1, type: "string" },
+    provenance: {
+      additionalProperties: false,
+      properties: {
+        attested: { type: "boolean" },
+        client: { maxLength: 100, minLength: 1, type: "string" },
+        isolation: {
+          enum: ["fresh-thread", "separate-agent", "subagent", "unknown"],
+          type: "string",
+        },
+        model: { maxLength: 200, minLength: 1, type: "string" },
+        usage: {
+          additionalProperties: false,
+          properties: {
+            estimatedCostUsd: { maximum: 100, minimum: 0, type: ["number", "null"] },
+            inputTokens: { minimum: 0, type: ["integer", "null"] },
+            outputTokens: { minimum: 0, type: ["integer", "null"] },
+            totalTokens: { minimum: 0, type: ["integer", "null"] },
+          },
+          type: "object",
+        },
+      },
+      required: ["attested", "client", "isolation"],
+      type: "object",
+    },
+    result: CHALLENGE_RESPONSE_SCHEMA,
+    schemaVersion: { const: 1, type: "integer" },
+  },
+  required: ["briefHash", "briefId", "provenance", "result", "schemaVersion"],
+  type: "object",
+} as const;
 const OBSERVATION_SCHEMA = {
   additionalProperties: false,
   properties: {
@@ -263,29 +305,34 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
     false,
   ),
   definition(
-    "maru_run_challenger",
-    "Run independent adversarial reasoning",
-    "Ask a separately configured reasoning provider what ordinary verification is most likely to miss. The provider receives bounded diff metadata and protected intent, never source contents; its structured hypotheses are validated and are not treated as verified findings or executed as code.",
+    "maru_prepare_challenge",
+    "Prepare an isolated Challenger review",
+    "Write and return a bounded, tamper-evident QA brief. The MCP client should give it to a fresh thread or subagent without builder history, then submit that review separately.",
     schema({
-      maxCostUsd: {
-        description: "Maximum allowed estimated cost for the single reasoning call",
-        maximum: 100,
-        minimum: 0,
-        type: "number",
-      },
-      maxOutputTokens: {
-        description: "Maximum output tokens requested from the reasoning provider",
-        maximum: 10000,
-        minimum: 100,
-        type: "integer",
-      },
       releaseVerification: {
         description: "Mark this as release verification in the activation audit",
         type: "boolean",
       },
     }),
     false,
-    true,
+  ),
+  definition(
+    "maru_submit_challenge",
+    "Submit an isolated Challenger review",
+    "Validate a structured QA response against its prepared brief, record client-reported isolation and usage provenance, and persist hypotheses without executing them or treating them as findings.",
+    schema(
+      {
+        briefPath: {
+          description: "Project-relative path returned by maru_prepare_challenge",
+          maxLength: 500,
+          minLength: 1,
+          type: "string",
+        },
+        submission: CHALLENGE_SUBMISSION_SCHEMA,
+      },
+      ["briefPath", "submission"],
+    ),
+    false,
   ),
   definition(
     "maru_check_semantic_drift",
@@ -564,7 +611,6 @@ function failure(error: unknown): McpToolResult {
     error instanceof VerificationExecutionError ||
     error instanceof MutationVerificationError ||
     error instanceof ChallengeError ||
-    error instanceof ReasoningError ||
     error instanceof VerificationPlanError ||
     error instanceof ToolInputError
   ) {
@@ -585,15 +631,19 @@ export interface MaruToolDependencies {
   readonly analyzeDiff?: (root: string) => Promise<GitDiffAnalysis>;
   readonly assessRisk?: (root: string) => Promise<RiskAssessment>;
   readonly createVerificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
-  readonly challengeReport?: (
+  readonly challengeBrief?: (
     root: string,
     now: Date,
     options: {
       readonly explicit: true;
-      readonly maxCostUsd?: number;
-      readonly maxOutputTokens?: number;
       readonly releaseVerification?: boolean;
     },
+  ) => Promise<ChallengeBriefResult>;
+  readonly challengeSubmission?: (
+    root: string,
+    briefPath: string,
+    submission: unknown,
+    now: Date,
   ) => Promise<ChallengeReportResult>;
   readonly now?: () => Date;
   readonly mutationVerification?: (
@@ -707,45 +757,31 @@ export async function callMaruTool(
       return success({ path: result.path, report: result.report });
     }
 
-    if (name === "maru_run_challenger") {
-      const input = objectArguments(args, ["maxCostUsd", "maxOutputTokens", "releaseVerification"]);
-      const maxCostUsd = input.maxCostUsd;
-      if (
-        maxCostUsd !== undefined &&
-        (typeof maxCostUsd !== "number" ||
-          !Number.isFinite(maxCostUsd) ||
-          maxCostUsd < 0 ||
-          maxCostUsd > 100)
-      ) {
-        throw new ToolInputError("maxCostUsd must be a number from 0 to 100.");
-      }
-      const maxOutputTokens = input.maxOutputTokens;
-      if (
-        maxOutputTokens !== undefined &&
-        (typeof maxOutputTokens !== "number" ||
-          !Number.isSafeInteger(maxOutputTokens) ||
-          maxOutputTokens < 100 ||
-          maxOutputTokens > 10_000)
-      ) {
-        throw new ToolInputError("maxOutputTokens must be an integer from 100 to 10000.");
-      }
+    if (name === "maru_prepare_challenge") {
+      const input = objectArguments(args, ["releaseVerification"]);
       const releaseVerification = input.releaseVerification;
       if (releaseVerification !== undefined && typeof releaseVerification !== "boolean") {
         throw new ToolInputError("releaseVerification must be a boolean.");
       }
-      const result = await (
-        dependencies.challengeReport ??
-        ((projectRoot, date, options) =>
-          createAndWriteChallengeReport(projectRoot, date, {
-            ...options,
-            provider: reasoningProviderFromEnvironment(),
-          }))
-      )(root, dependencies.now?.() ?? new Date(), {
+      const result = await (dependencies.challengeBrief ?? prepareAndWriteChallengeBrief)(
+        root,
+        dependencies.now?.() ?? new Date(),
+        {
         explicit: true,
-        ...(maxCostUsd === undefined ? {} : { maxCostUsd }),
-        ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
         ...(releaseVerification === true ? { releaseVerification: true } : {}),
-      });
+        },
+      );
+      return success({ brief: result.brief, path: result.path });
+    }
+
+    if (name === "maru_submit_challenge") {
+      const input = objectArguments(args, ["briefPath", "submission"]);
+      const result = await (dependencies.challengeSubmission ?? submitChallengeResponse)(
+        root,
+        requiredString(input, "briefPath", 500),
+        input.submission,
+        dependencies.now?.() ?? new Date(),
+      );
       return success({ path: result.path, report: result.report });
     }
 
@@ -819,8 +855,3 @@ export async function callMaruTool(
     return failure(error);
   }
 }
-import {
-  ChallengeError,
-  createAndWriteChallengeReport,
-  type ChallengeReportResult,
-} from "@maru/challenger";

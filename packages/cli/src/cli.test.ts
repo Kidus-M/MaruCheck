@@ -528,87 +528,104 @@ approval:
     expect(output.error).toHaveBeenCalledWith(expect.stringContaining("integer from 1 to 100"));
   });
 
-  it("runs one explicit Challenger analysis with bounded cost and release context", async () => {
+  it("prepares an explicit Challenger brief for a fresh QA context", async () => {
     const root = await createProject();
     const now = new Date("2026-08-20T20:10:00.000Z");
     const output = { error: vi.fn(), log: vi.fn() };
-    const challengeReport = vi.fn().mockResolvedValue({
-      path: ".maru/artifacts/challenges/challenge-id/report.json",
-      report: {
+    const challengeBrief = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/challenges/challenge-id/brief.json",
+      brief: {
         activation: {
           activated: true,
           triggers: ["explicit-request", "release-verification"],
         },
-        challenges: [
-          {
-            category: "permission-abuse",
-            counterexample: "A user requests another tenant's invoice.",
-            id: "cross-tenant-read",
-            priority: "critical",
-            requirementRefs: ["invoice-access#INV-001"],
-            targetFiles: ["src/invoices.ts"],
-            title: "Cross-tenant invoice read",
-            verification: {
-              category: "security",
-              objective: "Prove ownership isolation.",
-              steps: ["Create two tenants.", "Attempt a cross-tenant read."],
-            },
-            whyLikelyMissed: "Authentication-only tests do not prove ownership.",
-          },
-        ],
-        gate: { reasons: [], status: "passed" },
-        generatedAt: now.toISOString(),
-        project: { changedFiles: 1 },
-        provider: { id: "gateway", model: "challenger" },
+        briefHash: "a".repeat(64),
+        briefId: "challenge-id",
+        context: { changedFiles: [{}], historicalRisks: [], requirements: [{}], riskReasons: [] },
+        createdAt: now.toISOString(),
+        instructions: [],
+        responseSchema: {},
         risk: { level: "critical", score: 90 },
-        runId: "challenge-id",
         schemaVersion: 1,
         scope: "working-tree",
-        status: "completed",
-        summary: "Challenge tenant isolation.",
-        usage: {
-          calls: 1,
-          durationMs: 30,
-          estimatedCostUsd: 0.05,
-          inputTokens: 300,
-          outputTokens: 100,
-          totalTokens: 400,
+      },
+    });
+
+    await expect(
+      runCli(["challenge", "prepare", "--diff", "--release"], output, {
+        challengeBrief,
+        cwd: root,
+        now: () => now,
+      }),
+    ).resolves.toBe(0);
+
+    expect(challengeBrief).toHaveBeenCalledWith(root, now, {
+      explicit: true,
+      releaseVerification: true,
+    });
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("fresh QA thread/subagent"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("a".repeat(64)));
+  });
+
+  it("submits a client-produced Challenger response and maps its gate", async () => {
+    const root = await createProject();
+    const now = new Date("2026-08-20T20:11:00.000Z");
+    const output = { error: vi.fn(), log: vi.fn() };
+    const challengeSubmission = vi.fn().mockResolvedValue({
+      path: ".maru/artifacts/challenges/challenge-id/report.json",
+      report: {
+        challenges: [{ id: "cross-tenant-read" }],
+        gate: { reasons: [], status: "passed" },
+        provenance: {
+          attested: true,
+          client: "Codex",
+          isolation: "subagent",
+          usage: { source: "not-reported" },
         },
+        status: "completed",
       },
     });
 
     await expect(
       runCli(
-        ["challenge", "--diff", "--release", "--max-cost", "0.5", "--max-output-tokens", "1200"],
+        [
+          "challenge",
+          "submit",
+          "--brief",
+          ".maru/artifacts/challenges/challenge-id/brief.json",
+          "--from",
+          "challenge-response.json",
+        ],
         output,
-        { challengeReport, cwd: root, now: () => now },
+        { challengeSubmission, cwd: root, now: () => now },
       ),
     ).resolves.toBe(0);
-
-    expect(challengeReport).toHaveBeenCalledWith(root, now, {
-      explicit: true,
-      maxCostUsd: 0.5,
-      maxOutputTokens: 1200,
-      releaseVerification: true,
-    });
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Cross-tenant invoice read"));
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("$0.0500"));
+    expect(challengeSubmission).toHaveBeenCalledWith(
+      root,
+      ".maru/artifacts/challenges/challenge-id/brief.json",
+      "challenge-response.json",
+      now,
+    );
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Codex"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("review hypotheses"));
   });
 
-  it("rejects malformed Challenger budgets before contacting a provider", async () => {
+  it("rejects malformed Challenger commands before preparing or submitting", async () => {
     const output = { error: vi.fn(), log: vi.fn() };
-    const challengeReport = vi.fn();
+    const challengeBrief = vi.fn();
+    const challengeSubmission = vi.fn();
 
     await expect(
-      runCli(["challenge", "--diff", "--max-cost", "many"], output, { challengeReport }),
+      runCli(["challenge", "prepare", "--release"], output, { challengeBrief }),
     ).resolves.toBe(1);
     await expect(
-      runCli(["challenge", "--diff", "--max-output-tokens", "10"], output, {
-        challengeReport,
+      runCli(["challenge", "submit", "--brief", "brief.json"], output, {
+        challengeSubmission,
       }),
     ).resolves.toBe(1);
-    expect(challengeReport).not.toHaveBeenCalled();
-    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru challenge --diff"));
+    expect(challengeBrief).not.toHaveBeenCalled();
+    expect(challengeSubmission).not.toHaveBeenCalled();
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru challenge prepare"));
   });
 
   it("installs GitHub pull-request verification from the CLI", async () => {

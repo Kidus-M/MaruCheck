@@ -29,7 +29,6 @@ export interface McpToolDefinition {
 export type MaruMcpToolName =
   | "maru_analyze_diff"
   | "maru_assess_risk"
-  | "maru_run_challenger"
   | "maru_check_semantic_drift"
   | "maru_create_contract"
   | "maru_create_verification_plan"
@@ -38,7 +37,9 @@ export type MaruMcpToolName =
   | "maru_list_contracts"
   | "maru_query_memory"
   | "maru_record_bug"
+  | "maru_prepare_challenge"
   | "maru_propose_contract_amendment"
+  | "maru_submit_challenge"
   | "maru_run_verification"
   | "maru_run_mutation_verification"
   | "maru_validate_contract";
