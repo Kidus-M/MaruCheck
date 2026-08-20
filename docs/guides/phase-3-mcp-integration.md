@@ -29,6 +29,7 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 | `maru_assess_risk`                | Return deterministic risk, reasons, related contracts, and test categories          | Read-only                      |
 | `maru_create_verification_plan`   | Write a requirement-linked, risk-based verification plan                            | Local write                    |
 | `maru_run_verification`           | Execute tests and persist raw artifacts, evidence, findings, and JSON report        | Local write and code execution |
+| `maru_run_mutation_verification`  | Test selected tests against bounded mutations in an isolated Git worktree           | Local write and code execution |
 | `maru_check_semantic_drift`       | Compare observations with protected contract expectations                           | Read-only                      |
 | `maru_propose_contract_amendment` | Write an immutable pending amendment; never approve or rewrite the current contract | Local write                    |
 | `maru_record_bug`                 | Record a confirmed bug, root cause, links, tags, and regression tests               | Local write                    |
@@ -102,8 +103,9 @@ Restart Cursor and enable `maru` in MCP settings.
 7. Call `maru_assess_risk` to inspect score contributions, historical matches, and related requirements.
 8. Call `maru_create_verification_plan` and review automatically included historical regressions plus unavailable or uncovered work.
 9. Call `maru_run_verification`; review any temporary test source before allowing execution.
-10. Treat a blocked report gate or any blocking finding as unresolved verification.
-11. Record confirmed bugs with `maru_record_bug`, including a reviewed regression-test path, then validate contracts with `maru_validate_contract`.
+10. For important contracts, call `maru_run_mutation_verification` and treat surviving or inconclusive mutations as unresolved verification.
+11. Treat a blocked report gate or any blocking finding as unresolved verification.
+12. Record confirmed bugs with `maru_record_bug`, including a reviewed regression-test path, then validate contracts with `maru_validate_contract`.
 
 ## Protocol and safety
 
