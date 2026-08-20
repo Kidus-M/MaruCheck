@@ -29,7 +29,7 @@ node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
 node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
-node ../maru-cli/packages/cli/dist/index.js challenge --diff --max-cost 1
+node ../maru-cli/packages/cli/dist/index.js challenge prepare --diff
 node ../maru-cli/packages/cli/dist/index.js ci init
 node ../maru-cli/packages/cli/dist/index.js ci verify
 node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
@@ -62,7 +62,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 | `maru mutate --diff [--max 20]`             | Prove selected tests reject isolated TypeScript mutations                                      |
-| `maru challenge --diff [options]`           | Generate a cost-bounded independent adversarial review                                         |
+| `maru challenge prepare/submit`             | Exchange a bounded adversarial brief with a fresh AI-client QA context                          |
 | `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
 | `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |

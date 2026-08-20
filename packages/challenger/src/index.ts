@@ -47,8 +47,7 @@ function hash(value: unknown): string {
 }
 
 function withoutBriefHash(brief: Record<string, unknown>): Record<string, unknown> {
-  const { briefHash: _briefHash, ...core } = brief;
-  return core;
+  return Object.fromEntries(Object.entries(brief).filter(([key]) => key !== "briefHash"));
 }
 
 export function buildChallengeActivation(
