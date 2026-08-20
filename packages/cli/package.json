@@ -25,6 +25,7 @@
     "@maru/git": "0.1.0",
     "@maru/mcp-server": "0.1.0",
     "@maru/memory": "0.1.0",
+    "@maru/mutation": "0.1.0",
     "@maru/planner": "0.1.0",
     "@maru/risk": "0.1.0"
   }

@@ -18,6 +18,7 @@
     { "path": "../git" },
     { "path": "../mcp-server" },
     { "path": "../memory" },
+    { "path": "../mutation" },
     { "path": "../planner" },
     { "path": "../risk" }
   ]

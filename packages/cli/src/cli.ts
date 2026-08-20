@@ -53,6 +53,12 @@ import {
 } from "@maru/memory";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
+  MutationVerificationError,
+  formatMutationReport,
+  runMutationVerification,
+  type MutationReportResult,
+} from "@maru/mutation";
+import {
   VerificationPlanError,
   createAndWriteVerificationPlan,
   type VerificationPlanResult,
@@ -70,6 +76,11 @@ export interface CliDependencies {
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;
   readonly mcpServer?: (root: string) => Promise<void>;
+  readonly mutationVerification?: (
+    root: string,
+    now: Date,
+    maxMutations?: number,
+  ) => Promise<MutationReportResult>;
   readonly now?: () => Date;
   readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
   readonly verificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
@@ -87,6 +98,7 @@ Commands:
   contract   Create, validate, inspect, diff, and approve Quality Contracts
   drift      Check protected expectations and manage contract amendments
   memory     Record, list, search, and inspect historical QA knowledge
+  mutate     Test selected verification by introducing isolated temporary mutations
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
   verify     Execute tests and write evidence, findings, and a JSON report
@@ -120,6 +132,9 @@ Planning commands:
 
 Verification commands:
   maru verify --diff
+
+Mutation commands:
+  maru mutate --diff [--max 20]
 
 CI commands:
   maru ci init
@@ -616,6 +631,25 @@ export async function runCli(
       return result.report.gate.status === "blocked" ? 1 : 0;
     }
 
+    if (command === "mutate") {
+      const validShape =
+        (args.length === 2 && args[1] === "--diff") ||
+        (args.length === 4 && args[1] === "--diff" && args[2] === "--max");
+      if (!validShape) {
+        output.error("Invalid mutation command.\nRun maru mutate --diff [--max 20].");
+        return 1;
+      }
+      const rawMaximum = args[3];
+      const maximum = rawMaximum === undefined ? undefined : Number(rawMaximum);
+      const result = await (
+        dependencies.mutationVerification ??
+        ((projectRoot, generatedAt, maxMutations) =>
+          runMutationVerification(projectRoot, generatedAt, { maxMutations }))
+      )(root, dependencies.now?.() ?? new Date(), maximum);
+      output.log(formatMutationReport(result));
+      return result.report.gate.status === "blocked" ? 1 : 0;
+    }
+
     if (command === "ci") {
       const action = args[1];
       if (args.length !== 2 || (action !== "init" && action !== "verify")) {
@@ -682,6 +716,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof MemoryError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof MutationVerificationError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
