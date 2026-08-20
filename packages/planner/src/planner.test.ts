@@ -92,7 +92,10 @@ function scan(options: { readonly includeTests?: boolean } = {}): ProjectScan {
   const includeTests = options.includeTests ?? true;
   return {
     ci: { githubActions: true, workflowFiles: [".github/workflows/ci.yml"] },
-    dependencies: { development: ["@playwright/test", "vitest"], production: ["next"] },
+    dependencies: {
+      development: ["@axe-core/playwright", "@playwright/test", "vitest"],
+      production: ["next"],
+    },
     generatedAt: "2026-08-16T10:00:00.000Z",
     project: {
       databaseLibraries: [],
@@ -169,7 +172,8 @@ describe("verification planner", () => {
       expect.arrayContaining([
         expect.objectContaining({ adapter: "vitest", category: "unit" }),
         expect.objectContaining({ adapter: "playwright", category: "e2e" }),
-        expect.objectContaining({ adapter: "manual-review", category: "security" }),
+        expect.objectContaining({ adapter: "gitleaks", category: "security" }),
+        expect.objectContaining({ adapter: "semgrep", category: "security" }),
       ]),
     );
     for (const step of plan.steps) {
@@ -201,6 +205,40 @@ describe("verification planner", () => {
       "subscription-management#SUB-INV-001",
     ]);
     expect(plan.summary).toMatchObject({ unavailableSteps: 1 });
+  });
+
+  it("selects axe only for accessibility changes with an axe-backed Playwright setup", () => {
+    const project = scan();
+    const withAxe = buildVerificationPlan({
+      assessment: { ...ASSESSMENT, recommendedTestCategories: ["accessibility"] },
+      contracts: [],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project,
+    });
+    const withoutAxe = buildVerificationPlan({
+      assessment: { ...ASSESSMENT, recommendedTestCategories: ["accessibility"] },
+      contracts: [],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project: {
+        ...project,
+        dependencies: { ...project.dependencies, development: ["@playwright/test", "vitest"] },
+      },
+    });
+
+    expect(withAxe.steps).toEqual([
+      expect.objectContaining({
+        adapter: "axe",
+        category: "accessibility",
+        execution: "automated",
+      }),
+    ]);
+    expect(withoutAxe.steps).toEqual([
+      expect.objectContaining({
+        adapter: "unavailable",
+        category: "accessibility",
+        execution: "unavailable",
+      }),
+    ]);
   });
 
   it("produces an empty executable scope for a clean tree", () => {

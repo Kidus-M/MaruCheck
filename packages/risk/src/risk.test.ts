@@ -132,6 +132,18 @@ describe("deterministic risk engine", () => {
     expect(result.relatedContracts).toEqual([]);
   });
 
+  it.each(["authentication", "authorization", "billing"] as const)(
+    "recommends security verification for a %s change even without a duplicate security tag",
+    (classification) => {
+      const result = assessRisk(
+        analysis([file({ classifications: [classification], path: `src/${classification}.ts` })]),
+        [],
+      );
+
+      expect(result.recommendedTestCategories).toContain("security");
+    },
+  );
+
   it("raises risk when an invoice authorization change matches a critical historical bug", () => {
     const memory: QAMemoryRecord = {
       createdAt: "2026-08-18T08:00:00.000Z",
