@@ -523,6 +523,11 @@ approval:
 
     expect(mutationVerification).not.toHaveBeenCalled();
     expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru mutate --diff"));
+
+    await expect(
+      runCli(["mutate", "--diff", "--max", "many"], output, { mutationVerification }),
+    ).resolves.toBe(1);
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("integer from 1 to 100"));
   });
 
   it("installs GitHub pull-request verification from the CLI", async () => {

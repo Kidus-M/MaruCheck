@@ -641,6 +641,13 @@ export async function runCli(
       }
       const rawMaximum = args[3];
       const maximum = rawMaximum === undefined ? undefined : Number(rawMaximum);
+      if (
+        maximum !== undefined &&
+        (!Number.isInteger(maximum) || maximum < 1 || maximum > 100)
+      ) {
+        output.error("Invalid mutation limit.\nPass --max with an integer from 1 to 100.");
+        return 1;
+      }
       const result = await (
         dependencies.mutationVerification ??
         ((projectRoot, generatedAt, maxMutations) =>
