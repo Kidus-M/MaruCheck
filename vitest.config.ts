@@ -16,7 +16,6 @@ export default defineConfig({
       "@maru/git": packageSource("git"),
       "@maru/mcp-server": packageSource("mcp-server"),
       "@maru/planner": packageSource("planner"),
-      "@maru/reasoning": packageSource("reasoning"),
       "@maru/risk": packageSource("risk"),
       "@maru/shared": packageSource("shared"),
     },

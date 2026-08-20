@@ -19,7 +19,6 @@
     { "path": "../memory" },
     { "path": "../mutation" },
     { "path": "../planner" },
-    { "path": "../reasoning" },
     { "path": "../risk" }
   ]
 }
