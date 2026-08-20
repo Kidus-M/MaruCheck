@@ -7,6 +7,7 @@ const packageSource = (name: string) =>
 export default defineConfig({
   resolve: {
     alias: {
+      "@maru/challenger": packageSource("challenger"),
       "@maru/ci": packageSource("ci"),
       "@maru/contracts": packageSource("contracts"),
       "@maru/core": packageSource("core"),
@@ -15,6 +16,7 @@ export default defineConfig({
       "@maru/git": packageSource("git"),
       "@maru/mcp-server": packageSource("mcp-server"),
       "@maru/planner": packageSource("planner"),
+      "@maru/reasoning": packageSource("reasoning"),
       "@maru/risk": packageSource("risk"),
       "@maru/shared": packageSource("shared"),
     },

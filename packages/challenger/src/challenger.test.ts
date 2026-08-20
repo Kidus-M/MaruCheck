@@ -65,6 +65,7 @@ const output = {
       priority: "critical",
       requirementRefs: ["invoice-access#INV-001", "invoice-access#INV-INV-001"],
       targetFiles: ["src/invoices/read-invoice.ts"],
+      title: "Cross-tenant invoice read",
       verification: {
         category: "security",
         objective: "Prove ownership is enforced after authentication.",
@@ -263,6 +264,7 @@ describe("Challenger report", () => {
     });
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:06:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk("critical")),
+      contractRequirements: vi.fn().mockResolvedValue([]),
       provider: failed,
     });
     expect(result.report.status).toBe("provider-error");
