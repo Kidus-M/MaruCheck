@@ -30,7 +30,8 @@ The process writes only valid JSON-RPC messages to stdout. Close its stdin to st
 | `maru_create_verification_plan`   | Write a requirement-linked, risk-based verification plan                            | Local write                    |
 | `maru_run_verification`           | Execute tests and persist raw artifacts, evidence, findings, and JSON report        | Local write and code execution |
 | `maru_run_mutation_verification`  | Test selected tests against bounded mutations in an isolated Git worktree           | Local write and code execution |
-| `maru_run_challenger`             | Generate validated, cost-tracked adversarial cases through a configured provider    | Local write and external call  |
+| `maru_prepare_challenge`          | Write a bounded brief for an isolated client QA thread or subagent                   | Local write                    |
+| `maru_submit_challenge`           | Validate and persist an attested, scope-checked Challenger response                  | Local write                    |
 | `maru_check_semantic_drift`       | Compare observations with protected contract expectations                           | Read-only                      |
 | `maru_propose_contract_amendment` | Write an immutable pending amendment; never approve or rewrite the current contract | Local write                    |
 | `maru_record_bug`                 | Record a confirmed bug, root cause, links, tags, and regression tests               | Local write                    |
@@ -104,10 +105,11 @@ Restart Cursor and enable `maru` in MCP settings.
 7. Call `maru_assess_risk` to inspect score contributions, historical matches, and related requirements.
 8. Call `maru_create_verification_plan` and review automatically included historical regressions plus unavailable or uncovered work.
 9. Call `maru_run_verification`; review any temporary test source before allowing execution.
-10. For high-risk or release work, call `maru_run_challenger`, review its hypotheses, and convert relevant objectives into reviewed verification. Challenger output is not itself a finding.
-11. For important contracts, call `maru_run_mutation_verification` and treat surviving or inconclusive mutations as unresolved verification.
-12. Treat a blocked report gate or any blocking finding as unresolved verification.
-13. Record confirmed bugs with `maru_record_bug`, including a reviewed regression-test path, then validate contracts with `maru_validate_contract`.
+10. For high-risk or release work, call `maru_prepare_challenge`. Give only its brief to a fresh thread/subagent without the builder conversation, then call `maru_submit_challenge` with the structured response and truthful isolation provenance.
+11. Review Challenger hypotheses and convert relevant objectives into reviewed verification; they are not findings by themselves.
+12. For important contracts, call `maru_run_mutation_verification` and treat surviving or inconclusive mutations as unresolved verification.
+13. Treat a blocked report gate or any blocking finding as unresolved verification.
+14. Record confirmed bugs with `maru_record_bug`, including a reviewed regression-test path, then validate contracts with `maru_validate_contract`.
 
 ## Protocol and safety
 
@@ -118,7 +120,9 @@ Restart Cursor and enable `maru` in MCP settings.
 - MCP can propose a semantic amendment but cannot approve one; approval requires a separate current-owner CLI action.
 - MCP records immutable QA memory but cannot rewrite an existing record.
 - Git analysis invokes `git` directly without a shell and returns metadata rather than changed source lines.
-- `maru_run_challenger` is the only open-world tool. It calls only an explicitly configured HTTPS/loopback reasoning gateway, sends no changed source lines, validates the response, and never executes model output.
+- Every tool has `openWorldHint: false`; the MCP server makes no outbound model or network call.
+- Challenger isolation is client-attested. MaruCheck validates brief integrity, response schema, known files/requirements, and provenance, but cannot inspect the host client’s conversation boundary.
+- Challenger briefs contain bounded metadata and protected intent rather than changed source lines, and submitted hypotheses are never executed automatically.
 - stdout is reserved for MCP messages; clients should apply normal tool approval controls.
 
 References: [MCP lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [stdio transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports), [MCP tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [Codex MCP configuration](https://developers.openai.com/codex/mcp), [Claude Code MCP](https://docs.anthropic.com/en/docs/claude-code/mcp), and [Cursor MCP](https://docs.cursor.com/context/model-context-protocol).

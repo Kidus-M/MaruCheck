@@ -1,64 +1,52 @@
 # Phase 14: Challenger Agent
 
-The Challenger Agent performs one independent adversarial review of a change and asks what the normal verification plan is most likely to miss. It generates bounded counterexamples and verification objectives; it does not generate findings, modify contracts, execute code, or claim that a defect exists.
+The Challenger is a second-opinion QA workflow. MaruCheck prepares a bounded brief, the AI client you already use analyzes it in a fresh context, and MaruCheck validates the returned hypotheses. No additional model provider, API key, or MaruCheck network request is required.
+
+The output proposes counterexamples and verification objectives. It does not create findings, modify contracts, execute code, or prove that a defect exists.
 
 ## Activation
 
-The domain policy activates the Challenger only when at least one trigger exists:
+The domain policy activates a brief when at least one trigger exists:
 
 - deterministic risk is `high` or `critical`;
-- the user or MCP client explicitly requests a challenge;
-- a provider-enabled CI run marks the operation as release verification.
+- a user or MCP client explicitly requests it;
+- the operation is marked as release verification.
 
-`maru challenge --diff` is an explicit request, so it always attempts a provider call. Low/moderate-risk internal calls without an explicit or release trigger write a skipped report and make no call.
+CLI and MCP preparation are explicit requests, so their briefs are active even for lower-risk work. An internal low/moderate-risk preparation without another trigger remains inactive and cannot be submitted.
 
-## Configure a provider-neutral gateway
+## CLI workflow
 
-MaruCheck does not embed a vendor SDK in the verification core. Configure any HTTPS service—or a loopback development service—that implements the JSON protocol below:
+Prepare the brief:
 
-```powershell
-$env:MARU_REASONING_URL = "https://reasoning.example.com/v1/reason"
-$env:MARU_REASONING_PROVIDER = "team-gateway"
-$env:MARU_REASONING_MODEL = "independent-challenger"
-$env:MARU_REASONING_API_KEY = "replace-with-a-secret"
+```bash
+maru challenge prepare --diff
+maru challenge prepare --diff --release
 ```
 
-`MARU_REASONING_API_KEY` is optional for an authenticated local gateway. The other three variables are required together. Remote HTTP endpoints, credentials embedded in URLs, partial configuration, and unbounded timeouts are rejected.
+The command writes `.maru/artifacts/challenges/<challenge-id>/brief.json`.
 
-The gateway may connect to OpenAI, Anthropic, a local model, or another provider. That translation remains outside the core package so model vendors can change without changing Challenger reports or policy.
+Give that file to a fresh QA thread or subagent without the builder conversation. Ask it to follow `instructions` and return only the object described by `responseSchema`.
 
-### Request
-
-MaruCheck sends one `POST` request with `content-type: application/json` and an optional bearer authorization header:
+The client or user then wraps that result with the identifiers from the brief and truthful provenance:
 
 ```json
 {
   "schemaVersion": 1,
-  "requestId": "challenge-20260820T201500000Z",
-  "task": "challenger-analysis",
-  "model": "independent-challenger",
-  "instructions": "Fixed MaruCheck adversarial-review instructions...",
-  "input": {
-    "changedFiles": [],
-    "historicalRisks": [],
-    "requirements": [],
-    "risk": {}
+  "briefId": "challenge-20260820200100000",
+  "briefHash": "64-character SHA-256 hash copied from brief.json",
+  "provenance": {
+    "client": "Codex",
+    "model": "client-reported model, if known",
+    "isolation": "subagent",
+    "attested": true,
+    "usage": {
+      "inputTokens": 850,
+      "outputTokens": 220,
+      "totalTokens": 1070,
+      "estimatedCostUsd": 0.018
+    }
   },
-  "outputSchema": {},
-  "maxCostUsd": 1,
-  "maxOutputTokens": 2000
-}
-```
-
-The exact closed `outputSchema` is included with every request. The input contains bounded change metadata and protected contract intent, not file contents or patch lines.
-
-### Response
-
-Return JSON no larger than 1 MB:
-
-```json
-{
-  "output": {
+  "result": {
     "summary": "Challenge tenant isolation after authentication.",
     "challenges": [
       {
@@ -77,70 +65,51 @@ Return JSON no larger than 1 MB:
         }
       }
     ]
-  },
-  "usage": {
-    "inputTokens": 850,
-    "outputTokens": 220,
-    "estimatedCostUsd": 0.018
   }
 }
 ```
 
-Usage values may be `null` when a local gateway cannot calculate them. Unknown cost remains visible as unknown; it is never displayed as zero.
+`model` and `usage` are optional. If the client does not expose them, omit them; MaruCheck records usage as `not-reported`.
 
-## CLI
+Save the envelope in the project and submit it:
 
 ```bash
-maru challenge --diff
-maru challenge --diff --max-cost 0.50 --max-output-tokens 1500
-maru challenge --diff --release
+maru challenge submit \
+  --brief .maru/artifacts/challenges/<challenge-id>/brief.json \
+  --from challenge-response.json
 ```
 
-Limits:
+The report is written beside the brief as `report.json`. A brief accepts one report, preventing silent replacement of review provenance.
 
-- one provider call per report;
-- cost budget: USD 0-100, default USD 1;
-- output-token budget: 100-10,000, default 2,000;
-- at most 20 challenge cases;
-- at most 100 changed files and 100 selected requirement/invariant contexts;
-- no changed source contents.
+## MCP workflow
 
-Reports are written beneath:
+1. Call `maru_prepare_challenge`, optionally with `releaseVerification: true`.
+2. Create a fresh thread or subagent without the builder conversation. Give it only the returned brief and request the exact `responseSchema` result.
+3. Add the returned brief ID/hash and truthful client provenance.
+4. Call `maru_submit_challenge` with `briefPath` and the complete `submission` object.
+5. Review the hypotheses and translate relevant objectives into reviewed tests or manual checks.
 
-```text
-.maru/artifacts/challenges/<challenge-id>/report.json
-```
+Clients with subagent support can orchestrate this handoff. In clients without it, open a new conversation manually. MaruCheck records the declared method but cannot technically inspect or prove a host client’s conversation boundary.
 
-## MCP
+Both MCP tools are local-write tools with `openWorldHint: false`; MaruCheck itself makes no model or network call.
 
-`maru_run_challenger` exposes the same operation to Codex, Claude Code, Cursor, and any compatible MCP client. It accepts optional `maxCostUsd`, `maxOutputTokens`, and `releaseVerification` fields. Its `openWorldHint` is `true` because a configured provider can make an external HTTPS request; normal client tool approval should remain enabled.
+## Validation and gate behavior
 
-Calling the tool is an explicit request. A missing provider therefore returns a durable `unavailable` report with a blocked Challenger gate instead of pretending the review ran.
+- The brief hash must match its canonical contents.
+- The submission ID and hash must match the selected brief.
+- Output must match a closed schema with at most 20 challenge cases.
+- Requirement references and target files must already exist in the brief.
+- Token totals must match reported input plus output tokens.
+- Unknown fields, code/command fields, absolute/escaping paths, symlinks, and files over 1 MB are rejected.
+- `attested: true` plus a known isolation method produces a completed, passed Challenger gate.
+- Missing attestation or `isolation: "unknown"` produces a durable `unattested`, blocked report.
 
-## Pull-request verification
-
-`maru ci verify` preserves the existing offline path when no reasoning environment is configured. When all required provider variables are present, it runs the Challenger after ordinary verification with the `release-verification` trigger, adds status/provider/cost/token details to the GitHub summary, uploads the report with other `.maru/artifacts`, and fails the check if either gate blocks.
-
-## Status and gate behavior
-
-| Status            | Meaning                                                             | Challenger gate |
-| ----------------- | ------------------------------------------------------------------- | --------------- |
-| `skipped`         | No allowed trigger exists; no provider call occurred                | Passed          |
-| `completed`       | One response passed schema and scope validation                     | Passed          |
-| `unavailable`     | An eligible explicit/release run has no provider                    | Blocked         |
-| `provider-error`  | The call failed or timed out                                        | Blocked         |
-| `invalid-output`  | Output referenced unknown requirements/files or violated the schema | Blocked         |
-| `budget-exceeded` | Reported cost exceeded the configured budget                        | Blocked         |
-
-A completed challenge does not prove its counterexamples occur. Review the objectives, create or select suitable tests, then run `maru verify --diff` and, where important, `maru mutate --diff`.
+A passed Challenger gate means the review protocol completed with attested isolation. It does not prove the implementation is correct or that every hypothesis is real.
 
 ## Privacy and safety
 
-- The configured provider receives path names, symbols, hunk locations, classifications, risk reasons, memory summaries, and selected contract statements.
-- It does not receive changed source lines, repository files, environment values, or the API key in the request body.
-- Provider output cannot add unknown files or contract references.
-- Invalid raw output and provider error details are not copied into the persisted report.
-- Hypotheses are not normalized into evidence or findings.
-- No model output becomes shell input, executable test code, contract approval, policy change, or semantic amendment.
+The brief contains path names, symbols, hunk locations, classifications, risk reasons, selected QA-memory summaries, and selected contract statements. It does not contain changed source lines, repository files, environment values, or credentials.
 
-See [ADR-013](../decisions/0013-isolate-adversarial-reasoning-behind-a-bounded-provider-protocol.md) for the architecture and alternatives.
+The user’s AI client controls any disclosure, retention, and model usage involved in its fresh context. MaruCheck only prepares and validates local JSON artifacts. It never executes Challenger output or converts it automatically into a contract change, pass/fail claim, test file, or finding.
+
+See [ADR-013](../decisions/0013-use-client-mediated-isolated-contexts-for-challenger-reasoning.md) for the architecture and trade-offs.
