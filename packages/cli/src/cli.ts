@@ -751,14 +751,30 @@ export async function runCli(
         );
         return 0;
       }
-      const result = await (dependencies.ciVerification ?? runPullRequestVerification)(
-        root,
-        dependencies.now?.() ?? new Date(),
-      );
+      const result = await (
+        dependencies.ciVerification ??
+        (async (projectRoot, date) => {
+          const provider = reasoningProviderFromEnvironment();
+          return runPullRequestVerification(projectRoot, date, {
+            ...(provider === undefined
+              ? {}
+              : {
+                  challengeReport: (challengeRoot, challengeDate, challengeOptions) =>
+                    createAndWriteChallengeReport(challengeRoot, challengeDate, {
+                      ...challengeOptions,
+                      provider,
+                    }),
+                }),
+          });
+        })
+      )(root, dependencies.now?.() ?? new Date());
       output.log(
         [
           `ProofLayer: ${result.conclusion.toUpperCase()}`,
           `Evidence report: ${result.reportPath}`,
+          ...(result.challengeReportPath === undefined
+            ? []
+            : [`Challenger report: ${result.challengeReportPath}`]),
           `GitHub summary: ${result.summaryPath}`,
           `Published to GitHub: ${result.publishedToGitHub ? "yes" : "no (local run)"}`,
         ].join("\n"),

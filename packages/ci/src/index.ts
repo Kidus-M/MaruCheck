@@ -1,5 +1,6 @@
 import { access, appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import type { ChallengeReport, ChallengeReportResult } from "@maru/challenger";
 import {
   createAndWriteVerificationReport,
   type VerificationReport,
@@ -33,11 +34,17 @@ export interface GitHubWorkflowInstallResult {
 }
 
 export interface PullRequestVerificationOptions {
+  readonly challengeReport?: (
+    root: string,
+    now: Date,
+    options: { readonly releaseVerification: true },
+  ) => Promise<ChallengeReportResult>;
   readonly githubStepSummaryPath?: string;
   readonly verificationReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
 }
 
 export interface PullRequestVerificationResult {
+  readonly challengeReportPath?: string;
   readonly conclusion: "failure" | "success";
   readonly publishedToGitHub: boolean;
   readonly reportPath: string;
@@ -197,8 +204,38 @@ function findingSummary(report: VerificationReport): string[] {
 }
 
 /** Render a bounded Markdown summary suitable for `GITHUB_STEP_SUMMARY`. */
-export function formatGitHubSummary(report: VerificationReport): string {
-  const failed = report.gate.status === "blocked";
+function challengerSummary(report: ChallengeReport | undefined): string[] {
+  if (report === undefined) return [];
+  const provider = report.provider === null ? "none" : `${report.provider.id}/${report.provider.model}`;
+  const cost =
+    report.usage.estimatedCostUsd === null
+      ? "unknown"
+      : `$${report.usage.estimatedCostUsd.toFixed(4)}`;
+  return [
+    "## Challenger Agent",
+    "",
+    "| Result | Value |",
+    "| --- | --- |",
+    `| Status | ${safeInline(report.status.toUpperCase())} |`,
+    `| Gate | ${report.gate.status.toUpperCase()} |`,
+    `| Provider | ${safeInline(provider)} |`,
+    `| Cost | ${cost} |`,
+    `| Tokens | ${report.usage.totalTokens ?? "unknown"} |`,
+    `| Challenges | ${report.challenges.length} |`,
+    "",
+    "_Hypotheses are review inputs, not verified findings or executable code._",
+    "",
+    ...(report.gate.reasons.length === 0
+      ? []
+      : [...report.gate.reasons.slice(0, 10).map((reason) => `- ${safeInline(reason)}`), ""]),
+  ];
+}
+
+export function formatGitHubSummary(
+  report: VerificationReport,
+  challenge?: ChallengeReport,
+): string {
+  const failed = report.gate.status === "blocked" || challenge?.gate.status === "blocked";
   const gate = failed ? "❌ BLOCKED" : "✅ PASSED";
   return [
     "# MaruCheck ProofLayer",
@@ -224,7 +261,11 @@ export function formatGitHubSummary(report: VerificationReport): string {
         ]),
     ...findingSummary(report),
     "",
+    ...challengerSummary(challenge),
     `Full JSON report: \`${safeInline(report.artifacts.report)}\``,
+    ...(challenge === undefined
+      ? []
+      : [`Challenger JSON report: \`.maru/artifacts/challenges/${safeInline(challenge.runId)}/report.json\``]),
     "",
   ].join("\n");
 }
@@ -232,6 +273,7 @@ export function formatGitHubSummary(report: VerificationReport): string {
 async function writeSummary(
   root: string,
   report: VerificationReport,
+  challenge?: ChallengeReport,
   githubStepSummaryPath?: string,
 ): Promise<boolean> {
   const absoluteRoot = resolve(root);
@@ -243,7 +285,7 @@ async function writeSummary(
       "Run CI verification from the repository root.",
     );
   }
-  const summary = formatGitHubSummary(report);
+  const summary = formatGitHubSummary(report, challenge);
   try {
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, summary, "utf8");
@@ -272,13 +314,19 @@ export async function runPullRequestVerification(
     root,
     now,
   );
+  const challenge = await options.challengeReport?.(root, now, { releaseVerification: true });
   const publishedToGitHub = await writeSummary(
     root,
     verification.report,
+    challenge?.report,
     options.githubStepSummaryPath ?? process.env.GITHUB_STEP_SUMMARY,
   );
   return {
-    conclusion: verification.report.gate.status === "blocked" ? "failure" : "success",
+    ...(challenge === undefined ? {} : { challengeReportPath: challenge.path }),
+    conclusion:
+      verification.report.gate.status === "blocked" || challenge?.report.gate.status === "blocked"
+        ? "failure"
+        : "success",
     publishedToGitHub,
     reportPath: verification.path,
     summaryPath: portablePath(relative(resolve(root), resolve(root, CI_GITHUB_SUMMARY_PATH))),

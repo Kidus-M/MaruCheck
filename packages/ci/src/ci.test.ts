@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VerificationReport, VerificationReportResult } from "@maru/evidence";
+import type { ChallengeReportResult } from "@maru/challenger";
 import {
   CI_GITHUB_SUMMARY_PATH,
   CI_GITHUB_WORKFLOW_PATH,
@@ -119,6 +120,37 @@ function reportResult(report = blockedReport()): VerificationReportResult {
   };
 }
 
+function blockedChallenge(): ChallengeReportResult {
+  return {
+    path: ".maru/artifacts/challenges/challenge-pr-42/report.json",
+    report: {
+      activation: { activated: true, triggers: ["release-verification"] },
+      challenges: [],
+      gate: {
+        reasons: ["The configured reasoning provider failed before producing a valid challenge."],
+        status: "blocked",
+      },
+      generatedAt: "2026-08-20T20:20:00.000Z",
+      project: { changedFiles: 1 },
+      provider: { id: "gateway", model: "challenger" },
+      risk: { level: "low", score: 10 },
+      runId: "challenge-pr-42",
+      schemaVersion: 1,
+      scope: "working-tree",
+      status: "provider-error",
+      summary: "Required adversarial reasoning failed safely.",
+      usage: {
+        calls: 1,
+        durationMs: 0,
+        estimatedCostUsd: null,
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null,
+      },
+    },
+  };
+}
+
 describe("GitHub pull-request verification", () => {
   const roots: string[] = [];
 
@@ -196,6 +228,17 @@ describe("GitHub pull-request verification", () => {
     expect(summary).not.toContain("[details](javascript:alert(1))");
   });
 
+  it("shows opt-in Challenger status and cost without presenting hypotheses as findings", () => {
+    const challenge = blockedChallenge();
+    const summary = formatGitHubSummary(blockedReport(), challenge.report);
+
+    expect(summary).toContain("## Challenger Agent");
+    expect(summary).toContain("PROVIDER-ERROR");
+    expect(summary).toContain("gateway/challenger");
+    expect(summary).toContain("Cost | unknown");
+    expect(summary).toContain("Hypotheses are review inputs, not verified findings");
+  });
+
   it("writes the artifact summary, publishes it to GitHub, and returns a failed conclusion", async () => {
     const root = await project();
     const githubSummary = join(root, "github-step-summary.md");
@@ -217,5 +260,42 @@ describe("GitHub pull-request verification", () => {
       "Invoice ownership verification failed",
     );
     await expect(readFile(githubSummary, "utf8")).resolves.toContain("BLOCKED");
+  });
+
+  it("fails release verification when an enabled Challenger run fails closed", async () => {
+    const root = await project();
+    const passed = blockedReport();
+    const report: VerificationReport = {
+      ...passed,
+      findings: [],
+      gate: { reasons: [], status: "passed" },
+      runStatus: "passed",
+      summary: {
+        ...passed.summary,
+        blockingFindings: 0,
+        failedEvidence: 0,
+        findings: 0,
+        passedEvidence: 1,
+        requirementsFailed: 0,
+        requirementsPassed: 1,
+      },
+    };
+    const challengeReport = vi.fn().mockResolvedValue(blockedChallenge());
+
+    const result = await runPullRequestVerification(root, new Date("2026-08-20T20:20:00Z"), {
+      challengeReport,
+      verificationReport: vi.fn().mockResolvedValue(reportResult(report)),
+    });
+
+    expect(challengeReport).toHaveBeenCalledWith(root, expect.any(Date), {
+      releaseVerification: true,
+    });
+    expect(result).toMatchObject({
+      challengeReportPath: ".maru/artifacts/challenges/challenge-pr-42/report.json",
+      conclusion: "failure",
+    });
+    await expect(readFile(join(root, CI_GITHUB_SUMMARY_PATH), "utf8")).resolves.toContain(
+      "Challenger Agent",
+    );
   });
 });
