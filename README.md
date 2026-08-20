@@ -29,6 +29,7 @@ node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
 node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
+node ../maru-cli/packages/cli/dist/index.js challenge --diff --max-cost 1
 node ../maru-cli/packages/cli/dist/index.js ci init
 node ../maru-cli/packages/cli/dist/index.js ci verify
 node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
@@ -61,6 +62,7 @@ The published developer experience will use `npx maru <command>`.
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 | `maru mutate --diff [--max 20]`             | Prove selected tests reject isolated TypeScript mutations                                      |
+| `maru challenge --diff [options]`           | Generate a cost-bounded independent adversarial review                                         |
 | `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
 | `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
 | `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
@@ -98,6 +100,7 @@ The published developer experience will use `npx maru <command>`.
 
 ```text
 packages/
+|-- challenger/   # activation policy, adversarial output validation, cost, and reports
 |-- ci/           # GitHub workflow installation, summaries, and check conclusions
 |-- cli/          # maru command-line interface
 |-- contracts/    # Quality Contract schemas and versioning
@@ -110,6 +113,7 @@ packages/
 |-- memory/       # historical bugs, matching, and regression links
 |-- mutation/     # isolated TypeScript mutation discovery and verification
 |-- planner/      # requirement-linked verification planning
+|-- reasoning/    # provider-neutral bounded reasoning protocol
 |-- risk/         # deterministic risk scoring and contract matching
 `-- shared/       # stable cross-package primitives
 ```
@@ -118,9 +122,9 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 ## Current scope
 
-CLI phases 0 through 10 and Phases 12 through 13 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
+CLI phases 0 through 10 and Phases 12 through 14 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, provider-neutral adversarial reasoning, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
-This is currently a source-based MVP. The `@maru/cli` workspace package remains private, so the advertised `npx maru` installation experience has not been released. Phase 14 will add the first provider-neutral Challenger Agent; MaruCheck does not yet generate adversarial checks using its own model provider. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+This is currently a source-based MVP. The `@maru/cli` workspace package remains private, so the advertised `npx maru` installation experience has not been released. The Challenger uses an explicitly configured vendor-neutral reasoning gateway; MaruCheck does not bundle or silently select a model vendor. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
 
 Known Phase 1 limitations:
 
@@ -134,7 +138,7 @@ See the [Phase 2 Quality Contracts guide](docs/guides/phase-2-quality-contracts.
 
 ### MCP server
 
-`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, QA memory recording/querying, validation, bounded Git/risk/planning tools, local verification, and isolated mutation verification. It never approves contracts or sends repository content to a cloud service.
+`maru mcp` runs a local stdio MCP server for coding agents. It exposes project context, Quality Contract reads and draft creation, QA memory recording/querying, validation, bounded Git/risk/planning tools, local verification, mutation verification, and independent adversarial reasoning. It never approves contracts. Only `maru_run_challenger` has an open-world boundary, and only when the user explicitly configures a reasoning gateway; it sends bounded metadata and protected intent, never source contents.
 
 See the [Phase 3 MCP configuration guide](docs/guides/phase-3-mcp-integration.md) for Codex, Claude Code, and Cursor setup.
 
@@ -191,6 +195,12 @@ See the [Phase 12 security and accessibility guide](docs/guides/phase-12-securit
 `maru mutate --diff` tests the tests. It mirrors current committed and uncommitted files into a detached temporary Git worktree, confirms the selected Vitest/Playwright baseline passes, and then applies one bounded TypeScript mutation at a time. A mutation that survives selected tests produces `WEAK VERIFICATION DETECTED` and blocks the mutation gate. Developer source files are never rewritten.
 
 See the [Phase 13 mutation verification guide](docs/guides/phase-13-mutation-verification.md) and [ADR-012](docs/decisions/0012-isolate-mutation-verification-in-temporary-git-worktrees.md).
+
+### Challenger Agent
+
+`maru challenge --diff` asks a separately configured reasoning provider for concrete counterexamples involving permissions, races, replay, invalid states, timing, boundaries, data integrity, and partial external failures. One bounded call receives diff metadata and protected contract intent without source contents. Its output is schema-validated, scoped to known files and requirements, and stored with provider, model, token, duration, and estimated-cost provenance. Hypotheses are review inputs, not findings or executable code.
+
+See the [Phase 14 Challenger guide](docs/guides/phase-14-challenger-agent.md) and [ADR-013](docs/decisions/0013-isolate-adversarial-reasoning-behind-a-bounded-provider-protocol.md).
 
 ## Contributing
 

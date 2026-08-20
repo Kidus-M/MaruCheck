@@ -579,15 +579,7 @@ approval:
 
     await expect(
       runCli(
-        [
-          "challenge",
-          "--diff",
-          "--release",
-          "--max-cost",
-          "0.5",
-          "--max-output-tokens",
-          "1200",
-        ],
+        ["challenge", "--diff", "--release", "--max-cost", "0.5", "--max-output-tokens", "1200"],
         output,
         { challengeReport, cwd: root, now: () => now },
       ),

@@ -50,7 +50,11 @@ function string(value: unknown, path: string, maximum: number): string {
 function stringArray(
   value: unknown,
   path: string,
-  options: { readonly maximumItems: number; readonly maximumLength: number; readonly minimumItems?: number },
+  options: {
+    readonly maximumItems: number;
+    readonly maximumLength: number;
+    readonly minimumItems?: number;
+  },
 ): string[] {
   if (
     !Array.isArray(value) ||
@@ -161,7 +165,8 @@ export function parseChallengeOutput(
       path,
     );
     const id = string(item.id, `${path}.id`, 80);
-    if (!ID.test(id) || ids.has(id)) throw new InvalidChallengeOutputError(`${path}.id is invalid.`);
+    if (!ID.test(id) || ids.has(id))
+      throw new InvalidChallengeOutputError(`${path}.id is invalid.`);
     ids.add(id);
     if (!CATEGORIES.has(item.category as ChallengeCategory)) {
       throw new InvalidChallengeOutputError(`${path}.category is invalid.`);
@@ -174,7 +179,9 @@ export function parseChallengeOutput(
       maximumLength: 241,
     });
     if (requirementRefs.some((reference) => !allowedRequirementRefs.has(reference))) {
-      throw new InvalidChallengeOutputError(`${path}.requirementRefs contains an unknown reference.`);
+      throw new InvalidChallengeOutputError(
+        `${path}.requirementRefs contains an unknown reference.`,
+      );
     }
     const targetFiles = stringArray(item.targetFiles, `${path}.targetFiles`, {
       maximumItems: 50,
@@ -182,7 +189,9 @@ export function parseChallengeOutput(
       minimumItems: 1,
     });
     if (targetFiles.some((file) => !allowedFiles.has(file))) {
-      throw new InvalidChallengeOutputError(`${path}.targetFiles contains a file outside the diff.`);
+      throw new InvalidChallengeOutputError(
+        `${path}.targetFiles contains a file outside the diff.`,
+      );
     }
     const verification = object(
       item.verification,

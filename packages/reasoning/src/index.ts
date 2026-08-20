@@ -39,9 +39,7 @@ export interface ReasoningProvider {
   readonly reason: (request: ReasoningRequest) => Promise<ReasoningResponse>;
 }
 
-export type ReasoningErrorCode =
-  | "REASONING_CONFIG_INVALID"
-  | "REASONING_PROVIDER_FAILED";
+export type ReasoningErrorCode = "REASONING_CONFIG_INVALID" | "REASONING_PROVIDER_FAILED";
 
 export class ReasoningError extends Error {
   public constructor(
@@ -91,8 +89,13 @@ function endpointUrl(value: string): URL {
       { cause: error },
     );
   }
-  const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
-  if ((url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) || url.username || url.password) {
+  const loopback =
+    url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+  if (
+    (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) ||
+    url.username ||
+    url.password
+  ) {
     throw new ReasoningError(
       "REASONING_CONFIG_INVALID",
       "The reasoning endpoint must use HTTPS, except for HTTP loopback development endpoints, and must not contain credentials.",

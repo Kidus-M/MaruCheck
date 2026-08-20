@@ -708,11 +708,7 @@ export async function callMaruTool(
     }
 
     if (name === "maru_run_challenger") {
-      const input = objectArguments(args, [
-        "maxCostUsd",
-        "maxOutputTokens",
-        "releaseVerification",
-      ]);
+      const input = objectArguments(args, ["maxCostUsd", "maxOutputTokens", "releaseVerification"]);
       const maxCostUsd = input.maxCostUsd;
       if (
         maxCostUsd !== undefined &&

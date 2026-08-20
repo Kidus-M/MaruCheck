@@ -29,7 +29,9 @@ function risk(level: RiskAssessment["level"]): RiskAssessment {
           binary: false,
           classifications: ["authorization", "business-logic", "security-sensitive"],
           deletions: 3,
-          hunks: [{ context: "readInvoice", newLines: 12, newStart: 20, oldLines: 3, oldStart: 20 }],
+          hunks: [
+            { context: "readInvoice", newLines: 12, newStart: 20, oldLines: 3, oldStart: 20 },
+          ],
           path: "src/invoices/read-invoice.ts",
           status: "modified",
           symbols: ["readInvoice"],
@@ -108,11 +110,12 @@ describe("Challenger activation", () => {
       activated: true,
       triggers: ["high-risk"],
     });
-    expect(buildChallengeActivation("critical", { explicit: true, releaseVerification: true }))
-      .toEqual({
-        activated: true,
-        triggers: ["critical-risk", "explicit-request", "release-verification"],
-      });
+    expect(
+      buildChallengeActivation("critical", { explicit: true, releaseVerification: true }),
+    ).toEqual({
+      activated: true,
+      triggers: ["critical-risk", "explicit-request", "release-verification"],
+    });
     expect(buildChallengeActivation("moderate", { explicit: true })).toEqual({
       activated: true,
       triggers: ["explicit-request"],
@@ -140,8 +143,18 @@ describe("Challenger report", () => {
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:01:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk("critical")),
       contractRequirements: vi.fn().mockResolvedValue([
-        { contractId: "invoice-access", id: "INV-001", kind: "requirement", statement: "Users may only read invoices owned by their organization." },
-        { contractId: "invoice-access", id: "INV-INV-001", kind: "invariant", statement: "Cross-organization invoice access is forbidden." },
+        {
+          contractId: "invoice-access",
+          id: "INV-001",
+          kind: "requirement",
+          statement: "Users may only read invoices owned by their organization.",
+        },
+        {
+          contractId: "invoice-access",
+          id: "INV-INV-001",
+          kind: "invariant",
+          statement: "Cross-organization invoice access is forbidden.",
+        },
       ]),
       provider: reasoning,
     });
@@ -177,7 +190,7 @@ describe("Challenger report", () => {
       `version: 1
 id: invoice-access
 title: Invoice access
-status: approved
+status: draft
 criticality: critical
 intent: Enforce organization ownership for invoice reads.
 owners:
@@ -227,8 +240,18 @@ evidence_policy:
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:02:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk(trigger.level)),
       contractRequirements: vi.fn().mockResolvedValue([
-        { contractId: "invoice-access", id: "INV-001", kind: "requirement", statement: "Only owners read invoices." },
-        { contractId: "invoice-access", id: "INV-INV-001", kind: "invariant", statement: "No cross-tenant reads." },
+        {
+          contractId: "invoice-access",
+          id: "INV-001",
+          kind: "requirement",
+          statement: "Only owners read invoices.",
+        },
+        {
+          contractId: "invoice-access",
+          id: "INV-INV-001",
+          kind: "invariant",
+          statement: "No cross-tenant reads.",
+        },
       ]),
       explicit: trigger.explicit,
       provider: provider(),
@@ -263,13 +286,24 @@ evidence_policy:
         },
         provider: { id: "test-provider", model: "test-model" },
         requestId: "invalid",
-        usage: { durationMs: 1, estimatedCostUsd: 0.01, inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        usage: {
+          durationMs: 1,
+          estimatedCostUsd: 0.01,
+          inputTokens: 1,
+          outputTokens: 1,
+          totalTokens: 2,
+        },
       }),
     });
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:04:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk("critical")),
       contractRequirements: vi.fn().mockResolvedValue([
-        { contractId: "invoice-access", id: "INV-001", kind: "requirement", statement: "Only owners read invoices." },
+        {
+          contractId: "invoice-access",
+          id: "INV-001",
+          kind: "requirement",
+          statement: "Only owners read invoices.",
+        },
       ]),
       provider: invalidProvider,
     });
@@ -285,14 +319,30 @@ evidence_policy:
         output,
         provider: { id: "test-provider", model: "test-model" },
         requestId: "expensive",
-        usage: { durationMs: 5, estimatedCostUsd: 1.01, inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        usage: {
+          durationMs: 5,
+          estimatedCostUsd: 1.01,
+          inputTokens: 1,
+          outputTokens: 1,
+          totalTokens: 2,
+        },
       }),
     });
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:05:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk("critical")),
       contractRequirements: vi.fn().mockResolvedValue([
-        { contractId: "invoice-access", id: "INV-001", kind: "requirement", statement: "Only owners read invoices." },
-        { contractId: "invoice-access", id: "INV-INV-001", kind: "invariant", statement: "No cross-tenant reads." },
+        {
+          contractId: "invoice-access",
+          id: "INV-001",
+          kind: "requirement",
+          statement: "Only owners read invoices.",
+        },
+        {
+          contractId: "invoice-access",
+          id: "INV-INV-001",
+          kind: "invariant",
+          statement: "No cross-tenant reads.",
+        },
       ]),
       maxCostUsd: 1,
       provider: expensiveProvider,
@@ -305,13 +355,15 @@ evidence_policy:
   it("converts provider failures into a durable blocked report without leaking details", async () => {
     const root = await projectRoot();
     const failed = provider({
-      reason: vi.fn().mockRejectedValue(
-        new ReasoningError(
-          "REASONING_PROVIDER_FAILED",
-          "Provider failed with secret-value.",
-          "Check provider.",
+      reason: vi
+        .fn()
+        .mockRejectedValue(
+          new ReasoningError(
+            "REASONING_PROVIDER_FAILED",
+            "Provider failed with secret-value.",
+            "Check provider.",
+          ),
         ),
-      ),
     });
     const result = await createAndWriteChallengeReport(root, new Date("2026-08-20T20:06:00Z"), {
       assessRisk: vi.fn().mockResolvedValue(risk("critical")),

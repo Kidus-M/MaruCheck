@@ -69,7 +69,8 @@ async function loadContractRequirements(
     }
   }
   return result.sort(
-    (left, right) => left.contractId.localeCompare(right.contractId) || left.id.localeCompare(right.id),
+    (left, right) =>
+      left.contractId.localeCompare(right.contractId) || left.id.localeCompare(right.id),
   );
 }
 
@@ -152,14 +153,18 @@ function portable(path: string): string {
   return path.split(sep).join("/");
 }
 
-async function allocateReport(root: string, now: Date): Promise<{ absolute: string; path: string; runId: string }> {
+async function allocateReport(
+  root: string,
+  now: Date,
+): Promise<{ absolute: string; path: string; runId: string }> {
   const absoluteRoot = resolve(root);
   const parent = resolve(absoluteRoot, ...CHALLENGE_ARTIFACT_DIRECTORY.split("/"));
-  if (!parent.startsWith(`${absoluteRoot}${sep}`)) throw new ChallengeError(
-    "CHALLENGE_WRITE_FAILED",
-    "The Challenger artifact directory escapes the project root.",
-    "Run MaruCheck from the project root.",
-  );
+  if (!parent.startsWith(`${absoluteRoot}${sep}`))
+    throw new ChallengeError(
+      "CHALLENGE_WRITE_FAILED",
+      "The Challenger artifact directory escapes the project root.",
+      "Run MaruCheck from the project root.",
+    );
   await mkdir(parent, { recursive: true });
   const base = `challenge-${timestamp(now)}`;
   for (let index = 0; index < 100; index += 1) {
@@ -200,7 +205,11 @@ function baseReport(
   };
 }
 
-async function persist(absolute: string, path: string, report: ChallengeReport): Promise<ChallengeReportResult> {
+async function persist(
+  absolute: string,
+  path: string,
+  report: ChallengeReport,
+): Promise<ChallengeReportResult> {
   try {
     await writeFile(absolute, `${JSON.stringify(report, null, 2)}\n`, "utf8");
     return { path, report };
@@ -335,7 +344,9 @@ export async function createAndWriteChallengeReport(
       ...common,
       challenges: [],
       gate: {
-        reasons: ["The reasoning provider returned output that violated the Challenger schema or scope."],
+        reasons: [
+          "The reasoning provider returned output that violated the Challenger schema or scope.",
+        ],
         status: "blocked",
       },
       provider,

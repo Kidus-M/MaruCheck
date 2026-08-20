@@ -206,7 +206,8 @@ function findingSummary(report: VerificationReport): string[] {
 /** Render a bounded Markdown summary suitable for `GITHUB_STEP_SUMMARY`. */
 function challengerSummary(report: ChallengeReport | undefined): string[] {
   if (report === undefined) return [];
-  const provider = report.provider === null ? "none" : `${report.provider.id}/${report.provider.model}`;
+  const provider =
+    report.provider === null ? "none" : `${report.provider.id}/${report.provider.model}`;
   const cost =
     report.usage.estimatedCostUsd === null
       ? "unknown"
@@ -265,7 +266,9 @@ export function formatGitHubSummary(
     `Full JSON report: \`${safeInline(report.artifacts.report)}\``,
     ...(challenge === undefined
       ? []
-      : [`Challenger JSON report: \`.maru/artifacts/challenges/${safeInline(challenge.runId)}/report.json\``]),
+      : [
+          `Challenger JSON report: \`.maru/artifacts/challenges/${safeInline(challenge.runId)}/report.json\``,
+        ]),
     "",
   ].join("\n");
 }
