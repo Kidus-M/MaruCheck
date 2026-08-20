@@ -1,0 +1,21 @@
+{
+  "name": "@maru/mutation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@maru/execution": "0.1.0",
+    "@maru/git": "0.1.0",
+    "@maru/planner": "0.1.0",
+    "typescript": "^6.0.3"
+  }
+}
