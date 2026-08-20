@@ -94,10 +94,7 @@ async function removeWorktree(input: {
   assertTemporaryParent(input.parent);
   let removed: MutationCommandResult | undefined;
   try {
-    removed = await input.runner.run(
-      ["worktree", "remove", "--force", input.worktree],
-      input.root,
-    );
+    removed = await input.runner.run(["worktree", "remove", "--force", input.worktree], input.root);
   } catch {
     removed = undefined;
   } finally {

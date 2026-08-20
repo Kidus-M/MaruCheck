@@ -3,10 +3,7 @@ import { dirname, isAbsolute, resolve, sep } from "node:path";
 import { performance } from "node:perf_hooks";
 import { runVerificationPlan, type VerificationRunResult } from "@maru/execution";
 import { analyzeGitDiff, type GitDiffAnalysis } from "@maru/git";
-import {
-  createAndWriteVerificationPlan,
-  type VerificationPlan,
-} from "@maru/planner";
+import { createAndWriteVerificationPlan, type VerificationPlan } from "@maru/planner";
 import {
   MUTATION_ARTIFACTS_DIRECTORY,
   MUTATION_REPORT_SCHEMA_VERSION,
@@ -335,9 +332,7 @@ export async function runMutationVerification(
               ? "survived"
               : statuses.some(
                     (status) =>
-                      status === "error" ||
-                      status === "skipped" ||
-                      status === "unavailable",
+                      status === "error" || status === "skipped" || status === "unavailable",
                   )
                 ? "inconclusive"
                 : statuses.some((status) => status === "failed")
