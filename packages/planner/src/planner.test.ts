@@ -241,6 +241,25 @@ describe("verification planner", () => {
     ]);
   });
 
+  it("keeps security scanner findings release-blocking below the high-risk threshold", () => {
+    const plan = buildVerificationPlan({
+      assessment: {
+        ...ASSESSMENT,
+        level: "moderate",
+        recommendedTestCategories: ["security"],
+        score: 45,
+      },
+      contracts: [],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project: scan(),
+    });
+
+    expect(plan.steps).toEqual([
+      expect.objectContaining({ adapter: "gitleaks", blocking: true }),
+      expect.objectContaining({ adapter: "semgrep", blocking: true }),
+    ]);
+  });
+
   it("produces an empty executable scope for a clean tree", () => {
     const plan = buildVerificationPlan({
       assessment: {

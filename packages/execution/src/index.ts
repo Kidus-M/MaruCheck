@@ -429,6 +429,10 @@ async function executeAutomatedGroup(
   const testAdapter =
     group.adapter === "axe" || group.adapter === "playwright" || group.adapter === "vitest";
   if (testAdapter && testFiles.length === 0) {
+    const remediation =
+      group.adapter === "axe"
+        ? "Add an affected axe-backed Playwright accessibility test, then retry."
+        : "Add an affected test or provide a generated temporary test, then retry.";
     return {
       ...base,
       artifacts: {},
@@ -436,7 +440,7 @@ async function executeAutomatedGroup(
       error: resultError(
         "NO_TESTS_SELECTED",
         `No ${group.adapter} test files were selected for this change.`,
-        "Add an affected test or provide a generated temporary test, then retry.",
+        remediation,
       ),
       exitCode: null,
       status: "skipped",
@@ -539,7 +543,7 @@ async function executeAutomatedGroup(
       artifacts: {
         ...artifacts,
         ...(reportExists ? { report: portableReportPath } : {}),
-        ...(group.adapter === "playwright"
+        ...(group.adapter === "playwright" || group.adapter === "axe"
           ? { outputDirectory: relativePath(root, outputDirectory) }
           : {}),
       },

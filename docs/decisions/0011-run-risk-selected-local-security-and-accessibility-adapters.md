@@ -22,6 +22,7 @@ Risk-driven selection works as follows:
 
 - authentication, authorization, billing, or another security-sensitive classification recommends security verification;
 - every security recommendation expands into separate Semgrep and Gitleaks steps;
+- security scanner steps are blocking because a detected secret or reviewed-rule violation cannot be treated as advisory solely due to aggregate risk scoring;
 - accessibility selects axe only when the project declares Playwright and `@axe-core/playwright`;
 - adversarial edge cases continue to require manual review.
 

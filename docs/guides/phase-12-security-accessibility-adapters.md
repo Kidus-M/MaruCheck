@@ -45,6 +45,7 @@ MaruCheck resolves `gitleaks` from a project `.venv`/`venv` or from `PATH`. It s
 - Exit code `0` is passing evidence.
 - Scanner exit code `1` is failed security evidence because findings were detected.
 - A higher scanner exit code is an adapter execution error, not a confirmed product finding.
+- Security scanner steps are release-blocking even when the aggregate change score is below `high`.
 - Missing tools, missing Semgrep rules, and empty selected work remain incomplete verification.
 - Stdout and stderr stay bounded and every available native JSON report is linked into evidence.
 

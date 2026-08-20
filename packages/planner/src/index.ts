@@ -375,7 +375,7 @@ function createSteps(
     ];
     return {
       adapter: selection.adapter,
-      blocking,
+      blocking: blocking || category === "security",
       category,
       execution: selection.execution,
       id: `step-${String(index + 1).padStart(2, "0")}-${category}${
