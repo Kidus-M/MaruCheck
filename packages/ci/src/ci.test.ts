@@ -218,5 +218,4 @@ describe("GitHub pull-request verification", () => {
     );
     await expect(readFile(githubSummary, "utf8")).resolves.toContain("BLOCKED");
   });
-
 });

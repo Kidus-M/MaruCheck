@@ -6,10 +6,7 @@ export const CHALLENGE_SUBMISSION_SCHEMA_VERSION = 1;
 export const CHALLENGE_ARTIFACT_DIRECTORY = ".maru/artifacts/challenges";
 
 export type ChallengeTrigger =
-  | "critical-risk"
-  | "explicit-request"
-  | "high-risk"
-  | "release-verification";
+  "critical-risk" | "explicit-request" | "high-risk" | "release-verification";
 export type ChallengeCategory =
   | "data-integrity"
   | "external-failure"
@@ -21,12 +18,7 @@ export type ChallengeCategory =
   | "timing";
 export type ChallengePriority = "critical" | "high" | "low" | "medium";
 export type ChallengeVerificationCategory =
-  | "api"
-  | "e2e"
-  | "integration"
-  | "manual"
-  | "security"
-  | "unit";
+  "api" | "e2e" | "integration" | "manual" | "security" | "unit";
 export type ChallengeIsolation = "fresh-thread" | "separate-agent" | "subagent" | "unknown";
 
 export interface ContractRequirementContext {

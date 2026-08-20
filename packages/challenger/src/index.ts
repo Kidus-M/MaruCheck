@@ -41,7 +41,9 @@ function canonicalize(value: unknown): unknown {
 }
 
 function hash(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(canonicalize(value))).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalize(value)))
+    .digest("hex");
 }
 
 function withoutBriefHash(brief: Record<string, unknown>): Record<string, unknown> {
@@ -151,14 +153,12 @@ export async function prepareAndWriteChallengeBrief(
         status: file.status,
         symbols: file.symbols.slice(0, MAX_SYMBOLS_PER_FILE),
       })),
-      historicalRisks: assessment.historicalRisks
-        .slice(0, MAX_HISTORICAL_RISKS)
-        .map((memory) => ({
-          memoryId: memory.memoryId,
-          reasons: memory.reasons,
-          severity: memory.severity,
-          title: memory.title,
-        })),
+      historicalRisks: assessment.historicalRisks.slice(0, MAX_HISTORICAL_RISKS).map((memory) => ({
+        memoryId: memory.memoryId,
+        reasons: memory.reasons,
+        severity: memory.severity,
+        title: memory.title,
+      })),
       requirements: requirements.slice(0, MAX_REQUIREMENTS),
       riskReasons: assessment.reasons.slice(0, MAX_RISK_REASONS),
     },
@@ -179,7 +179,10 @@ export async function prepareAndWriteChallengeBrief(
   const directory = await allocateChallengeDirectory(root, id);
   const target = resolve(directory, "brief.json");
   try {
-    await writeFile(target, `${JSON.stringify(brief, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+    await writeFile(target, `${JSON.stringify(brief, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx",
+    });
   } catch (error) {
     throw new ChallengeError(
       "CHALLENGE_WRITE_FAILED",
@@ -220,12 +223,18 @@ function resolvedProjectFile(root: string, path: string, kind: "brief" | "respon
   return target;
 }
 
-async function readBoundedJson(root: string, path: string, kind: "brief" | "response"): Promise<unknown> {
+async function readBoundedJson(
+  root: string,
+  path: string,
+  kind: "brief" | "response",
+): Promise<unknown> {
   const target = resolvedProjectFile(root, path, kind);
   try {
     const info = await lstat(target);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_JSON_BYTES) {
-      return invalidBrief(`${kind} must be a regular JSON file no larger than ${MAX_JSON_BYTES} bytes.`);
+      return invalidBrief(
+        `${kind} must be a regular JSON file no larger than ${MAX_JSON_BYTES} bytes.`,
+      );
     }
     return JSON.parse(await readFile(target, "utf8")) as unknown;
   } catch (error) {

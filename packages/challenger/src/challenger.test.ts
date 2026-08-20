@@ -141,7 +141,10 @@ afterEach(async () => {
 describe("Challenger activation", () => {
   it("activates only for high/critical risk, explicit requests, or release verification", () => {
     expect(buildChallengeActivation("low", {})).toEqual({ activated: false, triggers: [] });
-    expect(buildChallengeActivation("high", {})).toEqual({ activated: true, triggers: ["high-risk"] });
+    expect(buildChallengeActivation("high", {})).toEqual({
+      activated: true,
+      triggers: ["high-risk"],
+    });
     expect(
       buildChallengeActivation("critical", { explicit: true, releaseVerification: true }),
     ).toEqual({
@@ -176,7 +179,9 @@ describe("client-mediated Challenger protocol", () => {
   it("refuses submission for a non-activated internal brief", async () => {
     const root = await projectRoot();
     const prepared = await prepare(root, "low");
-    await expect(submitChallengeResponse(root, prepared.path, submission(prepared))).rejects.toMatchObject({
+    await expect(
+      submitChallengeResponse(root, prepared.path, submission(prepared)),
+    ).rejects.toMatchObject({
       code: "CHALLENGE_INACTIVE",
     });
   });
@@ -229,7 +234,11 @@ describe("client-mediated Challenger protocol", () => {
   ])("blocks review provenance that does not attest isolation", async (provenance) => {
     const root = await projectRoot();
     const prepared = await prepare(root);
-    const result = await submitChallengeResponse(root, prepared.path, submission(prepared, provenance));
+    const result = await submitChallengeResponse(
+      root,
+      prepared.path,
+      submission(prepared, provenance),
+    );
     expect(result.report.status).toBe("unattested");
     expect(result.report.gate.status).toBe("blocked");
   });
@@ -264,7 +273,9 @@ describe("client-mediated Challenger protocol", () => {
     const brief = JSON.parse(await readFile(briefFile, "utf8")) as Record<string, unknown>;
     brief.risk = { level: "low", score: 1 };
     await writeFile(briefFile, JSON.stringify(brief), "utf8");
-    await expect(submitChallengeResponse(root, prepared.path, submission(prepared))).rejects.toMatchObject({
+    await expect(
+      submitChallengeResponse(root, prepared.path, submission(prepared)),
+    ).rejects.toMatchObject({
       code: "CHALLENGE_INVALID_BRIEF",
     });
   });
@@ -272,7 +283,11 @@ describe("client-mediated Challenger protocol", () => {
   it("accepts a project-local response file only once", async () => {
     const root = await projectRoot();
     const prepared = await prepare(root);
-    await writeFile(join(root, "challenge-response.json"), JSON.stringify(submission(prepared)), "utf8");
+    await writeFile(
+      join(root, "challenge-response.json"),
+      JSON.stringify(submission(prepared)),
+      "utf8",
+    );
     await expect(
       submitChallengeFromFile(root, prepared.path, "challenge-response.json"),
     ).resolves.toMatchObject({ report: { status: "completed" } });

@@ -767,8 +767,8 @@ export async function callMaruTool(
         root,
         dependencies.now?.() ?? new Date(),
         {
-        explicit: true,
-        ...(releaseVerification === true ? { releaseVerification: true } : {}),
+          explicit: true,
+          ...(releaseVerification === true ? { releaseVerification: true } : {}),
         },
       );
       return success({ brief: result.brief, path: result.path });

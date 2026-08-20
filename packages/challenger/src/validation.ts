@@ -52,7 +52,8 @@ function object(value: unknown, keys: readonly string[], path: string): Record<s
   }
   const record = value as Record<string, unknown>;
   const unknown = Object.keys(record).filter((key) => !keys.includes(key));
-  if (unknown.length > 0) return invalid(`${path} contains unsupported fields: ${unknown.join(", ")}.`);
+  if (unknown.length > 0)
+    return invalid(`${path} contains unsupported fields: ${unknown.join(", ")}.`);
   return record;
 }
 
@@ -70,7 +71,11 @@ function optionalString(value: unknown, path: string, maximum: number): string |
 function stringArray(
   value: unknown,
   path: string,
-  options: { readonly maximumItems: number; readonly maximumLength: number; readonly minimumItems?: number },
+  options: {
+    readonly maximumItems: number;
+    readonly maximumLength: number;
+    readonly minimumItems?: number;
+  },
 ): string[] {
   if (
     !Array.isArray(value) ||
@@ -79,7 +84,9 @@ function stringArray(
   ) {
     return invalid(`${path} has an invalid item count.`);
   }
-  const result = value.map((item, index) => string(item, `${path}[${index}]`, options.maximumLength));
+  const result = value.map((item, index) =>
+    string(item, `${path}[${index}]`, options.maximumLength),
+  );
   if (new Set(result).size !== result.length) return invalid(`${path} contains duplicates.`);
   return result;
 }
@@ -116,10 +123,15 @@ function usage(value: unknown): ChallengeUsage {
     "submission.provenance.usage",
   );
   const inputTokens = nullableCount(input.inputTokens, "submission.provenance.usage.inputTokens");
-  const outputTokens = nullableCount(input.outputTokens, "submission.provenance.usage.outputTokens");
+  const outputTokens = nullableCount(
+    input.outputTokens,
+    "submission.provenance.usage.outputTokens",
+  );
   const totalTokens = nullableCount(input.totalTokens, "submission.provenance.usage.totalTokens");
   if (inputTokens !== null && outputTokens !== null && totalTokens !== inputTokens + outputTokens) {
-    return invalid("submission.provenance.usage.totalTokens must equal inputTokens plus outputTokens.");
+    return invalid(
+      "submission.provenance.usage.totalTokens must equal inputTokens plus outputTokens.",
+    );
   }
   return {
     estimatedCostUsd: nullableCost(input.estimatedCostUsd),
@@ -197,20 +209,33 @@ function challengeCases(
   allowedRequirementRefs: ReadonlySet<string>,
   allowedFiles: ReadonlySet<string>,
 ): ChallengeCase[] {
-  if (!Array.isArray(value) || value.length > 20) return invalid("submission.result.challenges is invalid.");
+  if (!Array.isArray(value) || value.length > 20)
+    return invalid("submission.result.challenges is invalid.");
   const ids = new Set<string>();
   return value.map((entry, index): ChallengeCase => {
     const path = `submission.result.challenges[${index}]`;
     const item = object(
       entry,
-      ["category", "counterexample", "id", "priority", "requirementRefs", "targetFiles", "title", "verification", "whyLikelyMissed"],
+      [
+        "category",
+        "counterexample",
+        "id",
+        "priority",
+        "requirementRefs",
+        "targetFiles",
+        "title",
+        "verification",
+        "whyLikelyMissed",
+      ],
       path,
     );
     const id = string(item.id, `${path}.id`, 80);
     if (!ID.test(id) || ids.has(id)) return invalid(`${path}.id is invalid or duplicated.`);
     ids.add(id);
-    if (!CATEGORIES.has(item.category as ChallengeCategory)) return invalid(`${path}.category is invalid.`);
-    if (!PRIORITIES.has(item.priority as ChallengePriority)) return invalid(`${path}.priority is invalid.`);
+    if (!CATEGORIES.has(item.category as ChallengeCategory))
+      return invalid(`${path}.category is invalid.`);
+    if (!PRIORITIES.has(item.priority as ChallengePriority))
+      return invalid(`${path}.priority is invalid.`);
     const requirementRefs = stringArray(item.requirementRefs, `${path}.requirementRefs`, {
       maximumItems: 50,
       maximumLength: 241,
@@ -226,7 +251,11 @@ function challengeCases(
     if (targetFiles.some((file) => !allowedFiles.has(file))) {
       return invalid(`${path}.targetFiles contains a file outside the prepared diff.`);
     }
-    const verification = object(item.verification, ["category", "objective", "steps"], `${path}.verification`);
+    const verification = object(
+      item.verification,
+      ["category", "objective", "steps"],
+      `${path}.verification`,
+    );
     if (!VERIFICATION_CATEGORIES.has(verification.category as ChallengeVerificationCategory)) {
       return invalid(`${path}.verification.category is invalid.`);
     }
@@ -257,7 +286,11 @@ export function parseChallengeSubmission(
   allowedRequirementRefs: ReadonlySet<string>,
   allowedFiles: ReadonlySet<string>,
 ): ChallengeSubmission {
-  const root = object(value, ["briefHash", "briefId", "provenance", "result", "schemaVersion"], "submission");
+  const root = object(
+    value,
+    ["briefHash", "briefId", "provenance", "result", "schemaVersion"],
+    "submission",
+  );
   if (root.schemaVersion !== CHALLENGE_SUBMISSION_SCHEMA_VERSION) {
     return invalid("submission.schemaVersion must be 1.");
   }
@@ -270,7 +303,8 @@ export function parseChallengeSubmission(
     ["attested", "client", "isolation", "model", "usage"],
     "submission.provenance",
   );
-  if (typeof provenance.attested !== "boolean") return invalid("submission.provenance.attested must be a boolean.");
+  if (typeof provenance.attested !== "boolean")
+    return invalid("submission.provenance.attested must be a boolean.");
   if (!ISOLATION.has(provenance.isolation as ChallengeIsolation)) {
     return invalid("submission.provenance.isolation is invalid.");
   }
