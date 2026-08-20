@@ -100,6 +100,7 @@ function evidenceType(
   categories: readonly RecommendedTestCategory[],
 ): EvidenceType {
   if (adapter === "manual-review") return "manual";
+  if (adapter === "semgrep" || adapter === "gitleaks") return "security-scan";
   if (categories.length === 1 && categories[0] === "accessibility") return "accessibility";
   if (adapter === "playwright" || categories.includes("e2e")) return "e2e-test";
   if (categories.length === 1 && categories[0] === "api") return "api-test";
@@ -153,6 +154,7 @@ function resultEvidence(
       runId: id,
       status: evidenceStatus(result.status),
       stepIds: unique(result.stepIds),
+      ...(result.targetFiles === undefined ? {} : { targetFiles: unique(result.targetFiles) }),
       testFiles: unique(result.testFiles),
       tool: result.adapter,
       type: evidenceType(result.adapter, categories),
