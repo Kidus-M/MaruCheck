@@ -55,7 +55,7 @@ node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
 See the [public installation and release guide](docs/guides/public-installation-and-release.md) for
-CI pinning, npm ownership bootstrap, trusted publishing, and rollback.
+CI pinning, manual release steps, optional trusted publishing, and rollback.
 
 ## Commands
 

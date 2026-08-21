@@ -75,11 +75,11 @@ that one-time configuration is complete, future releases remain explicit manual 
 
 On the `marucheck` package's npm settings, add a GitHub Actions trusted publisher:
 
-   - owner: `Kidus-M`;
-   - repository: `MaruCheck`;
-   - workflow: `publish.yml`;
-   - environment: `production`;
-   - allowed action: `npm publish`.
+- owner: `Kidus-M`;
+- repository: `MaruCheck`;
+- workflow: `publish.yml`;
+- environment: `production`;
+- allowed action: `npm publish`.
 
 Then add required reviewers to the GitHub `production` environment and protect version tags. After
 one successful automated release, restrict traditional token-based publishing in npm.
