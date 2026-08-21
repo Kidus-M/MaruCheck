@@ -73,11 +73,7 @@ import {
   type VerificationPlanResult,
 } from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
-
-declare const MARUCHECK_PACKAGE_VERSION: string | undefined;
-
-const CLI_VERSION =
-  typeof MARUCHECK_PACKAGE_VERSION === "string" ? MARUCHECK_PACKAGE_VERSION : "0.1.0";
+import { CLI_VERSION } from "./version.js";
 
 export interface CliOutput {
   error(message: string): void;

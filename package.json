@@ -38,8 +38,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b && npm run build:bundle",
-    "build:bundle": "node scripts/build-public-package.mjs",
+    "build": "npm run verify:version && tsc -b && npm run build:bundle",
+    "build:bundle": "esbuild packages/cli/src/index.ts --bundle --platform=node --format=esm --target=node24 --legal-comments=eof --banner:js=\"// MaruCheck CLI - https://github.com/Kidus-M/MaruCheck\" --outfile=dist/maru.js",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "clean": "tsc -b --clean",
     "format": "prettier --write .",
@@ -54,7 +54,8 @@
     "test:acceptance:pull-request-check": "npm run build && node scripts/verify-pull-request-check.mjs",
     "test:acceptance:semantic-drift": "npm run build && node scripts/verify-semantic-drift.mjs",
     "test:watch": "vitest --configLoader native --pool=threads",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "verify:version": "node scripts/verify-package-version.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
