@@ -74,21 +74,21 @@ CI pinning, manual release steps, optional trusted publishing, and rollback.
 
 ### Project commands
 
-| Command                                     | Description                                                                                    |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `maru init`                                 | Detect the stack and create an idempotent `.maru/` configuration                               |
-| `maru scan`                                 | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
-| `maru doctor`                               | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
-| `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
-| `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
-| `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| Command                                      | Description                                                                                    |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `maru init`                                  | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`                                  | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor`                                | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| `maru risk --diff`                           | Score current changes with deterministic explanations                                          |
+| `maru plan --diff`                           | Write an inspectable, requirement-linked verification plan                                     |
+| `maru verify --diff`                         | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
 | `maru upload --report <path> [--url <host>]` | Explicitly send one completed report to a connected dashboard project                          |
-| `maru mutate --diff [--max 20]`             | Prove selected tests reject isolated TypeScript mutations                                      |
-| `maru challenge prepare/submit`             | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
-| `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
-| `maru ci verify`                            | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
-| `maru drift check --from observations.json` | Block approved semantic conflicts without rewriting the contract                               |
-| `maru memory search "authorization"`        | Query historical bugs, root causes, linked files, contracts, and regression tests              |
+| `maru mutate --diff [--max 20]`              | Prove selected tests reject isolated TypeScript mutations                                      |
+| `maru challenge prepare/submit`              | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
+| `maru ci init`                               | Install an idempotent least-privilege GitHub pull-request workflow                             |
+| `maru ci verify`                             | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
+| `maru drift check --from observations.json`  | Block approved semantic conflicts without rewriting the contract                               |
+| `maru memory search "authorization"`         | Query historical bugs, root causes, linked files, contracts, and regression tests              |
 
 ### Quality Contract commands
 
