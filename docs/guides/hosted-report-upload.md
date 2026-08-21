@@ -6,10 +6,10 @@ Verification and source execution remain in the developer repository or its CI r
 ## Connect once
 
 1. Sign in to the MaruCheck web application.
-2. Connect a project using the exact name reported by `maru scan`.
+2. Connect a project using the dashboard display name your team prefers.
 3. Copy the two-line connection setup into `.maru/connection.env`.
-4. Run `maru init` when upgrading an older project so `.maru/.gitignore` contains
-   `connection.env`.
+4. Run `maru init` when upgrading an older project so `.maru/.gitignore` contains the managed
+   `generated/`, `artifacts/`, and `connection.env` rules.
 
 ```dotenv
 MARUCHECK_URL=https://your-marucheck-host
@@ -44,8 +44,7 @@ does not read or upload source files, artifact file contents, or repository secr
 - `HOSTED_REPORT_UNREADABLE`: pass a regular, non-symlink report inside the repository.
 - `HOSTED_REPORT_INVALID`: generate a new schema version 1 report with `maru verify --diff`.
 - `HOSTED_GIT_METADATA_FAILED`: run from a committed, readable Git repository.
-- `HOSTED_REQUEST_FAILED`: inspect the HTTP status, project-name match, and token lifecycle, then
-  retry the same report.
+- `HOSTED_REQUEST_FAILED`: inspect the HTTP status and token lifecycle, then retry the same report.
 
 The host upserts by token-bound project and run ID, so retrying after a timeout does not create an
 unrelated duplicate run.

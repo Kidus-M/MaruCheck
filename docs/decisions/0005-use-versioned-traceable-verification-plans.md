@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; generated-artifact tracking policy superseded by ADR-016
 
 ## Date
 
@@ -24,7 +24,7 @@ Create a dedicated `@maru/planner` package that consumes typed Phase 4 risk outp
 - explicit adapter, execution mode, blocking state, test files, requirement references, and reasons for every step;
 - uncovered requirement references and aggregate counts.
 
-Persist the current plan as stable JSON at `.maru/generated/verification-plan.json`. Generated plans are versionable project artifacts. `maru plan --diff` and `maru_create_verification_plan` use the same orchestration function and schema.
+Persist the current plan as stable JSON at `.maru/generated/verification-plan.json`. `maru plan --diff` and `maru_create_verification_plan` use the same orchestration function and schema. ADR-016 supersedes the original decision to version generated plans in Git.
 
 Planner adapter selection is declarative. Vitest and Playwright are selected when detected because they are the first Phase 6 execution adapters. Security and adversarial work remains explicit manual review until supported adapters ship. Missing compatible tooling is represented as `unavailable`; it is never treated as passing evidence.
 

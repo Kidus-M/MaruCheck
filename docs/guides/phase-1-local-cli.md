@@ -22,7 +22,17 @@ This creates:
 `-- memory/
 ```
 
-Initialization is idempotent. An existing `.maru/maru.yml` is never overwritten. `.maru/artifacts/` is ignored by default because future evidence can contain logs and large local files; configuration, contracts, memory, and generated inventory remain versionable.
+Initialization is idempotent. An existing `.maru/maru.yml` is never overwritten. MaruCheck merges
+`artifacts/`, `generated/`, and `connection.env` into `.maru/.gitignore` without replacing custom
+rules. Configuration, contracts, and QA memory remain versionable; reproducible generated state,
+run artifacts, and local credentials do not.
+
+Repositories that committed generated state before this policy can migrate once without deleting
+the local files:
+
+```bash
+git rm --cached -r -- .maru/generated
+```
 
 ## Scan a project
 

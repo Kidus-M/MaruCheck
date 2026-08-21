@@ -10,7 +10,7 @@ const MARU_DIRECTORIES = [
   ".maru/generated",
   ".maru/memory",
 ] as const;
-const MARU_GITIGNORE_ENTRIES = ["artifacts/", "connection.env"] as const;
+const MARU_GITIGNORE_ENTRIES = ["artifacts/", "generated/", "connection.env"] as const;
 
 function yamlString(value: string): string {
   return JSON.stringify(value);

@@ -98,18 +98,28 @@ describe("Phase 1 project workflow", () => {
       "framework: vitest",
     );
     await expect(readFile(join(fixtureRoot, ".maru/.gitignore"), "utf8")).resolves.toBe(
-      "artifacts/\nconnection.env\n",
+      "artifacts/\ngenerated/\nconnection.env\n",
     );
 
     const customized = `${await readFile(join(fixtureRoot, ".maru/maru.yml"), "utf8")}\ncustom: true\n`;
     await writeFile(join(fixtureRoot, ".maru/maru.yml"), customized, "utf8");
+    await writeFile(
+      join(fixtureRoot, ".maru/.gitignore"),
+      "artifacts/\nconnection.env\nproject-local-cache/\n",
+      "utf8",
+    );
 
     const second = await initializeProject(fixtureRoot);
 
     expect(second.created).toBe(false);
     await expect(readFile(join(fixtureRoot, ".maru/maru.yml"), "utf8")).resolves.toBe(customized);
     await expect(readFile(join(fixtureRoot, ".maru/.gitignore"), "utf8")).resolves.toBe(
-      "artifacts/\nconnection.env\n",
+      "artifacts/\nconnection.env\nproject-local-cache/\ngenerated/\n",
+    );
+
+    await initializeProject(fixtureRoot);
+    await expect(readFile(join(fixtureRoot, ".maru/.gitignore"), "utf8")).resolves.toBe(
+      "artifacts/\nconnection.env\nproject-local-cache/\ngenerated/\n",
     );
   });
 
