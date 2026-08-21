@@ -58,8 +58,9 @@ consumer directory, checks `--version`, and only then publishes.
 
 ## Publication status
 
-Version `0.1.0` was published manually on 2026-08-21 and established npm package ownership. Version
-`0.2.0` is the next staged release and adds explicit hosted report upload. The tag-triggered
+Versions `0.1.0` and `0.2.0` were published manually on 2026-08-21 and established npm package
+ownership plus explicit hosted report upload. Version `0.2.1` is staged to ignore reproducible
+`.maru/generated/` state by default. The tag-triggered
 workflow is committed, but npm trusted publishing has not been configured yet. Until that one-time
 configuration is complete, future releases remain explicit manual owner actions.
 
