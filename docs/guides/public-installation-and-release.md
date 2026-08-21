@@ -1,6 +1,6 @@
 # Public CLI installation and release
 
-MaruCheck `0.1.0` is distributed as the public, unscoped npm package `marucheck`. The installed
+MaruCheck is distributed as the public, unscoped npm package `marucheck`. The installed
 executable is `maru`, preserving the product's command contract without depending on the unrelated
 npm package that already owns the name `maru`.
 
@@ -50,7 +50,7 @@ redistribute, resell, modify, or host the product for third parties.
 Every release tag must exactly match the root package version:
 
 ```text
-package.json 0.1.0 <-> Git tag v0.1.0
+package.json X.Y.Z <-> Git tag vX.Y.Z
 ```
 
 The `Publish CLI` GitHub workflow runs all checks, creates the tarball, installs it into an empty
@@ -58,9 +58,10 @@ consumer directory, checks `--version`, and only then publishes.
 
 ## Publication status
 
-Version `0.1.0` was published manually on 2026-08-21 and established npm package ownership. The
-tag-triggered workflow is committed, but npm trusted publishing has not been configured yet. Until
-that one-time configuration is complete, future releases remain explicit manual owner actions.
+Version `0.1.0` was published manually on 2026-08-21 and established npm package ownership. Version
+`0.2.0` is the next staged release and adds explicit hosted report upload. The tag-triggered
+workflow is committed, but npm trusted publishing has not been configured yet. Until that one-time
+configuration is complete, future releases remain explicit manual owner actions.
 
 ## Manual release while automation is disabled
 

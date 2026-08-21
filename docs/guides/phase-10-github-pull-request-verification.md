@@ -14,7 +14,7 @@ The target repository must have:
 Install the published package at an exact version before generating the workflow:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.1.0
+npm install --save-dev --save-exact marucheck@0.2.0
 ```
 
 The generated workflow intentionally uses `npx --no-install`: GitHub installs exactly what the

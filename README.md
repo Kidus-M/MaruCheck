@@ -22,8 +22,9 @@ npm install --global marucheck
 maru --help
 ```
 
-Version `0.1.0` is published on npm. Contributors changing the CLI itself can still build from this
-repository:
+Version `0.1.0` established the public npm package. Version `0.2.0` adds explicit hosted report
+upload and is staged for the next manual publication. Contributors changing the CLI itself can
+still build from this repository:
 
 ```bash
 npm install
@@ -144,7 +145,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 CLI phases 0 through 10 and Phases 12 through 14 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, client-mediated adversarial review, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
-The CLI is packaged as one publicly downloadable `marucheck` artifact while its internal `@maru/*` workspaces remain private. MaruCheck is proprietary software; public npm availability does not grant permission to redistribute, resell, modify, or offer it as a hosted service. Version `0.1.0` was published manually; automated trusted publishing is prepared in the repository but is not configured on npm yet. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+The CLI is packaged as one publicly downloadable `marucheck` artifact while its internal `@maru/*` workspaces remain private. MaruCheck is proprietary software; public npm availability does not grant permission to redistribute, resell, modify, or offer it as a hosted service. Version `0.1.0` established the package; version `0.2.0` is staged for manual publication because automated trusted publishing is not configured on npm yet. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
 
 Known Phase 1 limitations:
 
