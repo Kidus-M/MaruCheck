@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { URL } from "node:url";
 
 const packageMetadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url)));
 const versionSource = await readFile(
