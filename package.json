@@ -1,6 +1,6 @@
 {
   "name": "marucheck",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
   "license": "SEE LICENSE IN LICENSE",

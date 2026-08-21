@@ -161,12 +161,19 @@ function selectRequirements(
       priority: SelectedRequirement["priority"],
     ): void => {
       if (!matchedIds.has(item.id)) return;
-      const blocking = contract.evidencePolicy.blockingRequirements.includes(item.id);
+      const policyBlocking = contract.evidencePolicy.blockingRequirements.includes(item.id);
+      const blocking = contract.status === "approved" && policyBlocking;
       const reasons = [
         ...(match.requirementIds.includes(item.id) || match.invariantIds.includes(item.id)
           ? [`Matched diff terms: ${match.matchedTerms.join(", ")}.`]
           : []),
-        ...(blocking ? ["Selected by the contract evidence policy."] : []),
+        ...(policyBlocking
+          ? [
+              contract.status === "approved"
+                ? "Selected by the approved contract evidence policy."
+                : "Listed in the draft contract evidence policy; advisory until approved.",
+            ]
+          : []),
       ];
       selected.push({
         blocking,

@@ -93,7 +93,7 @@ export class MaruMcpServer {
           description: "Local-first MaruCheck project and Quality Contract tools",
           name: "maru",
           title: "MaruCheck",
-          version: "0.2.1",
+          version: "0.2.2",
         },
       });
     }

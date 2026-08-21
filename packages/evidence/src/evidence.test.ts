@@ -247,6 +247,40 @@ describe("verification evidence and findings", () => {
     expect(report.gate.status).toBe("blocked");
   });
 
+  it("keeps unavailable verification advisory for a draft contract", () => {
+    const advisoryPlan: VerificationPlan = {
+      ...plan(),
+      selectedRequirements: plan().selectedRequirements.map((requirement) => ({
+        ...requirement,
+        blocking: false,
+        reasons: ["Listed in the draft contract evidence policy; advisory until approved."],
+      })),
+      steps: plan().steps.map((step) => ({ ...step, blocking: false })),
+    };
+    const unavailableRun = run("unavailable");
+    const report = buildVerificationReport({
+      diagnostics: [""],
+      generatedAt: NOW.toISOString(),
+      plan: advisoryPlan,
+      run: {
+        ...unavailableRun,
+        results: unavailableRun.results.map((result) => ({ ...result, blocking: false })),
+        summary: { ...unavailableRun.summary, blockingFailures: 0 },
+      },
+    });
+
+    expect(report.requirementEvidence[0]).toMatchObject({
+      blocking: false,
+      status: "inconclusive",
+    });
+    expect(report.findings[0]).toMatchObject({
+      blocking: false,
+      kind: "verification-gap",
+      severity: "low",
+    });
+    expect(report.gate).toEqual({ reasons: [], status: "passed" });
+  });
+
   it("links archived generated tests into their adapter evidence", () => {
     const failedRun = run("failed");
     const report = buildVerificationReport({

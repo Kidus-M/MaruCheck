@@ -63,6 +63,11 @@ Every blocking finding contains:
 
 An unlinked failing result is not assigned to a made-up requirement. It remains advisory, while the raw execution state can still block the gate.
 
+Blocking requirements from a Quality Contract take effect only after the contract is approved.
+Draft and review contracts remain visible in planning and evidence, but their proposed blocking
+policy produces advisory findings unless an independent risk or security rule requires the check
+to block.
+
 ## Severity
 
 Severity is deterministic and does not use an LLM:

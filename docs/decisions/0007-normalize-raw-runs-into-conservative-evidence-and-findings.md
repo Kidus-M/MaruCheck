@@ -43,6 +43,12 @@ Apply deterministic severity:
 
 The gate blocks when the raw run failed or errored, any raw blocking result did not pass, or any blocking finding remains open. A non-blocking incomplete/manual result may remain advisory without forcing a blocked gate.
 
+A contract's `evidence_policy.blocking_requirements` activates only when that contract is
+`approved`. Draft and review contracts may still select requirements and produce advisory evidence
+or findings, but their proposed policy cannot independently block a release. Risk-level and
+security policies remain independent gate inputs, so high/critical changes and security checks can
+still block even when related contract work is not approved.
+
 Generate terminal output from the same typed report that is serialized to JSON. `maru verify --diff` and `maru_run_verification` both use the same plan-run-report orchestration. MCP retains raw run fields while adding the report and its plan/run paths.
 
 ## Alternatives considered

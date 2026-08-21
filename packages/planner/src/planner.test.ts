@@ -207,6 +207,49 @@ describe("verification planner", () => {
     expect(plan.summary).toMatchObject({ unavailableSteps: 1 });
   });
 
+  it("keeps draft contract evidence policy advisory until the contract is approved", () => {
+    const project = scan();
+    const plan = buildVerificationPlan({
+      assessment: {
+        ...ASSESSMENT,
+        level: "moderate",
+        recommendedTestCategories: ["accessibility"],
+        relatedContracts: [
+          {
+            ...ASSESSMENT.relatedContracts[0]!,
+            status: "draft",
+          },
+        ],
+        score: 29,
+      },
+      contracts: [{ ...CONTRACT, approval: undefined, status: "draft" }],
+      generatedAt: "2026-08-21T14:14:02.986Z",
+      project: {
+        ...project,
+        dependencies: { ...project.dependencies, development: ["@playwright/test", "vitest"] },
+      },
+    });
+
+    expect(plan.selectedRequirements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          blocking: false,
+          id: "SUB-001",
+          reasons: expect.arrayContaining([
+            "Listed in the draft contract evidence policy; advisory until approved.",
+          ]),
+        }),
+      ]),
+    );
+    expect(plan.steps).toEqual([
+      expect.objectContaining({
+        adapter: "unavailable",
+        blocking: false,
+        category: "accessibility",
+      }),
+    ]);
+  });
+
   it("selects axe only for accessibility changes with an axe-backed Playwright setup", () => {
     const project = scan();
     const withAxe = buildVerificationPlan({
