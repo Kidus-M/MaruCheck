@@ -1,4 +1,5 @@
 import { chmod, readFile } from "node:fs/promises";
+import { URL } from "node:url";
 import { build } from "esbuild";
 
 const packageMetadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url)));
