@@ -73,6 +73,12 @@ import {
   type VerificationPlanResult,
 } from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
+import {
+  HostedUploadError,
+  uploadVerificationReport,
+  type HostedUploadOptions,
+  type HostedUploadResult,
+} from "./hosted.js";
 import { CLI_VERSION } from "./version.js";
 
 export interface CliOutput {
@@ -100,6 +106,11 @@ export interface CliDependencies {
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;
   readonly mcpServer?: (root: string) => Promise<void>;
+  readonly environment?: Readonly<Record<string, string | undefined>>;
+  readonly hostedUpload?: (
+    root: string,
+    options: HostedUploadOptions,
+  ) => Promise<HostedUploadResult>;
   readonly mutationVerification?: (
     root: string,
     now: Date,
@@ -127,6 +138,7 @@ Commands:
   risk       Assess the current Git diff with deterministic rules
   plan       Create an inspectable verification plan for the current diff
   verify     Execute tests and write evidence, findings, and a JSON report
+  upload     Explicitly send one completed report to a connected dashboard project
   ci         Install and run GitHub pull-request verification
   mcp        Run the local MaruCheck MCP server over stdio
 
@@ -157,6 +169,9 @@ Planning commands:
 
 Verification commands:
   maru verify --diff
+
+Hosted report commands:
+  maru upload --report <report.json> [--url https://your-marucheck-host]
 
 Mutation commands:
   maru mutate --diff [--max 20]
@@ -660,6 +675,37 @@ export async function runCli(
       return result.report.gate.status === "blocked" ? 1 : 0;
     }
 
+    if (command === "upload") {
+      const reportPath = option(args.slice(1), "--report");
+      const baseURL = option(args.slice(1), "--url");
+      const allowed = new Set(["--report", reportPath, "--url", baseURL]);
+      if (
+        reportPath === undefined ||
+        args.length < 3 ||
+        args.length > 5 ||
+        args.slice(1).some((argument) => !allowed.has(argument))
+      ) {
+        output.error(
+          "Invalid upload command.\nRun maru upload --report <report.json> [--url https://your-marucheck-host].",
+        );
+        return 1;
+      }
+      const result = await (dependencies.hostedUpload ?? uploadVerificationReport)(root, {
+        ...(baseURL === undefined ? {} : { baseURL }),
+        environment: dependencies.environment ?? process.env,
+        reportPath,
+      });
+      output.log(
+        [
+          "Hosted report accepted.",
+          `Run: ${result.runId}`,
+          `Dashboard: ${result.dashboardURL}`,
+          "Uploaded: verification metadata and artifact references (no source code).",
+        ].join("\n"),
+      );
+      return 0;
+    }
+
     if (command === "mutate") {
       const validShape =
         (args.length === 2 && args[1] === "--diff") ||
@@ -803,6 +849,10 @@ export async function runCli(
       return 1;
     }
     if (error instanceof CiError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof HostedUploadError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

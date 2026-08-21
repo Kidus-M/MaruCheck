@@ -468,6 +468,51 @@ approval:
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("JSON report:"));
   });
 
+  it("explicitly uploads one report using environment credentials", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const hostedUpload = vi.fn().mockResolvedValue({
+      dashboardURL: "https://app.marucheck.dev/projects",
+      endpoint: "https://app.marucheck.dev/api/v1/ingest/runs",
+      runId: "RUN-1048",
+    });
+    const environment = { MARUCHECK_TOKEN: "maru_private" };
+
+    await expect(
+      runCli(
+        [
+          "upload",
+          "--report",
+          ".maru/artifacts/runs/RUN-1048/report.json",
+          "--url",
+          "https://app.marucheck.dev",
+        ],
+        output,
+        { cwd: root, environment, hostedUpload },
+      ),
+    ).resolves.toBe(0);
+
+    expect(hostedUpload).toHaveBeenCalledWith(root, {
+      baseURL: "https://app.marucheck.dev",
+      environment,
+      reportPath: ".maru/artifacts/runs/RUN-1048/report.json",
+    });
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Hosted report accepted"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Run: RUN-1048"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("no source code"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed upload commands before any network request", async () => {
+    const output = { error: vi.fn(), log: vi.fn() };
+    const hostedUpload = vi.fn();
+
+    await expect(runCli(["upload"], output, { hostedUpload })).resolves.toBe(1);
+
+    expect(hostedUpload).not.toHaveBeenCalled();
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru upload --report"));
+  });
+
   it("runs bounded mutation verification and blocks when verification is weak", async () => {
     const root = await createProject();
     const now = new Date("2026-08-20T12:00:00.000Z");
