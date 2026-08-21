@@ -55,7 +55,7 @@ consumer directory, checks `--version`, and only then publishes.
 The first `marucheck` publication must establish package ownership on npm:
 
 1. Create or sign into the npm account that will own MaruCheck and enable two-factor
-authentication.
+   authentication.
 2. Decide and add the repository license before a broad public/open-source release. Package
    publication itself is technically possible without that decision, but usage rights should not
    be ambiguous.

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
+  "license": "UNLICENSED",
   "type": "module",
   "bin": {
     "maru": "./dist/maru.cjs"
@@ -47,7 +48,7 @@
     "lint": "eslint .",
     "maru": "node packages/cli/dist/index.js",
     "prepublishOnly": "npm run release:check",
-    "release:check": "npm run check && npm pack --dry-run --ignore-scripts --cache .npm-cache",
+    "release:check": "npm run check && npm run verify:release-metadata && npm pack --dry-run --ignore-scripts --cache .npm-cache",
     "test": "vitest run --configLoader native --pool=threads",
     "test:acceptance:broken-subscription": "npm run build && node scripts/verify-broken-subscription.mjs",
     "test:acceptance:invoice-memory": "npm run build && node scripts/verify-invoice-memory.mjs",
@@ -55,6 +56,7 @@
     "test:acceptance:semantic-drift": "npm run build && node scripts/verify-semantic-drift.mjs",
     "test:watch": "vitest --configLoader native --pool=threads",
     "typecheck": "tsc -b --pretty false",
+    "verify:release-metadata": "node scripts/verify-release-metadata.mjs",
     "verify:version": "node scripts/verify-package-version.mjs"
   },
   "devDependencies": {

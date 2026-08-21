@@ -39,6 +39,9 @@ jobs:
       - name: Run release quality gate
         run: npm run check
 
+      - name: Verify public release metadata
+        run: npm run verify:release-metadata
+
       - name: Pack public artifact
         id: package
         shell: bash
