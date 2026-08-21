@@ -1,5 +1,5 @@
-import { lstat, readFile } from "node:fs/promises";
-import { resolve, sep } from "node:path";
+import { lstat, readFile, readdir } from "node:fs/promises";
+import { relative, resolve, sep } from "node:path";
 import { defaultGitRunner, type GitRunner } from "@maru/git";
 import type { VerificationReport } from "@maru/evidence";
 
@@ -10,6 +10,7 @@ export type HostedUploadErrorCode =
   | "HOSTED_AUTH_REQUIRED"
   | "HOSTED_GIT_METADATA_FAILED"
   | "HOSTED_REPORT_INVALID"
+  | "HOSTED_REPORT_NOT_FOUND"
   | "HOSTED_REPORT_UNREADABLE"
   | "HOSTED_REQUEST_FAILED"
   | "HOSTED_URL_INVALID";
@@ -34,6 +35,7 @@ export class HostedUploadError extends Error {
 export interface HostedUploadResult {
   readonly dashboardURL: string;
   readonly endpoint: string;
+  readonly reportPath: string;
   readonly runId: string;
 }
 
@@ -42,7 +44,7 @@ export interface HostedUploadOptions {
   readonly environment?: Readonly<Record<string, string | undefined>>;
   readonly fetcher?: typeof globalThis.fetch;
   readonly gitRunner?: GitRunner;
-  readonly reportPath: string;
+  readonly reportPath?: string;
 }
 
 interface ReportIdentity {
@@ -58,18 +60,23 @@ export async function uploadVerificationReport(
   options: HostedUploadOptions,
 ): Promise<HostedUploadResult> {
   const environment = options.environment ?? process.env;
-  const token = environment.MARUCHECK_TOKEN?.trim();
+  const runner = options.gitRunner ?? defaultGitRunner;
+  const localEnvironment = await readLocalHostedEnvironment(root, runner);
+  const token = environment.MARUCHECK_TOKEN?.trim() || localEnvironment.MARUCHECK_TOKEN;
   if (!token || !token.startsWith("maru_") || token.length > 128) {
     throw new HostedUploadError(
       "HOSTED_AUTH_REQUIRED",
       "A valid project token is required for hosted report upload.",
-      "Set MARUCHECK_TOKEN to the one-time token shown when the dashboard project was connected.",
+      "Put MARUCHECK_TOKEN in the ignored .maru/connection.env file shown by the dashboard, or set it in the shell/CI environment.",
     );
   }
 
-  const baseURL = hostedBaseURL(options.baseURL ?? environment.MARUCHECK_URL);
-  const report = await readReport(root, options.reportPath);
-  const metadata = await gitMetadata(root, options.gitRunner ?? defaultGitRunner);
+  const baseURL = hostedBaseURL(
+    options.baseURL ?? environment.MARUCHECK_URL ?? localEnvironment.MARUCHECK_URL,
+  );
+  const reportPath = options.reportPath ?? (await newestReportPath(root));
+  const report = await readReport(root, reportPath);
+  const metadata = await gitMetadata(root, runner);
   const envelope = {
     schemaVersion: 1,
     branch: metadata.branch,
@@ -123,6 +130,7 @@ export async function uploadVerificationReport(
   return {
     dashboardURL: new URL("/projects", baseURL).toString(),
     endpoint,
+    reportPath,
     runId: report.runId,
   };
 }
@@ -151,8 +159,104 @@ function invalidHostedURL(): HostedUploadError {
   return new HostedUploadError(
     "HOSTED_URL_INVALID",
     "A valid MaruCheck host URL is required.",
-    "Pass --url https://your-marucheck-host or set MARUCHECK_URL. HTTP is allowed only for localhost.",
+    "Put MARUCHECK_URL in .maru/connection.env, pass --url, or set it in the shell/CI environment. HTTP is allowed only for localhost.",
   );
+}
+
+async function newestReportPath(root: string): Promise<string> {
+  const runsDirectory = resolve(root, ".maru", "artifacts", "runs");
+  try {
+    const entries = await readdir(runsDirectory, { withFileTypes: true });
+    const candidates: { generatedAt: number; path: string }[] = [];
+    for (const entry of entries.slice(0, 1_000)) {
+      if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+      const path = portablePath(relative(root, resolve(runsDirectory, entry.name, "report.json")));
+      try {
+        const report = await readReport(root, path);
+        candidates.push({ generatedAt: Date.parse(report.generatedAt), path });
+      } catch {
+        // Invalid or incomplete run directories are not upload candidates.
+      }
+    }
+    const newest = candidates.sort(
+      (left, right) => right.generatedAt - left.generatedAt || right.path.localeCompare(left.path),
+    )[0];
+    if (newest) return newest.path;
+  } catch {
+    // The stable error below explains how to create the missing report.
+  }
+  throw new HostedUploadError(
+    "HOSTED_REPORT_NOT_FOUND",
+    "No completed MaruCheck verification report was found.",
+    "Run maru verify --diff, then run maru upload again.",
+  );
+}
+
+async function readLocalHostedEnvironment(
+  root: string,
+  runner: GitRunner,
+): Promise<Readonly<Record<"MARUCHECK_TOKEN" | "MARUCHECK_URL", string | undefined>>> {
+  const resolved: Record<"MARUCHECK_TOKEN" | "MARUCHECK_URL", string | undefined> = {
+    MARUCHECK_TOKEN: undefined,
+    MARUCHECK_URL: undefined,
+  };
+  for (const path of [".maru/connection.env", ".env.local", ".env"] as const) {
+    let content: string;
+    try {
+      const target = resolve(root, path);
+      const stats = await lstat(target);
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 64_000) continue;
+      if (!(await gitIgnored(root, path, runner))) continue;
+      content = await readFile(target, "utf8");
+    } catch {
+      continue;
+    }
+    const values = parseHostedEnvironment(content);
+    resolved.MARUCHECK_TOKEN ??= values.MARUCHECK_TOKEN;
+    resolved.MARUCHECK_URL ??= values.MARUCHECK_URL;
+  }
+  return resolved;
+}
+
+async function gitIgnored(root: string, path: string, runner: GitRunner): Promise<boolean> {
+  try {
+    await runner.run(["check-ignore", "--quiet", "--", path], root);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function parseHostedEnvironment(
+  content: string,
+): Readonly<Record<"MARUCHECK_TOKEN" | "MARUCHECK_URL", string | undefined>> {
+  const values: Record<"MARUCHECK_TOKEN" | "MARUCHECK_URL", string | undefined> = {
+    MARUCHECK_TOKEN: undefined,
+    MARUCHECK_URL: undefined,
+  };
+  for (const line of content.split(/\r?\n/gu)) {
+    const match = line.match(
+      /^\s*(?:export\s+)?(MARUCHECK_TOKEN|MARUCHECK_URL)\s*=\s*(.*?)\s*$/u,
+    );
+    if (!match) continue;
+    const name = match[1] as "MARUCHECK_TOKEN" | "MARUCHECK_URL";
+    let value = match[2] ?? "";
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    } else {
+      value = value.replace(/\s+#.*$/u, "").trim();
+    }
+    if (value) values[name] = value;
+  }
+  return values;
+}
+
+function portablePath(path: string): string {
+  return path.split(sep).join("/");
 }
 
 async function readReport(root: string, relativePath: string): Promise<ReportIdentity> {
