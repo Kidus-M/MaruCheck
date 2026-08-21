@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -77,6 +77,7 @@ describe("hosted report upload", () => {
     expect(result).toEqual({
       dashboardURL: "https://app.marucheck.dev/projects",
       endpoint: "https://app.marucheck.dev/api/v1/ingest/runs",
+      reportPath,
       runId: "RUN-1048",
     });
     expect(fetcher).toHaveBeenCalledOnce();
@@ -94,6 +95,47 @@ describe("hosted report upload", () => {
       schemaVersion: 1,
       title: "fix: enforce invoice ownership",
     });
+  });
+
+  it("loads an ignored connection file and uploads the newest valid report by default", async () => {
+    const { reportPath, root } = await fixture();
+    await writeFile(
+      join(root, ".maru", "connection.env"),
+      [
+        "MARUCHECK_TOKEN=maru_connection_token",
+        'MARUCHECK_URL="https://app.marucheck.dev"',
+        "UNRELATED_SECRET=must-not-be-loaded",
+      ].join("\n"),
+    );
+    const newerDirectory = join(root, ".maru", "artifacts", "runs", "RUN-2048");
+    await mkdir(newerDirectory, { recursive: true });
+    const newerPath = ".maru/artifacts/runs/RUN-2048/report.json";
+    const newerReport = JSON.parse(await readFile(join(root, reportPath), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    newerReport.generatedAt = "2026-08-21T11:01:42.000Z";
+    newerReport.runId = "RUN-2048";
+    await writeFile(join(root, newerPath), JSON.stringify(newerReport));
+    const fetcher = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accepted: true, runId: "RUN-2048" }), { status: 202 }),
+      );
+
+    const result = await uploadVerificationReport(root, { fetcher, gitRunner });
+
+    expect(result.reportPath).toBe(newerPath);
+    expect(result.runId).toBe("RUN-2048");
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://app.marucheck.dev/api/v1/ingest/runs",
+      expect.objectContaining({
+        headers: {
+          authorization: "Bearer maru_connection_token",
+          "content-type": "application/json",
+        },
+      }),
+    );
   });
 
   it("requires the token and a secure host before making a request", async () => {
@@ -119,6 +161,35 @@ describe("hosted report upload", () => {
       }),
     ).rejects.toMatchObject({ code: "HOSTED_URL_INVALID" });
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("does not load credentials from a connection file that Git does not ignore", async () => {
+    const { reportPath, root } = await fixture();
+    await writeFile(
+      join(root, ".maru", "connection.env"),
+      "MARUCHECK_TOKEN=maru_exposed\nMARUCHECK_URL=https://app.marucheck.dev\n",
+    );
+
+    await expect(
+      uploadVerificationReport(root, {
+        environment: {},
+        gitRunner: { run: vi.fn().mockRejectedValue(new Error("not ignored")) },
+        reportPath,
+      }),
+    ).rejects.toMatchObject({ code: "HOSTED_AUTH_REQUIRED" });
+  });
+
+  it("explains how to create a report when no completed run exists", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maru-hosted-empty-"));
+    temporaryDirectories.push(root);
+
+    await expect(
+      uploadVerificationReport(root, {
+        baseURL: "https://app.marucheck.dev",
+        environment: { MARUCHECK_TOKEN: "maru_test_token" },
+        gitRunner,
+      }),
+    ).rejects.toMatchObject({ code: "HOSTED_REPORT_NOT_FOUND" });
   });
 
   it("rejects report paths that escape the project root", async () => {

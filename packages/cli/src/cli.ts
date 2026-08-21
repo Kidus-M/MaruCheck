@@ -171,7 +171,7 @@ Verification commands:
   maru verify --diff
 
 Hosted report commands:
-  maru upload --report <report.json> [--url https://your-marucheck-host]
+  maru upload [--report <report.json>] [--url https://your-marucheck-host]
 
 Mutation commands:
   maru mutate --diff [--max 20]
@@ -253,6 +253,30 @@ function option(args: readonly string[], name: string): string | undefined {
     );
   }
   return value;
+}
+
+function hostedUploadOptions(
+  args: readonly string[],
+): Pick<HostedUploadOptions, "baseURL" | "reportPath"> | undefined {
+  if (args.length % 2 !== 0 || args.length > 4) return undefined;
+  const values: { baseURL?: string; reportPath?: string } = {};
+  const seen = new Set<string>();
+  for (let index = 0; index < args.length; index += 2) {
+    const flag = args[index];
+    const value = args[index + 1];
+    if (
+      value === undefined ||
+      value.startsWith("--") ||
+      (flag !== "--report" && flag !== "--url") ||
+      seen.has(flag)
+    ) {
+      return undefined;
+    }
+    seen.add(flag);
+    if (flag === "--report") values.reportPath = value;
+    if (flag === "--url") values.baseURL = value;
+  }
+  return values;
 }
 
 function resolveInsideRoot(root: string, path: string): string {
@@ -676,29 +700,22 @@ export async function runCli(
     }
 
     if (command === "upload") {
-      const reportPath = option(args.slice(1), "--report");
-      const baseURL = option(args.slice(1), "--url");
-      const allowed = new Set(["--report", reportPath, "--url", baseURL]);
-      if (
-        reportPath === undefined ||
-        args.length < 3 ||
-        args.length > 5 ||
-        args.slice(1).some((argument) => !allowed.has(argument))
-      ) {
+      const uploadOptions = hostedUploadOptions(args.slice(1));
+      if (uploadOptions === undefined) {
         output.error(
-          "Invalid upload command.\nRun maru upload --report <report.json> [--url https://your-marucheck-host].",
+          "Invalid upload command.\nRun maru upload [--report <report.json>] [--url https://your-marucheck-host].",
         );
         return 1;
       }
       const result = await (dependencies.hostedUpload ?? uploadVerificationReport)(root, {
-        ...(baseURL === undefined ? {} : { baseURL }),
         environment: dependencies.environment ?? process.env,
-        reportPath,
+        ...uploadOptions,
       });
       output.log(
         [
           "Hosted report accepted.",
           `Run: ${result.runId}`,
+          `Report: ${result.reportPath}`,
           `Dashboard: ${result.dashboardURL}`,
           "Uploaded: verification metadata and artifact references (no source code).",
         ].join("\n"),

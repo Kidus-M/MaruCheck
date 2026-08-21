@@ -235,9 +235,7 @@ function parseHostedEnvironment(
     MARUCHECK_URL: undefined,
   };
   for (const line of content.split(/\r?\n/gu)) {
-    const match = line.match(
-      /^\s*(?:export\s+)?(MARUCHECK_TOKEN|MARUCHECK_URL)\s*=\s*(.*?)\s*$/u,
-    );
+    const match = line.match(/^\s*(?:export\s+)?(MARUCHECK_TOKEN|MARUCHECK_URL)\s*=\s*(.*?)\s*$/u);
     if (!match) continue;
     const name = match[1] as "MARUCHECK_TOKEN" | "MARUCHECK_URL";
     let value = match[2] ?? "";

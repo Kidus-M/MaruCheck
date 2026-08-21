@@ -98,7 +98,7 @@ describe("Phase 1 project workflow", () => {
       "framework: vitest",
     );
     await expect(readFile(join(fixtureRoot, ".maru/.gitignore"), "utf8")).resolves.toBe(
-      "artifacts/\n",
+      "artifacts/\nconnection.env\n",
     );
 
     const customized = `${await readFile(join(fixtureRoot, ".maru/maru.yml"), "utf8")}\ncustom: true\n`;
@@ -108,6 +108,9 @@ describe("Phase 1 project workflow", () => {
 
     expect(second.created).toBe(false);
     await expect(readFile(join(fixtureRoot, ".maru/maru.yml"), "utf8")).resolves.toBe(customized);
+    await expect(readFile(join(fixtureRoot, ".maru/.gitignore"), "utf8")).resolves.toBe(
+      "artifacts/\nconnection.env\n",
+    );
   });
 
   it("scans routes, tests, dependencies, CI, and source files deterministically", async () => {

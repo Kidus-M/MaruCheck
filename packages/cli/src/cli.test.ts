@@ -474,6 +474,7 @@ approval:
     const hostedUpload = vi.fn().mockResolvedValue({
       dashboardURL: "https://app.marucheck.dev/projects",
       endpoint: "https://app.marucheck.dev/api/v1/ingest/runs",
+      reportPath: ".maru/artifacts/runs/RUN-1048/report.json",
       runId: "RUN-1048",
     });
     const environment = { MARUCHECK_TOKEN: "maru_private" };
@@ -499,7 +500,30 @@ approval:
     });
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Hosted report accepted"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Run: RUN-1048"));
+    expect(output.log).toHaveBeenCalledWith(
+      expect.stringContaining("Report: .maru/artifacts/runs/RUN-1048/report.json"),
+    );
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("no source code"));
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
+  it("uploads the newest report with local connection defaults", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const environment = {};
+    const hostedUpload = vi.fn().mockResolvedValue({
+      dashboardURL: "https://app.marucheck.dev/projects",
+      endpoint: "https://app.marucheck.dev/api/v1/ingest/runs",
+      reportPath: ".maru/artifacts/runs/RUN-2048/report.json",
+      runId: "RUN-2048",
+    });
+
+    await expect(
+      runCli(["upload"], output, { cwd: root, environment, hostedUpload }),
+    ).resolves.toBe(0);
+
+    expect(hostedUpload).toHaveBeenCalledWith(root, { environment });
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Run: RUN-2048"));
     expect(output.error).not.toHaveBeenCalled();
   });
 
@@ -507,10 +531,14 @@ approval:
     const output = { error: vi.fn(), log: vi.fn() };
     const hostedUpload = vi.fn();
 
-    await expect(runCli(["upload"], output, { hostedUpload })).resolves.toBe(1);
+    await expect(
+      runCli(["upload", "--url", "https://one.example", "--url", "https://two.example"], output, {
+        hostedUpload,
+      }),
+    ).resolves.toBe(1);
 
     expect(hostedUpload).not.toHaveBeenCalled();
-    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru upload --report"));
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("maru upload [--report"));
   });
 
   it("runs bounded mutation verification and blocks when verification is weak", async () => {

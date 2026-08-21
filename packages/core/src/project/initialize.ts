@@ -10,6 +10,7 @@ const MARU_DIRECTORIES = [
   ".maru/generated",
   ".maru/memory",
 ] as const;
+const MARU_GITIGNORE_ENTRIES = ["artifacts/", "connection.env"] as const;
 
 function yamlString(value: string): string {
   return JSON.stringify(value);
@@ -76,8 +77,17 @@ export async function initializeProject(root: string): Promise<InitializationRes
     await workspace.createDirectory(directory);
   }
 
-  if (!(await workspace.exists(".maru/.gitignore"))) {
-    await workspace.writeText(".maru/.gitignore", "artifacts/\n");
+  const ignorePath = ".maru/.gitignore";
+  const currentIgnore = (await workspace.exists(ignorePath))
+    ? await workspace.readText(ignorePath)
+    : "";
+  const ignoreLines = currentIgnore.split(/\r?\n/gu).filter(Boolean);
+  const missingIgnoreLines = MARU_GITIGNORE_ENTRIES.filter((entry) => !ignoreLines.includes(entry));
+  if (missingIgnoreLines.length > 0) {
+    await workspace.writeText(
+      ignorePath,
+      `${ignoreLines.join("\n")}${ignoreLines.length > 0 ? "\n" : ""}${missingIgnoreLines.join("\n")}\n`,
+    );
   }
 
   const configExists = await workspace.exists(CONFIG_PATH);
