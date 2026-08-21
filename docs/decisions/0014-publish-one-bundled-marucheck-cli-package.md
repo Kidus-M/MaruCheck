@@ -45,7 +45,8 @@ executable name `maru`.
 - The TypeScript compiler used by mutation verification is installed as a normal dependency under
   its own license, keeping the MaruCheck executable materially smaller.
 - Internal packages are not supported as public libraries in this release.
-- The first publish and review of the proprietary license holder remain explicit owner actions.
+- The first publish and legal review of the license held by Kidus Mesfin Teferi remain explicit
+  owner actions.
 
 ## Alternatives considered
 

@@ -11,6 +11,9 @@ if (packageMetadata.license !== "SEE LICENSE IN LICENSE") {
 if (!license.includes("MaruCheck Proprietary License")) {
   errors.push("LICENSE must contain the MaruCheck Proprietary License.");
 }
+if (!license.includes("Copyright (c) 2026 Kidus Mesfin Teferi.")) {
+  errors.push("LICENSE must identify Kidus Mesfin Teferi as the copyright holder.");
+}
 if (packageMetadata.repository?.url !== "git+https://github.com/Kidus-M/MaruCheck.git") {
   errors.push("package.json repository.url must match the trusted GitHub publisher repository.");
 }

@@ -62,8 +62,8 @@ The first `marucheck` publication must establish package ownership on npm:
 
 1. Create or sign into the npm account that will own MaruCheck and enable two-factor
    authentication.
-2. Review the proprietary early-access license and confirm the copyright holder. Obtain qualified
-   legal review before distributing broadly or changing the commercial terms.
+2. Review the proprietary early-access license, whose copyright holder is Kidus Mesfin Teferi.
+   Obtain qualified legal review before distributing broadly or changing the commercial terms.
 3. From a clean, reviewed CLI checkout, run `npm run release:check` and inspect the tarball
    manifest.
 4. Run `npm publish` interactively and complete npm's authentication/2FA prompt.
