@@ -8,6 +8,9 @@ await build({
     js: `// MaruCheck ${packageMetadata.version} — https://github.com/Kidus-M/MaruCheck`,
   },
   bundle: true,
+  define: {
+    MARUCHECK_PACKAGE_VERSION: JSON.stringify(packageMetadata.version),
+  },
   entryPoints: ["packages/cli/src/index.ts"],
   format: "esm",
   legalComments: "eof",

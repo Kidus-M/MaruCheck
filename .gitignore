@@ -1,7 +1,9 @@
 node_modules/
 .npm-cache/
+.package-smoke/
 dist/
 coverage/
+*.tgz
 .maru/artifacts/
 *.tsbuildinfo
 .env

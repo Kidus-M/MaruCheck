@@ -74,6 +74,11 @@ import {
 } from "@maru/planner";
 import { assessProjectRisk, type RiskAssessment } from "@maru/risk";
 
+declare const MARUCHECK_PACKAGE_VERSION: string | undefined;
+
+const CLI_VERSION =
+  typeof MARUCHECK_PACKAGE_VERSION === "string" ? MARUCHECK_PACKAGE_VERSION : "0.1.0";
+
 export interface CliOutput {
   error(message: string): void;
   log(message: string): void;
@@ -560,7 +565,7 @@ export async function runCli(
   }
 
   if (command === "--version" || command === "-v") {
-    output.log("0.1.0");
+    output.log(CLI_VERSION);
     return Promise.resolve(0);
   }
 
