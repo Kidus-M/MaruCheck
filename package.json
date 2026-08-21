@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "bin": {
     "maru": "./dist/maru.cjs"
   },
   "files": [
-    "dist/maru.cjs"
+    "dist/maru.cjs",
+    "LICENSE"
   ],
   "keywords": [
     "ai",
@@ -40,7 +41,7 @@
   ],
   "scripts": {
     "build": "npm run verify:version && tsc -b && npm run build:bundle",
-    "build:bundle": "esbuild packages/cli/src/index.ts --bundle --platform=node --format=cjs --target=node24 --legal-comments=eof --banner:js=\"// MaruCheck CLI - https://github.com/Kidus-M/MaruCheck\" --outfile=dist/maru.cjs",
+    "build:bundle": "esbuild packages/cli/src/index.ts --bundle --platform=node --format=cjs --target=node24 --external:typescript --legal-comments=eof --banner:js=\"// MaruCheck CLI - https://github.com/Kidus-M/MaruCheck\" --outfile=dist/maru.cjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "clean": "tsc -b --clean",
     "format": "prettier --write .",
@@ -59,13 +60,15 @@
     "verify:release-metadata": "node scripts/verify-release-metadata.mjs",
     "verify:version": "node scripts/verify-package-version.mjs"
   },
+  "dependencies": {
+    "typescript": "^6.0.3"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.8.1",
     "prettier": "^3.9.6",
-    "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.10"
   }

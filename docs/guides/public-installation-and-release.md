@@ -38,8 +38,14 @@ verification reports.
 ## Release architecture
 
 The repository keeps its domain packages private and bundles them into `dist/maru.cjs` for
-publication. `npm pack` therefore contains exactly the executable bundle, `package.json`, and this
-repository's README. Consumers never need access to the internal `@maru/*` workspace packages.
+publication. TypeScript remains an external runtime dependency under its own license instead of
+being embedded in the proprietary bundle. `npm pack` contains the executable bundle, license,
+package metadata, and repository README. Consumers never need access to the internal `@maru/*`
+workspace packages.
+
+The npm package is publicly downloadable but is not open-source software. Installation and use are
+governed by the repository's proprietary `LICENSE`; registry visibility does not grant rights to
+redistribute, resell, modify, or host the product for third parties.
 
 Every release tag must exactly match the root package version:
 
@@ -56,11 +62,10 @@ The first `marucheck` publication must establish package ownership on npm:
 
 1. Create or sign into the npm account that will own MaruCheck and enable two-factor
    authentication.
-2. Decide and add the repository license before a broad public/open-source release. Package
-   publication itself is technically possible without that decision, but usage rights should not
-   be ambiguous.
-3. From a clean, reviewed CLI checkout, run `npm run release:check` and inspect the three-file
-   tarball manifest.
+2. Review the proprietary early-access license and confirm the copyright holder. Obtain qualified
+   legal review before distributing broadly or changing the commercial terms.
+3. From a clean, reviewed CLI checkout, run `npm run release:check` and inspect the tarball
+   manifest.
 4. Run `npm publish` interactively and complete npm's authentication/2FA prompt.
 5. On the new `marucheck` package's npm settings, add a GitHub Actions trusted publisher:
    - owner: `Kidus-M`;

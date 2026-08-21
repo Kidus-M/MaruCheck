@@ -1,0 +1,56 @@
+MaruCheck Proprietary License
+
+Copyright (c) 2026 Kidus-M. All rights reserved.
+
+1. Ownership
+
+MaruCheck, including its source code, executable code, documentation, branding,
+and other accompanying materials (the "Software"), is proprietary to Kidus-M.
+No ownership interest is transferred under this license.
+
+2. Limited permission
+
+An individual or organization that obtains the Software through an official
+MaruCheck distribution channel may install and use it internally for evaluation,
+software development, and software verification. Reasonable backup copies may be
+made solely to support that permitted use.
+
+3. Restrictions
+
+Unless Kidus-M gives prior written permission, you may not:
+
+- copy or redistribute the Software except for permitted backup copies;
+- sell, rent, lease, sublicense, or otherwise make the Software available to a
+  third party;
+- offer the Software, or functionality substantially derived from it, as a
+  hosted, managed, or competing service;
+- modify the Software or distribute modified or derivative versions;
+- remove or alter proprietary notices; or
+- reverse engineer, decompile, or disassemble the Software, except to the limited
+  extent that applicable law expressly permits despite this restriction.
+
+4. Third-party software
+
+Third-party components and dependencies remain subject to their respective
+licenses. Those licenses do not grant rights to MaruCheck itself.
+
+5. Termination
+
+This license terminates automatically if you breach its terms. Upon termination,
+you must stop using the Software and delete all copies in your possession or
+control.
+
+6. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+7. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, KIDUS-M WILL NOT BE LIABLE FOR ANY
+INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR FOR LOSS
+OF DATA, PROFITS, REVENUE, OR BUSINESS, ARISING FROM OR RELATED TO THE SOFTWARE.
+
+For permissions beyond this license, contact Kidus-M through
+https://github.com/Kidus-M/MaruCheck.

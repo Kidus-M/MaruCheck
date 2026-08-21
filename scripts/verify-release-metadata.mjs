@@ -2,10 +2,14 @@ import { readFile } from "node:fs/promises";
 import { URL } from "node:url";
 
 const packageMetadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url)));
+const license = await readFile(new URL("../LICENSE", import.meta.url), "utf8");
 const errors = [];
 
-if (!packageMetadata.license || packageMetadata.license === "UNLICENSED") {
-  errors.push("Choose an explicit repository license before publishing MaruCheck.");
+if (packageMetadata.license !== "SEE LICENSE IN LICENSE") {
+  errors.push('package.json license must be "SEE LICENSE IN LICENSE".');
+}
+if (!license.includes("MaruCheck Proprietary License")) {
+  errors.push("LICENSE must contain the MaruCheck Proprietary License.");
 }
 if (packageMetadata.repository?.url !== "git+https://github.com/Kidus-M/MaruCheck.git") {
   errors.push("package.json repository.url must match the trusted GitHub publisher repository.");

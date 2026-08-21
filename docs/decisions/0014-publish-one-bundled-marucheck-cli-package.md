@@ -23,8 +23,13 @@ executable name `maru`.
 
 - Publish the repository root as the public unscoped npm package `marucheck`.
 - Keep the installed binary named `maru`; `npx marucheck` resolves the package's single executable.
-- Bundle the CLI entry point and all internal workspaces into one Node.js 24 ESM file with esbuild.
-- Publish only `dist/maru.cjs`, `package.json`, and `README.md`.
+- Bundle the CLI entry point and all internal workspaces into one Node.js 24 CommonJS file with
+  esbuild.
+- Keep TypeScript external as a declared runtime dependency so its Apache-licensed implementation
+  and notices are not incorporated into MaruCheck's proprietary bundle.
+- Publish `dist/maru.cjs`, `package.json`, `README.md`, and the proprietary `LICENSE`.
+- Permit internal evaluation, development, and verification use while prohibiting redistribution,
+  resale, unauthorized modification, and hosted or competing services.
 - Keep internal `@maru/*` packages private until a real external library API requires independent
   versioning.
 - Gate a release on the full repository check, tarball inspection, clean-directory installation,
@@ -37,10 +42,10 @@ executable name `maru`.
 
 - Users get one cross-platform installation with no private registry or workspace knowledge.
 - CLI and web remain independent repositories and release lifecycles.
-- The unminified executable is larger because it includes the TypeScript compiler used by mutation
-  verification, but its compressed npm tarball remains much smaller.
+- The TypeScript compiler used by mutation verification is installed as a normal dependency under
+  its own license, keeping the MaruCheck executable materially smaller.
 - Internal packages are not supported as public libraries in this release.
-- The first publish and the repository's license choice remain explicit owner actions.
+- The first publish and review of the proprietary license holder remain explicit owner actions.
 
 ## Alternatives considered
 
