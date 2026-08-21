@@ -59,16 +59,16 @@ CI pinning, npm ownership bootstrap, trusted publishing, and rollback.
 
 ## Commands
 
-| Command                  | Description                  |
-| ------------------------ | ---------------------------- |
+| Command                  | Description                                       |
+| ------------------------ | ------------------------------------------------- |
 | `npm run build`          | Build workspaces and the public executable bundle |
-| `npm run lint`           | Run ESLint                                  |
-| `npm run format:check`   | Check formatting                            |
-| `npm run typecheck`      | Type-check all packages                     |
-| `npm test`               | Run Vitest tests                            |
-| `npm run check`          | Run every local quality gate                |
-| `npm run release:check`  | Check code and inspect the npm tarball      |
-| `npm run maru -- --help` | Exercise the workspace CLI build            |
+| `npm run lint`           | Run ESLint                                        |
+| `npm run format:check`   | Check formatting                                  |
+| `npm run typecheck`      | Type-check all packages                           |
+| `npm test`               | Run Vitest tests                                  |
+| `npm run check`          | Run every local quality gate                      |
+| `npm run release:check`  | Check code and inspect the npm tarball            |
+| `npm run maru -- --help` | Exercise the workspace CLI build                  |
 
 ### Project commands
 
