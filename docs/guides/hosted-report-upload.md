@@ -7,21 +7,28 @@ Verification and source execution remain in the developer repository or its CI r
 
 1. Sign in to the MaruCheck web application.
 2. Connect a project using the exact name reported by `maru scan`.
-3. Copy the one-time project token and store it as `MARUCHECK_TOKEN` in the shell or CI secret store.
-4. Do not commit the token or place it directly in a command.
+3. Copy the two-line connection setup into `.maru/connection.env`.
+4. Run `maru init` when upgrading an older project so `.maru/.gitignore` contains
+   `connection.env`.
+
+```dotenv
+MARUCHECK_URL=https://your-marucheck-host
+MARUCHECK_TOKEN=maru_your_project_token
+```
+
+MaruCheck refuses to load credentials from a file Git does not report as ignored. CI can provide
+the same names through its encrypted secret store instead.
 
 ## Verify and upload
 
 ```bash
 npx --no-install maru verify --diff
-npx --no-install maru upload \
-  --report .maru/artifacts/runs/<run-id>/report.json \
-  --url https://your-marucheck-host
+npx --no-install maru upload
 ```
 
-Set `MARUCHECK_URL` to the application origin if you prefer to omit `--url`. The command reads the
-current branch, commit SHA, and latest commit title from Git, wraps the selected version 1 report,
-and submits it to `/api/v1/ingest/runs`.
+The command selects the valid version 1 report with the newest generated timestamp, reads the
+current branch, commit SHA, and latest commit title from Git, and submits the envelope to
+`/api/v1/ingest/runs`. Use `--report` or `--url` only for an explicit override.
 
 The upload is independent from the report gate. Uploading a blocked report is useful because it
 lets reviewers inspect the evidence that prevented release.
@@ -33,6 +40,7 @@ does not read or upload source files, artifact file contents, or repository secr
 
 - `HOSTED_AUTH_REQUIRED`: set or recopy `MARUCHECK_TOKEN`.
 - `HOSTED_URL_INVALID`: use an HTTPS application origin; HTTP is allowed only for localhost.
+- `HOSTED_REPORT_NOT_FOUND`: run `maru verify --diff` first.
 - `HOSTED_REPORT_UNREADABLE`: pass a regular, non-symlink report inside the repository.
 - `HOSTED_REPORT_INVALID`: generate a new schema version 1 report with `maru verify --diff`.
 - `HOSTED_GIT_METADATA_FAILED`: run from a committed, readable Git repository.

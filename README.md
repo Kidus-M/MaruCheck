@@ -46,7 +46,7 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
-node ../maru-cli/packages/cli/dist/index.js upload --report .maru/artifacts/runs/<run-id>/report.json --url https://your-marucheck-host
+node ../maru-cli/packages/cli/dist/index.js upload
 node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
 node ../maru-cli/packages/cli/dist/index.js challenge prepare --diff
 node ../maru-cli/packages/cli/dist/index.js ci init
@@ -74,21 +74,21 @@ CI pinning, manual release steps, optional trusted publishing, and rollback.
 
 ### Project commands
 
-| Command                                      | Description                                                                                    |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `maru init`                                  | Detect the stack and create an idempotent `.maru/` configuration                               |
-| `maru scan`                                  | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
-| `maru doctor`                                | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
-| `maru risk --diff`                           | Score current changes with deterministic explanations                                          |
-| `maru plan --diff`                           | Write an inspectable, requirement-linked verification plan                                     |
-| `maru verify --diff`                         | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
-| `maru upload --report <path> [--url <host>]` | Explicitly send one completed report to a connected dashboard project                          |
-| `maru mutate --diff [--max 20]`              | Prove selected tests reject isolated TypeScript mutations                                      |
-| `maru challenge prepare/submit`              | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
-| `maru ci init`                               | Install an idempotent least-privilege GitHub pull-request workflow                             |
-| `maru ci verify`                             | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
-| `maru drift check --from observations.json`  | Block approved semantic conflicts without rewriting the contract                               |
-| `maru memory search "authorization"`         | Query historical bugs, root causes, linked files, contracts, and regression tests              |
+| Command                                        | Description                                                                                    |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `maru init`                                    | Detect the stack and create an idempotent `.maru/` configuration                               |
+| `maru scan`                                    | Write route, test, dependency, CI, and source inventory to `.maru/generated/project-scan.json` |
+| `maru doctor`                                  | Validate Node.js, Git, package-manager, configuration, test, and CI prerequisites              |
+| `maru risk --diff`                             | Score current changes with deterministic explanations                                          |
+| `maru plan --diff`                             | Write an inspectable, requirement-linked verification plan                                     |
+| `maru verify --diff`                           | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru upload [--report <path>] [--url <host>]` | Explicitly send the newest completed report to a connected dashboard project                   |
+| `maru mutate --diff [--max 20]`                | Prove selected tests reject isolated TypeScript mutations                                      |
+| `maru challenge prepare/submit`                | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
+| `maru ci init`                                 | Install an idempotent least-privilege GitHub pull-request workflow                             |
+| `maru ci verify`                               | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
+| `maru drift check --from observations.json`    | Block approved semantic conflicts without rewriting the contract                               |
+| `maru memory search "authorization"`           | Query historical bugs, root causes, linked files, contracts, and regression tests              |
 
 ### Quality Contract commands
 
@@ -207,10 +207,10 @@ See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-re
 
 ### Hosted report upload
 
-`maru upload` is a separate opt-in network action. It sends one selected verification report plus
-Git run identity to a token-scoped dashboard project, while source files, artifact contents, and
-repository secrets remain local. The project token comes from `MARUCHECK_TOKEN`, never a command
-argument.
+`maru upload` is a separate opt-in network action. It finds the newest completed verification
+report, loads the project-scoped connection from an ignored local file or CI secrets, and sends the
+report plus Git run identity. Source files, artifact contents, and unrelated environment values
+remain local. Explicit report and host flags remain available for targeted retries.
 
 See the [hosted report guide](docs/guides/hosted-report-upload.md) and
 [ADR-015](docs/decisions/0015-use-explicit-cli-hosted-report-upload.md).
