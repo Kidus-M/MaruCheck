@@ -1,0 +1,57 @@
+name: Publish CLI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  cancel-in-progress: false
+  group: npm-publish-${{ github.ref }}
+
+jobs:
+  publish:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js and npm registry
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Require tag to match package version
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      - name: Run release quality gate
+        run: npm run check
+
+      - name: Pack public artifact
+        id: package
+        shell: bash
+        run: |
+          archive=$(npm pack --ignore-scripts --silent)
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Install artifact as a consumer
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/marucheck-consumer"
+          npm install --prefix "$RUNNER_TEMP/marucheck-consumer" --ignore-scripts --no-audit --no-fund "./${{ steps.package.outputs.archive }}"
+          node "$RUNNER_TEMP/marucheck-consumer/node_modules/marucheck/dist/maru.js" --version
+
+      - name: Publish public package with provenance
+        run: npm publish --ignore-scripts

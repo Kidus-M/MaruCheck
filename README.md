@@ -4,9 +4,26 @@ MaruCheck is the independent QA and verification layer for AI-generated software
 
 The hosted Next.js application is maintained separately in the sibling `maru-web` repository so the CLI and cloud product can release independently.
 
-## Quick start
+## Install
 
 Requirements: Node.js 24 LTS and npm 11 or newer.
+
+```bash
+npx marucheck init
+npx marucheck doctor
+npx marucheck verify --diff
+```
+
+For frequent use, install the public package globally; the package is named `marucheck` and the
+installed command is `maru`:
+
+```bash
+npm install --global marucheck
+maru --help
+```
+
+The first npm publication is an owner action. Until version `0.1.0` appears on npm, contributors can
+build from this repository:
 
 ```bash
 npm install
@@ -14,7 +31,7 @@ npm run check
 npm run maru -- --help
 ```
 
-During local development, build the CLI and invoke it from the project you want to inspect:
+During source development, invoke the built CLI from the project you want to inspect:
 
 ```bash
 # In maru-cli
@@ -37,19 +54,21 @@ node ../maru-cli/packages/cli/dist/index.js memory search "authorization"
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
-The published developer experience will use `npx maru <command>`.
+See the [public installation and release guide](docs/guides/public-installation-and-release.md) for
+CI pinning, npm ownership bootstrap, trusted publishing, and rollback.
 
 ## Commands
 
 | Command                  | Description                  |
 | ------------------------ | ---------------------------- |
-| `npm run build`          | Build all workspace packages |
-| `npm run lint`           | Run ESLint                   |
-| `npm run format:check`   | Check formatting             |
-| `npm run typecheck`      | Type-check all packages      |
-| `npm test`               | Run Vitest tests             |
-| `npm run check`          | Run every local quality gate |
-| `npm run maru -- --help` | Exercise the local CLI build |
+| `npm run build`          | Build workspaces and the public executable bundle |
+| `npm run lint`           | Run ESLint                                  |
+| `npm run format:check`   | Check formatting                            |
+| `npm run typecheck`      | Type-check all packages                     |
+| `npm test`               | Run Vitest tests                            |
+| `npm run check`          | Run every local quality gate                |
+| `npm run release:check`  | Check code and inspect the npm tarball      |
+| `npm run maru -- --help` | Exercise the workspace CLI build            |
 
 ### Project commands
 
@@ -123,7 +142,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 CLI phases 0 through 10 and Phases 12 through 14 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, client-mediated adversarial review, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
-This is currently a source-based MVP. The `@maru/cli` workspace package remains private, so the advertised `npx maru` installation experience has not been released. The Challenger reuses a fresh context in the user’s existing AI client; MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+The CLI is packaged as one public `marucheck` artifact while its internal `@maru/*` workspaces remain private. The first npm publication still requires the owner to establish package ownership and choose an explicit repository license; later versions publish from signed tags through npm trusted publishing. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
 
 Known Phase 1 limitations:
 
