@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir "$RUNNER_TEMP/marucheck-consumer"
           npm install --prefix "$RUNNER_TEMP/marucheck-consumer" --ignore-scripts --no-audit --no-fund "./${{ steps.package.outputs.archive }}"
-          node "$RUNNER_TEMP/marucheck-consumer/node_modules/marucheck/dist/maru.js" --version
+          node "$RUNNER_TEMP/marucheck-consumer/node_modules/marucheck/dist/maru.cjs" --version
 
       - name: Publish public package with provenance
         run: npm publish --ignore-scripts

@@ -24,7 +24,7 @@ executable name `maru`.
 - Publish the repository root as the public unscoped npm package `marucheck`.
 - Keep the installed binary named `maru`; `npx marucheck` resolves the package's single executable.
 - Bundle the CLI entry point and all internal workspaces into one Node.js 24 ESM file with esbuild.
-- Publish only `dist/maru.js`, `package.json`, and `README.md`.
+- Publish only `dist/maru.cjs`, `package.json`, and `README.md`.
 - Keep internal `@maru/*` packages private until a real external library API requires independent
   versioning.
 - Gate a release on the full repository check, tarball inspection, clean-directory installation,
