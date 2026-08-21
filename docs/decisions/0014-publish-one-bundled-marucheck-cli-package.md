@@ -62,4 +62,3 @@ installation unnecessarily difficult.
 
 Deferred. The current implementation already requires Node.js for project tooling, and npm gives
 Windows, macOS, and Linux users one signed package channel with reproducible version selection.
-

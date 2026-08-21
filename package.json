@@ -47,7 +47,7 @@
     "lint": "eslint .",
     "maru": "node packages/cli/dist/index.js",
     "prepublishOnly": "npm run release:check",
-    "release:check": "npm run check && npm pack --dry-run",
+    "release:check": "npm run check && npm pack --dry-run --ignore-scripts --cache .npm-cache",
     "test": "vitest run --configLoader native --pool=threads",
     "test:acceptance:broken-subscription": "npm run build && node scripts/verify-broken-subscription.mjs",
     "test:acceptance:invoice-memory": "npm run build && node scripts/verify-invoice-memory.mjs",

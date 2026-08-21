@@ -78,4 +78,3 @@ short-lived OIDC credentials; no long-lived `NPM_TOKEN` is stored in the reposit
 npm releases are immutable. Do not overwrite a published version. For a broken release, deprecate
 the affected version with a precise message, publish a corrected patch version, and move the
 `latest` dist-tag only after its consumer-install check passes.
-
