@@ -45,6 +45,7 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
+node ../maru-cli/packages/cli/dist/index.js upload --report .maru/artifacts/runs/<run-id>/report.json --url https://your-marucheck-host
 node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
 node ../maru-cli/packages/cli/dist/index.js challenge prepare --diff
 node ../maru-cli/packages/cli/dist/index.js ci init
@@ -80,6 +81,7 @@ CI pinning, manual release steps, optional trusted publishing, and rollback.
 | `maru risk --diff`                          | Score current changes with deterministic explanations                                          |
 | `maru plan --diff`                          | Write an inspectable, requirement-linked verification plan                                     |
 | `maru verify --diff`                        | Execute selected tests and write evidence, findings, terminal output, and JSON report          |
+| `maru upload --report <path> [--url <host>]` | Explicitly send one completed report to a connected dashboard project                          |
 | `maru mutate --diff [--max 20]`             | Prove selected tests reject isolated TypeScript mutations                                      |
 | `maru challenge prepare/submit`             | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
 | `maru ci init`                              | Install an idempotent least-privilege GitHub pull-request workflow                             |
@@ -201,6 +203,16 @@ See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009
 `maru ci init` installs a pull-request-only workflow with read-only repository permissions. `maru ci verify` writes the evidence report and an escaped GitHub job summary before mapping the release gate to the process exit code. The workflow uploads `.maru` evidence even when a blocking contract finding fails the ProofLayer check; no GitHub App is required.
 
 See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-request-verification.md) and [ADR-010](docs/decisions/0010-use-workflow-native-pull-request-verification.md).
+
+### Hosted report upload
+
+`maru upload` is a separate opt-in network action. It sends one selected verification report plus
+Git run identity to a token-scoped dashboard project, while source files, artifact contents, and
+repository secrets remain local. The project token comes from `MARUCHECK_TOKEN`, never a command
+argument.
+
+See the [hosted report guide](docs/guides/hosted-report-upload.md) and
+[ADR-015](docs/decisions/0015-use-explicit-cli-hosted-report-upload.md).
 
 ### Security and accessibility adapters
 
