@@ -9,23 +9,24 @@ The hosted Next.js application is maintained separately in the sibling `maru-web
 Requirements: Node.js 24 LTS and npm 11 or newer.
 
 ```bash
-npx marucheck init
-npx marucheck doctor
-npx marucheck verify --diff
+npx --yes marucheck@0.2.2 init
+npx --yes marucheck@0.2.2 doctor
+npx --yes marucheck@0.2.2 verify --diff
 ```
 
-For frequent use, install the public package globally; the package is named `marucheck` and the
-installed command is `maru`:
+For regular project or team use, pin the exact public package and prevent implicit downloads:
 
 ```bash
-npm install --global marucheck
-maru --help
+npm install --save-dev --save-exact marucheck@0.2.2
+npx --no-install maru --help
 ```
 
 Version `0.1.0` established the public npm package. Version `0.2.0` added explicit hosted report
-upload. The `0.2.2` release candidate keeps reproducible `.maru/generated/` state out of normal Git
-changes and prevents draft contract policies from independently blocking releases. Contributors
-changing the CLI itself can still build from this repository:
+upload. Version `0.2.2` keeps reproducible `.maru/generated/` state out of normal Git changes and
+prevents draft contract policies from independently blocking releases. See the
+[recommended first workflow](docs/guides/recommended-first-workflow.md) before adding hosted
+reporting, MCP, or a required CI gate. Contributors changing the CLI itself can still build from
+this repository:
 
 ```bash
 npm install
@@ -146,7 +147,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 CLI phases 0 through 10 and Phases 12 through 14 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, client-mediated adversarial review, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
-The CLI is packaged as one publicly downloadable `marucheck` artifact while its internal `@maru/*` workspaces remain private. MaruCheck is proprietary software; public npm availability does not grant permission to redistribute, resell, modify, or offer it as a hosted service. Versions `0.1.0` and `0.2.0` established the package and hosted upload flow; version `0.2.2` is staged for manual publication because automated trusted publishing is not configured on npm yet. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+The CLI is packaged as one publicly downloadable `marucheck` artifact while its internal `@maru/*` workspaces remain private. MaruCheck is proprietary software; public npm availability does not grant permission to redistribute, resell, modify, or offer it as a hosted service. Versions `0.1.0`, `0.2.0`, and `0.2.2` are published; automated trusted publishing is not configured on npm yet. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
 
 Known Phase 1 limitations:
 

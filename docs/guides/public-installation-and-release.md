@@ -6,27 +6,21 @@ npm package that already owns the name `maru`.
 
 ## Install and run
 
-Run once without changing the project dependency list:
+Run the current release once without changing the project dependency list:
 
 ```bash
-npx marucheck init
-npx marucheck doctor
-npx marucheck risk --diff
-npx marucheck verify --diff
+npx --yes marucheck@0.2.2 init
+npx --yes marucheck@0.2.2 doctor
+npx --yes marucheck@0.2.2 risk --diff
+npx --yes marucheck@0.2.2 verify --diff
 ```
 
-For frequent interactive use:
+For regular project, team, or CI use, pin the exact release:
 
 ```bash
-npm install --global marucheck
-maru --version
-maru init
-```
-
-For reproducible CI, pin MaruCheck in the target repository and use the installed binary:
-
-```bash
-npm install --save-dev --save-exact marucheck
+npm install --save-dev --save-exact marucheck@0.2.2
+npx --no-install maru --version
+npx --no-install maru init
 npx --no-install maru ci init
 npx --no-install maru ci verify
 ```
@@ -58,11 +52,11 @@ consumer directory, checks `--version`, and only then publishes.
 
 ## Publication status
 
-Versions `0.1.0` and `0.2.0` were published manually on 2026-08-21 and established npm package
-ownership plus explicit hosted report upload. Version `0.2.2` is staged to ignore reproducible
-`.maru/generated/` state and keep draft contract policies advisory by default. The tag-triggered
-workflow is committed, but npm trusted publishing has not been configured yet. Until that one-time
-configuration is complete, future releases remain explicit manual owner actions.
+Versions `0.1.0`, `0.2.0`, and `0.2.2` were published manually on 2026-08-21. Version `0.2.0`
+introduced explicit hosted report upload. Version `0.2.2` added generated-state hygiene and kept
+draft contract policies advisory by default. The tag-triggered workflow is committed, but npm
+trusted publishing has not been configured yet. Until that one-time configuration is complete,
+future releases remain explicit manual owner actions.
 
 ## Manual release while automation is disabled
 

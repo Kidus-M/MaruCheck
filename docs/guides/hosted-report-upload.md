@@ -16,6 +16,10 @@ MARUCHECK_URL=https://your-marucheck-host
 MARUCHECK_TOKEN=maru_your_project_token
 ```
 
+The public tester deployment is [maru-check.vercel.app](https://maru-check.vercel.app/). The
+project-scoped token selects the upload destination; the local report project name does not need to
+match the dashboard display name.
+
 MaruCheck refuses to load credentials from a file Git does not report as ignored. CI can provide
 the same names through its encrypted secret store instead.
 
@@ -45,6 +49,9 @@ does not read or upload source files, artifact file contents, or repository secr
 - `HOSTED_REPORT_INVALID`: generate a new schema version 1 report with `maru verify --diff`.
 - `HOSTED_GIT_METADATA_FAILED`: run from a committed, readable Git repository.
 - `HOSTED_REQUEST_FAILED`: inspect the HTTP status and token lifecycle, then retry the same report.
+
+An HTTP `409` means the same run ID was already stored with different content. Run verification
+again to create a new run instead of changing an existing run envelope.
 
 The host upserts by token-bound project and run ID, so retrying after a timeout does not create an
 unrelated duplicate run.
