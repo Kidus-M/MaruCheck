@@ -1,9 +1,35 @@
 {
-  "name": "marucheck-cli-workspace",
+  "name": "marucheck",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
   "type": "module",
+  "bin": {
+    "maru": "./dist/maru.js"
+  },
+  "files": [
+    "dist/maru.js"
+  ],
+  "keywords": [
+    "ai",
+    "cli",
+    "developer-tools",
+    "mcp",
+    "qa",
+    "testing",
+    "verification"
+  ],
+  "homepage": "https://github.com/Kidus-M/MaruCheck#readme",
+  "bugs": {
+    "url": "https://github.com/Kidus-M/MaruCheck/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kidus-M/MaruCheck.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24",
     "npm": ">=11"
@@ -12,13 +38,17 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && npm run build:bundle",
+    "build:bundle": "node scripts/build-public-package.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "clean": "tsc -b --clean",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "maru": "node packages/cli/dist/index.js",
+    "package:smoke": "node scripts/verify-public-package.mjs",
+    "prepublishOnly": "npm run release:check",
+    "release:check": "npm run check && npm run package:smoke",
     "test": "vitest run --configLoader native --pool=threads",
     "test:acceptance:broken-subscription": "npm run build && node scripts/verify-broken-subscription.mjs",
     "test:acceptance:invoice-memory": "npm run build && node scripts/verify-invoice-memory.mjs",
@@ -30,6 +60,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.8.1",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
