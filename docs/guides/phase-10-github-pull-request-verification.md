@@ -11,14 +11,21 @@ The target repository must have:
 - MaruCheck initialized with `maru init`;
 - reviewed Quality Contracts and the local test tools used by its verification plan.
 
-During workspace development, build or link the sibling `maru-cli` package as documented in the repository quick start. The generated workflow intentionally uses `npx --no-install`: GitHub installs exactly what the repository lockfile declares and never downloads an unreviewed CLI release during verification.
+Install the published package at an exact version before generating the workflow:
+
+```bash
+npm install --save-dev --save-exact marucheck@0.1.0
+```
+
+The generated workflow intentionally uses `npx --no-install`: GitHub installs exactly what the
+repository lockfile declares and never downloads an unreviewed CLI release during verification.
 
 ## Install the workflow
 
 From the target repository root:
 
 ```bash
-maru ci init
+npx --no-install maru ci init
 ```
 
 This creates `.github/workflows/marucheck.yml`. Running the command again is safe when the generated content is unchanged. If that path contains custom content, MaruCheck refuses to overwrite it and asks you to merge the steps manually.

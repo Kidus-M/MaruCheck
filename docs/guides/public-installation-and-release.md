@@ -1,8 +1,8 @@
 # Public CLI installation and release
 
-MaruCheck is distributed as the public, unscoped npm package `marucheck`. The installed executable
-is `maru`, preserving the product's command contract without depending on the unrelated npm package
-that already owns the name `maru`.
+MaruCheck `0.1.0` is distributed as the public, unscoped npm package `marucheck`. The installed
+executable is `maru`, preserving the product's command contract without depending on the unrelated
+npm package that already owns the name `maru`.
 
 ## Install and run
 
@@ -56,26 +56,35 @@ package.json 0.1.0 <-> Git tag v0.1.0
 The `Publish CLI` GitHub workflow runs all checks, creates the tarball, installs it into an empty
 consumer directory, checks `--version`, and only then publishes.
 
-## First publication
+## Publication status
 
-The first `marucheck` publication must establish package ownership on npm:
+Version `0.1.0` was published manually on 2026-08-21 and established npm package ownership. The
+tag-triggered workflow is committed, but npm trusted publishing has not been configured yet. Until
+that one-time configuration is complete, future releases remain explicit manual owner actions.
 
-1. Create or sign into the npm account that will own MaruCheck and enable two-factor
-   authentication.
-2. Review the proprietary early-access license, whose copyright holder is Kidus Mesfin Teferi.
-   Obtain qualified legal review before distributing broadly or changing the commercial terms.
-3. From a clean, reviewed CLI checkout, run `npm run release:check` and inspect the tarball
-   manifest.
-4. Run `npm publish` interactively and complete npm's authentication/2FA prompt.
-5. On the new `marucheck` package's npm settings, add a GitHub Actions trusted publisher:
+## Manual release while automation is disabled
+
+1. Update the root package and CLI source versions together; never reuse a published version.
+2. From a clean, reviewed checkout, run `npm run release:check` and inspect the tarball manifest.
+3. Run `npm publish` interactively and complete npm authentication and two-factor verification.
+4. Verify the exact release with `npx --yes marucheck@<version> --version`.
+5. Do not push its matching `v<version>` tag while trusted publishing is disabled; that tag would
+   trigger a workflow that cannot authenticate.
+
+## Enable automatic releases later
+
+On the `marucheck` package's npm settings, add a GitHub Actions trusted publisher:
+
    - owner: `Kidus-M`;
    - repository: `MaruCheck`;
    - workflow: `publish.yml`;
    - environment: `production`;
    - allowed action: `npm publish`.
-6. Add required reviewers to the GitHub `production` environment and protect version tags.
 
-After that bootstrap, update the version, merge it, and push the matching `vX.Y.Z` tag. GitHub uses
+Then add required reviewers to the GitHub `production` environment and protect version tags. After
+one successful automated release, restrict traditional token-based publishing in npm.
+
+After that setup, update the version, merge it, and push the matching `vX.Y.Z` tag. GitHub uses
 short-lived OIDC credentials; no long-lived `NPM_TOKEN` is stored in the repository.
 
 ## Rollback and correction

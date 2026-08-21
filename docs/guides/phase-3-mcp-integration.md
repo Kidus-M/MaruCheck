@@ -1,18 +1,23 @@
 # Phase 3: MCP integration
 
-MaruCheck runs as a local Model Context Protocol server over newline-delimited stdio. Build it once, then configure the coding agent to start it with the target project's directory as its working directory.
+MaruCheck runs as a local Model Context Protocol server over newline-delimited stdio. Configure the
+coding agent to start the published package with the target project's directory as its working
+directory:
 
-```powershell
-cd C:\path\to\MaruCheck\maru-cli
-npm install
-npm run build
+```bash
+npx --yes marucheck@0.1.0 mcp
 ```
 
-The server command is:
+For reproducible team use, install the exact package in the target project and prevent implicit
+downloads:
 
-```powershell
-node C:\path\to\MaruCheck\maru-cli\packages\cli\dist\index.js mcp
+```bash
+npm install --save-dev --save-exact marucheck@0.1.0
+npx --no-install maru mcp
 ```
+
+Contributors changing MaruCheck itself may still run the source build with
+`node /path/to/maru-cli/packages/cli/dist/index.js mcp`.
 
 The process writes only valid JSON-RPC messages to stdout. Close its stdin to stop it.
 
@@ -43,22 +48,24 @@ Project context returns totals plus at most 100 source, route, test, dependency,
 
 ## Codex
 
-Codex can store MCP settings in the user configuration or a trusted project's `.codex/config.toml`. The sibling `maru-web` repository already includes this portable project-scoped configuration:
+Codex can store MCP settings in the user configuration or a trusted project's `.codex/config.toml`.
+The sibling `maru-web` repository includes this portable project-scoped configuration:
 
 ```toml
 [mcp_servers.maru]
-command = "node"
-args = ["../maru-cli/packages/cli/dist/index.js", "mcp"]
+command = "npx"
+args = ["--yes", "marucheck@0.1.0", "mcp"]
 required = false
 default_tools_approval_mode = "writes"
 ```
 
-The relative path works on Windows, macOS, and Linux when `maru-cli` and `maru-web` are sibling folders. `required = false` means Codex still opens normally when a contributor has only cloned the web repository or has not built the CLI yet. The MCP tools become available after the CLI is installed and built.
+`required = false` means Codex still opens normally if the package cannot start. For an exact
+project dependency, replace the arguments with `["--no-install", "maru", "mcp"]`.
 
-For a different folder layout, add the server to your user configuration with an absolute path, or run this while inside the target project and adjust the path:
+Alternatively, add the published server while inside the target project:
 
 ```powershell
-codex mcp add maru -- node ..\maru-cli\packages\cli\dist\index.js mcp
+codex mcp add maru -- npx --yes marucheck@0.1.0 mcp
 codex mcp list
 ```
 
@@ -71,7 +78,7 @@ This file is only a Codex convenience. The `maru mcp` process uses standard MCP 
 From the target project, add a project-scoped stdio server:
 
 ```powershell
-claude mcp add maru --scope project -- node ..\maru-cli\packages\cli\dist\index.js mcp
+claude mcp add maru --scope project -- npx --yes marucheck@0.1.0 mcp
 claude mcp list
 ```
 
@@ -79,20 +86,23 @@ Claude Code writes shared project configuration to `.mcp.json` and asks for appr
 
 ## Cursor
 
-Add `.cursor/mcp.json` to the target project, replacing the executable path with the absolute local path:
+Add `.cursor/mcp.json` to the target project:
 
 ```json
 {
   "mcpServers": {
     "maru": {
-      "command": "node",
-      "args": ["C:\\path\\to\\MaruCheck\\maru-cli\\packages\\cli\\dist\\index.js", "mcp"]
+      "command": "npx",
+      "args": ["--yes", "marucheck@0.1.0", "mcp"]
     }
   }
 }
 ```
 
 Restart Cursor and enable `maru` in MCP settings.
+
+If a client cannot spawn `npx` on Windows, configure `npx.cmd` as the command. The MCP process must
+run with the repository being verified as its working directory.
 
 ## Recommended agent workflow
 
