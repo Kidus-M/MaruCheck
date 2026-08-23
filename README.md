@@ -7,7 +7,8 @@
 
 MaruCheck is the independent QA and verification layer for AI-generated software. This repository owns the local-first `maru` CLI, verification libraries, Git analysis, Quality Contract support, and MCP server.
 
-The hosted Next.js application is maintained separately in the sibling `maru-web` repository so the CLI and cloud product can release independently.
+The hosted Next.js application at [marucheck.dev](https://marucheck.dev) is maintained separately
+in the sibling `maru-web` repository so the CLI and cloud product can release independently.
 
 MaruCheck is open source under the [MIT License](LICENSE). Browse the
 [releases](https://github.com/Kidus-M/MaruCheck/releases), install the canonical

@@ -12,13 +12,14 @@ Verification and source execution remain in the developer repository or its CI r
    `generated/`, `artifacts/`, and `connection.env` rules.
 
 ```dotenv
-MARUCHECK_URL=https://your-marucheck-host
+MARUCHECK_URL=https://marucheck.dev
 MARUCHECK_TOKEN=maru_your_project_token
 ```
 
-The public tester deployment is [maru-check.vercel.app](https://maru-check.vercel.app/). The
-project-scoped token selects the upload destination; the local report project name does not need to
-match the dashboard display name.
+The canonical public deployment is [marucheck.dev](https://marucheck.dev). Existing connection
+files that use the generated Vercel hostname should replace `MARUCHECK_URL` with
+`https://marucheck.dev`. The project-scoped token selects the upload destination; the local report
+project name does not need to match the dashboard display name.
 
 MaruCheck refuses to load credentials from a file Git does not report as ignored. CI can provide
 the same names through its encrypted secret store instead.

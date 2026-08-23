@@ -171,7 +171,7 @@ Verification commands:
   maru verify --diff
 
 Hosted report commands:
-  maru upload [--report <report.json>] [--url https://your-marucheck-host]
+  maru upload [--report <report.json>] [--url https://marucheck.dev]
 
 Mutation commands:
   maru mutate --diff [--max 20]
@@ -703,7 +703,7 @@ export async function runCli(
       const uploadOptions = hostedUploadOptions(args.slice(1));
       if (uploadOptions === undefined) {
         output.error(
-          "Invalid upload command.\nRun maru upload [--report <report.json>] [--url https://your-marucheck-host].",
+          "Invalid upload command.\nRun maru upload [--report <report.json>] [--url https://marucheck.dev].",
         );
         return 1;
       }
