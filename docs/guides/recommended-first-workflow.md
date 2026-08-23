@@ -15,7 +15,7 @@ Run every command from that repository's root.
 ## 1. Pin the current release
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.2.2
+npm install --save-dev --save-exact marucheck@0.3.0
 npx --no-install maru --version
 npx --no-install maru init
 ```

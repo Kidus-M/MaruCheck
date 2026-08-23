@@ -1,29 +1,41 @@
 # MaruCheck CLI
 
+[![npm version](https://img.shields.io/npm/v/marucheck.svg)](https://www.npmjs.com/package/marucheck)
+[![GitHub release](https://img.shields.io/github/v/release/Kidus-M/MaruCheck)](https://github.com/Kidus-M/MaruCheck/releases)
+[![CI](https://github.com/Kidus-M/MaruCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Kidus-M/MaruCheck/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6678e8.svg)](LICENSE)
+
 MaruCheck is the independent QA and verification layer for AI-generated software. This repository owns the local-first `maru` CLI, verification libraries, Git analysis, Quality Contract support, and MCP server.
 
 The hosted Next.js application is maintained separately in the sibling `maru-web` repository so the CLI and cloud product can release independently.
+
+MaruCheck is open source under the [MIT License](LICENSE). Browse the
+[releases](https://github.com/Kidus-M/MaruCheck/releases), install the canonical
+[npm package](https://www.npmjs.com/package/marucheck), report a problem in
+[Issues](https://github.com/Kidus-M/MaruCheck/issues), or read [CONTRIBUTING.md](CONTRIBUTING.md)
+before proposing a change.
 
 ## Install
 
 Requirements: Node.js 24 LTS and npm 11 or newer.
 
 ```bash
-npx --yes marucheck@0.2.2 init
-npx --yes marucheck@0.2.2 doctor
-npx --yes marucheck@0.2.2 verify --diff
+npx --yes marucheck@0.3.0 init
+npx --yes marucheck@0.3.0 doctor
+npx --yes marucheck@0.3.0 verify --diff
 ```
 
 For regular project or team use, pin the exact public package and prevent implicit downloads:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.2.2
+npm install --save-dev --save-exact marucheck@0.3.0
 npx --no-install maru --help
 ```
 
 Version `0.1.0` established the public npm package. Version `0.2.0` added explicit hosted report
 upload. Version `0.2.2` keeps reproducible `.maru/generated/` state out of normal Git changes and
-prevents draft contract policies from independently blocking releases. See the
+prevents draft contract policies from independently blocking releases. Version `0.3.0` is the
+first MIT-licensed open-source release. See the
 [recommended first workflow](docs/guides/recommended-first-workflow.md) before adding hosted
 reporting, MCP, or a required CI gate. Contributors changing the CLI itself can still build from
 this repository:
@@ -147,7 +159,7 @@ See [repository architecture](docs/architecture/repository-boundaries.md) and [A
 
 CLI phases 0 through 10 and Phases 12 through 14 are implemented. The local CLI supports repository discovery, Quality Contract lifecycle management, MCP coding-agent integration, Git diff metadata, deterministic risk scoring, requirement-linked verification planning, local test/security/accessibility execution, isolated mutation verification, client-mediated adversarial review, evidence/findings reports, semantic drift protection, historical QA memory, and workflow-native GitHub pull-request verification.
 
-The CLI is packaged as one publicly downloadable `marucheck` artifact while its internal `@maru/*` workspaces remain private. MaruCheck is proprietary software; public npm availability does not grant permission to redistribute, resell, modify, or offer it as a hosted service. Versions `0.1.0`, `0.2.0`, and `0.2.2` are published; automated trusted publishing is not configured on npm yet. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
+The CLI is packaged as one public `marucheck` artifact while its internal `@maru/*` workspaces remain non-publishable implementation packages. The complete repository is available under MIT, including the CLI, verification libraries, MCP server, documentation, and examples. Versions `0.1.0`, `0.2.0`, and `0.2.2` were published before the open-source transition; `0.3.0` is the first package release that carries the MIT license. The Challenger reuses a fresh context in the user’s existing AI client, so MaruCheck needs no additional model provider, API key, or outbound request. Deterministic and existing-test workflows remain fully usable without AI or a cloud account.
 
 Known Phase 1 limitations:
 
@@ -237,4 +249,11 @@ See the [Phase 14 Challenger guide](docs/guides/phase-14-challenger-agent.md) an
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Issues and focused pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making
+a substantial change.
+
+## License
+
+MaruCheck is open source under the [MIT License](LICENSE). `0.3.0` is the first npm release whose
+published artifact carries that license; previously published npm versions retain the license
+embedded in their immutable tarballs.

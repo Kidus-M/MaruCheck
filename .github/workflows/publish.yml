@@ -1,4 +1,4 @@
-name: Publish CLI
+name: Release CLI
 
 on:
   push:
@@ -6,15 +6,15 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
   cancel-in-progress: false
-  group: npm-publish-${{ github.ref }}
+  group: cli-release-${{ github.ref }}
 
 jobs:
-  publish:
+  release:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -56,5 +56,37 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/marucheck-consumer" --ignore-scripts --no-audit --no-fund "./${{ steps.package.outputs.archive }}"
           node "$RUNNER_TEMP/marucheck-consumer/node_modules/marucheck/dist/maru.cjs" --version
 
+      - name: Check whether npm version already exists
+        id: registry
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "marucheck@$version" version --silent > /dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "marucheck@$version is already present on npm; keeping the immutable version."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish public package with provenance
-        run: npm publish --ignore-scripts
+        if: steps.registry.outputs.publish == 'true'
+        run: npm publish --ignore-scripts --provenance --access public
+
+      - name: Create package checksum
+        shell: bash
+        run: sha256sum "${{ steps.package.outputs.archive }}" > "${{ steps.package.outputs.archive }}.sha256"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          archive="${{ steps.package.outputs.archive }}"
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$archive" "$archive.sha256" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$archive" "$archive.sha256" \
+              --generate-notes \
+              --latest \
+              --title "MaruCheck CLI $GITHUB_REF_NAME"
+          fi

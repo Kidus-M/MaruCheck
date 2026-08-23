@@ -1,9 +1,9 @@
 {
   "name": "marucheck",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "maru": "./dist/maru.cjs"

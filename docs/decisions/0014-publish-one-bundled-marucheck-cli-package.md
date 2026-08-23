@@ -4,6 +4,9 @@
 
 Accepted
 
+The licensing and release-channel details in this decision are superseded by
+[ADR-017](0017-open-source-marucheck-under-mit.md). The single-package architecture remains active.
+
 ## Date
 
 2026-08-21

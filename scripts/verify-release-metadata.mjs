@@ -5,13 +5,13 @@ const packageMetadata = JSON.parse(await readFile(new URL("../package.json", imp
 const license = await readFile(new URL("../LICENSE", import.meta.url), "utf8");
 const errors = [];
 
-if (packageMetadata.license !== "SEE LICENSE IN LICENSE") {
-  errors.push('package.json license must be "SEE LICENSE IN LICENSE".');
+if (packageMetadata.license !== "MIT") {
+  errors.push('package.json license must be "MIT".');
 }
-if (!license.includes("MaruCheck Proprietary License")) {
-  errors.push("LICENSE must contain the MaruCheck Proprietary License.");
+if (!license.startsWith("MIT License\n")) {
+  errors.push("LICENSE must contain the standard MIT License.");
 }
-if (!license.includes("Copyright (c) 2026 Kidus Mesfin Teferi.")) {
+if (!license.includes("Copyright (c) 2026 Kidus Mesfin Teferi")) {
   errors.push("LICENSE must identify Kidus Mesfin Teferi as the copyright holder.");
 }
 if (packageMetadata.repository?.url !== "git+https://github.com/Kidus-M/MaruCheck.git") {
