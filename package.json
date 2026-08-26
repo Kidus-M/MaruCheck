@@ -44,6 +44,7 @@
     "build:bundle": "esbuild packages/cli/src/index.ts --bundle --platform=node --format=cjs --target=node24 --external:typescript --legal-comments=eof --banner:js=\"// MaruCheck CLI - https://github.com/Kidus-M/MaruCheck\" --outfile=dist/maru.cjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "clean": "tsc -b --clean",
+    "example": "node examples/quota-app/run.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

@@ -4,11 +4,7 @@
  * change touches usage or quota behavior.
  */
 import { describe, expect, it } from "vitest";
-import {
-  FREE_MONTHLY_GENERATION_LIMIT,
-  checkGenerationQuota,
-  resolvePlan,
-} from "../src/quota.js";
+import { FREE_MONTHLY_GENERATION_LIMIT, checkGenerationQuota, resolvePlan } from "../src/quota.js";
 
 describe("usage-quota#QUOTA-001", () => {
   it("caps the free plan at ten generations per month", () => {

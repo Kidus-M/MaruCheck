@@ -13,7 +13,11 @@ describe("generation quota", () => {
   });
 
   it("denies a free user who has spent the monthly limit", () => {
-    const decision = checkGenerationQuota(free, { userId: "user-1" }, FREE_MONTHLY_GENERATION_LIMIT);
+    const decision = checkGenerationQuota(
+      free,
+      { userId: "user-1" },
+      FREE_MONTHLY_GENERATION_LIMIT,
+    );
 
     expect(decision.allowed).toBe(false);
     expect(decision.remaining).toBe(0);

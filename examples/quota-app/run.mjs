@@ -4,39 +4,49 @@
  *
  * The fixture lives in this directory, but MaruCheck reads a Git working tree, so
  * the runner copies the fixture into a throwaway workspace, commits the approved
- * baseline there, applies the agent's change on top, and then verifies it.
+ * baseline there, applies the agent's change on top, and verifies the result.
  *
- *   node run.mjs                 # full run, installs vitest in the workspace
- *   node run.mjs --skip-install  # reuse an existing workspace install
- *   node run.mjs --dir <path>    # choose the workspace location
+ *   node run.mjs                # full run (installs vitest on first use)
+ *   node run.mjs --dir <path>   # put the workspace somewhere else
+ *   node run.mjs --clean        # delete the workspace and exit
  */
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const FIXTURE_ENTRIES = [
+  "src",
+  "tests",
+  "contracts",
+  "package.json",
+  "observations.json",
+  "vitest.config.mjs",
+];
 
 const example = dirname(fileURLToPath(import.meta.url));
 const cliRepository = resolve(example, "..", "..");
 const bundledCli = join(cliRepository, "dist", "maru.cjs");
 
 const argv = process.argv.slice(2);
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const flag = (name) => argv.includes(name);
-const value = (name, fallback) => {
+const option = (name, fallback) => {
   const index = argv.indexOf(name);
   return index === -1 || argv[index + 1] === undefined ? fallback : argv[index + 1];
 };
 
-const workspace = resolve(example, value("--dir", ".workspace"));
-const skipInstall = flag("--skip-install");
-const keep = flag("--keep");
-
+const workspace = resolve(example, option("--dir", ".workspace"));
+const windows = process.platform === "win32";
+const npm = windows ? "npm.cmd" : "npm";
 const maru = existsSync(bundledCli)
-  ? { command: process.execPath, args: [bundledCli] }
-  : {
-      command: process.platform === "win32" ? "npx.cmd" : "npx",
-      args: ["--yes", "marucheck@0.3.0"],
-    };
+  ? { args: [bundledCli], command: process.execPath }
+  : { args: ["--yes", "marucheck@0.3.0"], command: windows ? "npx.cmd" : "npx" };
+
+if (flag("--clean")) {
+  rmSync(workspace, { force: true, maxRetries: 10, recursive: true, retryDelay: 200 });
+  console.log(`Removed ${workspace}`);
+  process.exit(0);
+}
 
 let step = 0;
 function heading(text) {
@@ -44,22 +54,17 @@ function heading(text) {
   process.stdout.write(`\n\u001B[1m${step}. ${text}\u001B[0m\n`);
 }
 
-function run(command, args, { allowFailure = false, quiet = false, shell = false } = {}) {
-  const result = spawnSync(command, args, {
-    cwd: workspace,
-    encoding: "utf8",
-    shell,
-    stdio: quiet ? "pipe" : "inherit",
-  });
+function run(command, args, { allowFailure = false, shell = false } = {}) {
+  const result = spawnSync(command, args, { cwd: workspace, encoding: "utf8", shell });
   if (result.error) throw result.error;
+  process.stdout.write(`${result.stdout ?? ""}`);
+  if (result.stderr) process.stderr.write(result.stderr);
   if (!allowFailure && result.status !== 0) {
-    if (quiet) process.stdout.write(`${result.stdout ?? ""}${result.stderr ?? ""}`);
-    throw new Error(`${command} ${args.join(" ")} exited with ${result.status}.`);
+    throw new Error(`${command} ${args.join(" ")} exited with ${String(result.status)}.`);
   }
   return result;
 }
 
-const windows = process.platform === "win32";
 const runNpm = (args, options) => run(npm, args, { ...options, shell: windows });
 const runMaru = (args, options) =>
   run(maru.command, [...maru.args, ...args], {
@@ -67,11 +72,11 @@ const runMaru = (args, options) =>
     shell: windows && maru.command !== process.execPath,
   });
 
-heading("Create a throwaway workspace");
-if (!skipInstall || !existsSync(workspace)) rmSync(workspace, { force: true, recursive: true });
+heading("Create the example workspace");
 mkdirSync(workspace, { recursive: true });
-for (const entry of ["src", "tests", "contracts", "package.json", "observations.json"]) {
-  cpSync(join(example, entry), join(workspace, entry), { force: true, recursive: true });
+for (const entry of FIXTURE_ENTRIES) {
+  rmSync(join(workspace, entry), { force: true, recursive: true });
+  cpSync(join(example, entry), join(workspace, entry), { recursive: true });
 }
 writeFileSync(join(workspace, ".gitignore"), "node_modules/\n", "utf8");
 console.log(workspace);
@@ -87,30 +92,35 @@ run("git", ["add", "--all"]);
 run("git", ["commit", "--quiet", "--message", "Add the metered generation endpoint"], {
   allowFailure: true,
 });
+console.log("Committed the behavior the contract describes.");
 
-if (!skipInstall) {
+if (!existsSync(join(workspace, "node_modules", "vitest"))) {
   heading("Install the example's test runner");
   runNpm(["install", "--no-audit", "--no-fund", "--loglevel=error"]);
 }
 
 heading("Initialize MaruCheck and approve the Quality Contract");
 runMaru(["init"]);
-cpSync(join(example, "contracts", "usage-quota.yml"), join(workspace, ".maru", "contracts", "usage-quota.yml"));
+const contractPath = join(workspace, ".maru", "contracts", "usage-quota.yml");
+if (!existsSync(contractPath)) {
+  cpSync(join(example, "contracts", "usage-quota.yml"), contractPath);
+}
 runMaru(["contract", "validate"]);
-runMaru(["contract", "approve", "usage-quota", "--by", "product-owner@example.com"]);
+if (readFileSync(contractPath, "utf8").includes("status: approved")) {
+  console.log("Contract usage-quota is already approved in this workspace.");
+} else {
+  runMaru(["contract", "approve", "usage-quota", "--by", "product-owner@example.com"]);
+}
 run("git", ["add", "--all"]);
 run("git", ["commit", "--quiet", "--message", "Approve the usage-quota contract"], {
   allowFailure: true,
 });
 
 heading("Apply the change an AI agent proposed");
-cpSync(join(example, "agent-change", "src"), join(workspace, "src"), {
-  force: true,
-  recursive: true,
-});
+cpSync(join(example, "agent-change", "src"), join(workspace, "src"), { recursive: true });
 run("git", ["--no-pager", "diff", "--stat"]);
 
-heading("Run the suite the agent maintains");
+heading("Run the test suite the agent maintains");
 const agentSuite = runNpm(["test", "--silent"], { allowFailure: true });
 console.log(
   agentSuite.status === 0
@@ -124,16 +134,15 @@ runMaru(["risk", "--diff"], { allowFailure: true });
 heading("Verify the change against the approved contract");
 const verification = runMaru(["verify", "--diff"], { allowFailure: true });
 
-heading("Check observed behavior against protected contract meaning");
+heading("Compare observed behavior with protected contract meaning");
 const drift = runMaru(["drift", "check", "--from", "observations.json"], { allowFailure: true });
 
-const blocked = verification.status !== 0 && drift.status !== 0;
+const blocked = agentSuite.status === 0 && verification.status !== 0 && drift.status !== 0;
 process.stdout.write(
   blocked
-    ? "\n\u001B[31mBLOCKED\u001B[0m by the approved contract while the agent's suite is green.\n"
-    : `\n\u001B[33mUnexpected result:\u001B[0m verify exited ${verification.status}, drift exited ${drift.status}.\n`,
+    ? "\n\u001B[31mBLOCKED\u001B[0m by the approved contract while the agent's own suite stayed green.\n"
+    : `\n\u001B[33mUnexpected result:\u001B[0m tests exited ${String(agentSuite.status)}, verify exited ${String(verification.status)}, drift exited ${String(drift.status)}.\n`,
 );
 console.log(`Evidence: ${join(workspace, ".maru")}`);
-if (!keep) console.log("Delete the workspace with: node run.mjs --clean");
-if (flag("--clean")) rmSync(workspace, { force: true, recursive: true });
+console.log("Remove the workspace with: node run.mjs --clean");
 process.exitCode = blocked ? 0 : 1;
