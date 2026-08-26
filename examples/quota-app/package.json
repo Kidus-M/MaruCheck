@@ -1,0 +1,15 @@
+{
+  "name": "marucheck-example-quota-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runnable MaruCheck example: an AI change that keeps the test suite green while breaking an approved Quality Contract",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run src",
+    "test:contract": "vitest run tests"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}
