@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 590" width="760" height="590" role="img" aria-label="MaruCheck blocks an AI change that keeps the test suite green">
+  <title>maru verify --diff blocks a green-but-wrong AI change</title>
+  <style>
+    text{font-family:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:13.5px;white-space:pre;}
+    .l0{animation:a0 14.35s steps(73,end) infinite;}@keyframes a0{0%,4.181%{clip-path:inset(0 100% 0 0)}5.017%,100%{clip-path:inset(0 0 0 0)}}
+    .l1{animation:a1 14.35s steps(17,end) infinite;}@keyframes a1{0%,7.666%{clip-path:inset(0 100% 0 0)}8.502%,100%{clip-path:inset(0 0 0 0)}}
+    .l2{animation:a2 14.35s steps(31,end) infinite;}@keyframes a2{0%,10.453%{clip-path:inset(0 100% 0 0)}11.289%,100%{clip-path:inset(0 0 0 0)}}
+    .l3{animation:a3 14.35s steps(39,end) infinite;}@keyframes a3{0%,10.801%{clip-path:inset(0 100% 0 0)}11.638%,100%{clip-path:inset(0 0 0 0)}}
+    .l4{animation:a4 14.35s steps(10,end) infinite;}@keyframes a4{0%,14.983%{clip-path:inset(0 100% 0 0)}15.819%,100%{clip-path:inset(0 0 0 0)}}
+    .l5{animation:a5 14.35s steps(25,end) infinite;}@keyframes a5{0%,20.557%{clip-path:inset(0 100% 0 0)}21.394%,100%{clip-path:inset(0 0 0 0)}}
+    .l6{animation:a6 14.35s steps(25,end) infinite;}@keyframes a6{0%,20.906%{clip-path:inset(0 100% 0 0)}21.742%,100%{clip-path:inset(0 0 0 0)}}
+    .l7{animation:a7 14.35s steps(76,end) infinite;}@keyframes a7{0%,24.39%{clip-path:inset(0 100% 0 0)}25.226%,100%{clip-path:inset(0 0 0 0)}}
+    .l8{animation:a8 14.35s steps(20,end) infinite;}@keyframes a8{0%,32.753%{clip-path:inset(0 100% 0 0)}33.589%,100%{clip-path:inset(0 0 0 0)}}
+    .l9{animation:a9 14.35s steps(57,end) infinite;}@keyframes a9{0%,39.721%{clip-path:inset(0 100% 0 0)}40.557%,100%{clip-path:inset(0 0 0 0)}}
+    .l10{animation:a10 14.35s steps(26,end) infinite;}@keyframes a10{0%,41.812%{clip-path:inset(0 100% 0 0)}42.648%,100%{clip-path:inset(0 0 0 0)}}
+    .l11{animation:a11 14.35s steps(24,end) infinite;}@keyframes a11{0%,43.206%{clip-path:inset(0 100% 0 0)}44.042%,100%{clip-path:inset(0 0 0 0)}}
+    .l12{animation:a12 14.35s steps(46,end) infinite;}@keyframes a12{0%,46.69%{clip-path:inset(0 100% 0 0)}47.526%,100%{clip-path:inset(0 0 0 0)}}
+    .l13{animation:a13 14.35s steps(73,end) infinite;}@keyframes a13{0%,48.084%{clip-path:inset(0 100% 0 0)}48.92%,100%{clip-path:inset(0 0 0 0)}}
+    .l14{animation:a14 14.35s steps(27,end) infinite;}@keyframes a14{0%,48.78%{clip-path:inset(0 100% 0 0)}49.617%,100%{clip-path:inset(0 0 0 0)}}
+    .l15{animation:a15 14.35s steps(50,end) infinite;}@keyframes a15{0%,51.568%{clip-path:inset(0 100% 0 0)}52.404%,100%{clip-path:inset(0 0 0 0)}}
+    .l16{animation:a16 14.35s steps(74,end) infinite;}@keyframes a16{0%,52.962%{clip-path:inset(0 100% 0 0)}53.798%,100%{clip-path:inset(0 0 0 0)}}
+    .l17{animation:a17 14.35s steps(56,end) infinite;}@keyframes a17{0%,53.659%{clip-path:inset(0 100% 0 0)}54.495%,100%{clip-path:inset(0 0 0 0)}}
+    .l18{animation:a18 14.35s steps(43,end) infinite;}@keyframes a18{0%,62.021%{clip-path:inset(0 100% 0 0)}62.857%,100%{clip-path:inset(0 0 0 0)}}
+    .l19{animation:a19 14.35s steps(51,end) infinite;}@keyframes a19{0%,68.293%{clip-path:inset(0 100% 0 0)}69.129%,100%{clip-path:inset(0 0 0 0)}}
+    .l20{animation:a20 14.35s steps(23,end) infinite;}@keyframes a20{0%,70.383%{clip-path:inset(0 100% 0 0)}71.22%,100%{clip-path:inset(0 0 0 0)}}
+    .l21{animation:a21 14.35s steps(53,end) infinite;}@keyframes a21{0%,71.429%{clip-path:inset(0 100% 0 0)}72.265%,100%{clip-path:inset(0 0 0 0)}}
+    .l22{animation:a22 14.35s steps(55,end) infinite;}@keyframes a22{0%,72.125%{clip-path:inset(0 100% 0 0)}72.962%,100%{clip-path:inset(0 0 0 0)}}
+    .l23{animation:a23 14.35s steps(68,end) infinite;}@keyframes a23{0%,77.7%{clip-path:inset(0 100% 0 0)}78.537%,100%{clip-path:inset(0 0 0 0)}}
+  </style>
+  <rect width="760" height="590" rx="10" fill="#15161A"/>
+  <rect width="760" height="34" rx="10" fill="#1E1F25"/>
+  <rect y="24" width="760" height="10" fill="#1E1F25"/>
+  <circle cx="24" cy="17" r="5" fill="#E8705E"/>
+  <circle cx="42" cy="17" r="5" fill="#D9A441"/>
+  <circle cx="60" cy="17" r="5" fill="#6FBF8B"/>
+  <text x="380" y="22" fill="#9A9A92" font-size="12" text-anchor="middle">examples/quota-app</text>
+  <text class="l0" x="26" y="74" fill="#7C7C74"># An agent was asked to fix “paying users are throttled after upgrading”.</text>
+  <text class="l1" x="26" y="95" fill="#8FAFC4">$ git diff --stat</text>
+  <text class="l2" x="26" y="116" fill="#D9D9D3"> src/quota.test.ts |  7 +++++--</text>
+  <text class="l3" x="26" y="137" fill="#D9D9D3"> src/quota.ts      | 15 +++++++++------</text>
+  <text class="l4" x="26" y="158" fill="#8FAFC4">$ npm test</text>
+  <text class="l5" x="26" y="179" fill="#6FBF8B"> Test Files  1 passed (1)</text>
+  <text class="l6" x="26" y="200" fill="#6FBF8B">      Tests  4 passed (4)</text>
+  <text class="l7" x="26" y="221" fill="#7C7C74"># Green. The suite the agent maintains agrees with the code the agent wrote.</text>
+  <text class="l8" x="26" y="242" fill="#8FAFC4">$ maru verify --diff</text>
+  <text class="l9" x="26" y="263" fill="#9A9A92">Risk: MODERATE (30/100)  ·  Related contract: usage-quota</text>
+  <text class="l10" x="26" y="284" fill="#E8705E">Verification gate: BLOCKED</text>
+  <text class="l11" x="26" y="305" fill="#D9D9D3">Findings: 5 (5 blocking)</text>
+  <text class="l12" x="26" y="326" fill="#E8705E">[HIGH] BLOCKING  QUOTA-001 verification failed</text>
+  <text class="l13" x="26" y="347" fill="#D9D9D3">  Expected: Free plan users may perform at most 10 generations per month.</text>
+  <text class="l14" x="26" y="368" fill="#D9D9D3">  Actual:   Received: "pro"</text>
+  <text class="l15" x="26" y="389" fill="#E8705E">[HIGH] BLOCKING  QUOTA-INV-001 verification failed</text>
+  <text class="l16" x="26" y="410" fill="#D9D9D3">  Expected: The plan tier must be read from the stored subscription record</text>
+  <text class="l17" x="26" y="431" fill="#D9D9D3">            and never from client-supplied request data.</text>
+  <text class="l18" x="26" y="452" fill="#8FAFC4">$ maru drift check --from observations.json</text>
+  <text class="l19" x="26" y="473" fill="#E8705E">Semantic drift: BLOCKED   Conflicts: 2 (2 blocking)</text>
+  <text class="l20" x="26" y="494" fill="#9A9A92">[usage-quota#QUOTA-001]</text>
+  <text class="l21" x="26" y="515" fill="#D9D9D3">  Contract: at most 10 generations per calendar month</text>
+  <text class="l22" x="26" y="536" fill="#D9A441">  Observed: at most 1000 generations per calendar month</text>
+  <text class="l23" x="26" y="557" fill="#7C7C74"># The tests moved. The contract did not. Approval stays human-owned.</text>
+</svg>
