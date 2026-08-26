@@ -1,0 +1,33 @@
+name: Feature or adapter request
+description: Something MaruCheck should be able to verify, or a workflow it should support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The verification problem
+      description: What can an AI-authored change get past today that it should not?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like MaruCheck to do
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints this proposal respects
+      description: |
+        MaruCheck stays local-first and human-approved. A proposal that breaks one of these is
+        still worth filing — say which one and why it is worth it.
+      options:
+        - label: Works without a cloud account or an API key
+        - label: Adds no outbound network request to a verification run
+        - label: Produces deterministic output for the same input
+        - label: Leaves contract approval with a human
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do about it today

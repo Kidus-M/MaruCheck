@@ -1,24 +1,83 @@
-# MaruCheck CLI
+# MaruCheck
 
 [![npm version](https://img.shields.io/npm/v/marucheck.svg)](https://www.npmjs.com/package/marucheck)
-[![GitHub release](https://img.shields.io/github/v/release/Kidus-M/MaruCheck)](https://github.com/Kidus-M/MaruCheck/releases)
+[![npm downloads](https://img.shields.io/npm/dw/marucheck.svg)](https://www.npmjs.com/package/marucheck)
 [![CI](https://github.com/Kidus-M/MaruCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Kidus-M/MaruCheck/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/node/v/marucheck.svg)](#why-node-24)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6678e8.svg)](LICENSE)
+[![MCP server](https://img.shields.io/badge/MCP-server-405768.svg)](docs/guides/phase-3-mcp-integration.md)
 
-MaruCheck is the independent QA and verification layer for AI-generated software. This repository owns the local-first `maru` CLI, verification libraries, Git analysis, Quality Contract support, and MCP server.
+**Test what your AI didn't.** MaruCheck verifies AI-written code against a specification the AI
+cannot edit. Local-first: no account, no model API key, and no code leaves your machine.
 
-The hosted Next.js application at [marucheck.dev](https://marucheck.dev) is maintained separately
-in the sibling `maru-web` repository so the CLI and cloud product can release independently.
+<p align="center">
+  <img src="docs/assets/demo.svg" alt="An AI change keeps the test suite green; maru verify --diff blocks it against the approved contract" width="760">
+</p>
 
-MaruCheck is open source under the [MIT License](LICENSE). Browse the
-[releases](https://github.com/Kidus-M/MaruCheck/releases), install the canonical
-[npm package](https://www.npmjs.com/package/marucheck), report a problem in
-[Issues](https://github.com/Kidus-M/MaruCheck/issues), or read [CONTRIBUTING.md](CONTRIBUTING.md)
-before proposing a change.
+## The failure this exists for
+
+An agent is asked to fix a bug report: _paying users are throttled right after upgrading._ It
+changes the quota code and updates the tests it owns.
+
+```diff
+  // src/quota.ts
+- export const FREE_MONTHLY_GENERATION_LIMIT = 10;
++ export const FREE_MONTHLY_GENERATION_LIMIT = 1000;
+
+- export function resolvePlan(subscription: StoredSubscription): PlanTier {
+-   return subscription.plan;
++ export function resolvePlan(subscription: StoredSubscription, request?: GenerationRequest): PlanTier {
++   return request?.claimedPlan ?? subscription.plan;
+  }
+
+  // src/quota.test.ts
+- it("resolves the plan from the stored subscription", () => {
++ it("honors the plan claimed by the client", () => {
+```
+
+The suite is green. The product is wrong: the free tier gives away a hundred times its quota, and
+the plan tier now comes from a value the browser controls. Nothing in a normal pipeline objects,
+because the same actor wrote the implementation and the thing that judges the implementation. A
+passing suite proves internal consistency, not approved behavior.
+
+MaruCheck keeps that judgment separate:
+
+```text
+$ maru verify --diff
+Verification gate: BLOCKED
+Findings: 5 (5 blocking)
+
+[HIGH] BLOCKING finding-001-usage-quota-quota-001: QUOTA-001 verification failed
+Expected: Free plan users may perform at most 10 generations per calendar month.
+Actual:   Received: "pro"
+
+$ maru drift check --from observations.json
+Semantic drift: BLOCKED   Conflicts: 2 (2 blocking)
+[usage-quota#QUOTA-001] BLOCKING
+Contract: Free plan users may perform at most 10 generations per calendar month.
+Observed: Free plan users may perform at most 1000 generations per calendar month.
+```
+
+Approved behavior lives in a **Quality Contract**: a human-owned, versioned file outside the code
+under test. An agent can propose a change to the code. It cannot quietly move the goalposts.
+
+## Run that example yourself
+
+```bash
+git clone https://github.com/Kidus-M/MaruCheck.git
+cd MaruCheck
+npm install && npm run build
+node examples/quota-app/run.mjs
+```
+
+It builds a throwaway Git workspace, approves a contract, applies the agent's change, shows the
+green suite, and then blocks the change — about a minute end to end. Read
+[`examples/quota-app`](examples/quota-app/README.md) for what each file does and what to change to
+see the gate behave differently.
 
 ## Install
 
-Requirements: Node.js 24 LTS and npm 11 or newer.
+Requirements: Node.js 24 LTS and npm 11 or newer ([why](#why-node-24)).
 
 ```bash
 npx --yes marucheck@0.3.0 init
@@ -33,13 +92,40 @@ npm install --save-dev --save-exact marucheck@0.3.0
 npx --no-install maru --help
 ```
 
-Version `0.1.0` established the public npm package. Version `0.2.0` added explicit hosted report
-upload. Version `0.2.2` keeps reproducible `.maru/generated/` state out of normal Git changes and
-prevents draft contract policies from independently blocking releases. Version `0.3.0` is the
-first MIT-licensed open-source release. See the
-[recommended first workflow](docs/guides/recommended-first-workflow.md) before adding hosted
-reporting, MCP, or a required CI gate. Contributors changing the CLI itself can still build from
-this repository:
+See the [recommended first workflow](docs/guides/recommended-first-workflow.md) before adding
+hosted reporting, MCP, or a required CI gate, and the
+[public installation and release guide](docs/guides/public-installation-and-release.md) for CI
+pinning, manual release steps, optional trusted publishing, and rollback.
+
+## What a run actually does
+
+On every diff, MaruCheck scores risk deterministically, selects the requirements and tests that
+this change touches, runs them locally (Vitest, Playwright, axe, Semgrep, Gitleaks), mutation-tests
+to prove those tests can still fail, and compares observed behavior against protected invariants.
+It remembers confirmed bugs and forces recorded regression tests back into the plan when related
+code changes again. Evidence lands in `.maru/` as files you can read and argue with, not a
+confidence score.
+
+There is an [MCP server](docs/guides/phase-3-mcp-integration.md) so your agent can request
+verification itself. It can ask for a verdict; it cannot grant one.
+
+### Why Node 24
+
+The published bundle is built for the Node 24 target and CI runs the full quality gate on Node 24
+only, so that is what the `engines` field claims. Nothing in the source is known to need Node 24
+specifically — the CLI has been observed running on older releases — but "not known to break" is
+not verification. CI now runs an informational Node 22 job; widening the supported range once that
+job is green is
+[a good first issue](docs/contributing/starter-issues.md#widen-the-supported-nodejs-range).
+
+## Repository layout
+
+The hosted Next.js application at [marucheck.dev](https://marucheck.dev) is maintained separately
+in the sibling [MaruCheck-Web](https://github.com/Kidus-M/MaruCheck-Web) repository so the CLI and
+cloud product can release independently. This repository owns the local-first `maru` CLI,
+verification libraries, Git analysis, Quality Contract support, and the MCP server.
+
+Contributors changing the CLI itself build from source:
 
 ```bash
 npm install
@@ -61,31 +147,24 @@ node ../maru-cli/packages/cli/dist/index.js contract create --from requirements.
 node ../maru-cli/packages/cli/dist/index.js risk --diff
 node ../maru-cli/packages/cli/dist/index.js plan --diff
 node ../maru-cli/packages/cli/dist/index.js verify --diff
-node ../maru-cli/packages/cli/dist/index.js upload
 node ../maru-cli/packages/cli/dist/index.js mutate --diff --max 20
-node ../maru-cli/packages/cli/dist/index.js challenge prepare --diff
 node ../maru-cli/packages/cli/dist/index.js ci init
-node ../maru-cli/packages/cli/dist/index.js ci verify
-node ../maru-cli/packages/cli/dist/index.js drift check --from observations.json
-node ../maru-cli/packages/cli/dist/index.js memory search "authorization"
 node ../maru-cli/packages/cli/dist/index.js mcp
 ```
 
-See the [public installation and release guide](docs/guides/public-installation-and-release.md) for
-CI pinning, manual release steps, optional trusted publishing, and rollback.
-
 ## Commands
 
-| Command                  | Description                                       |
-| ------------------------ | ------------------------------------------------- |
-| `npm run build`          | Build workspaces and the public executable bundle |
-| `npm run lint`           | Run ESLint                                        |
-| `npm run format:check`   | Check formatting                                  |
-| `npm run typecheck`      | Type-check all packages                           |
-| `npm test`               | Run Vitest tests                                  |
-| `npm run check`          | Run every local quality gate                      |
-| `npm run release:check`  | Check code and inspect the npm tarball            |
-| `npm run maru -- --help` | Exercise the workspace CLI build                  |
+| Command                  | Description                                        |
+| ------------------------ | -------------------------------------------------- |
+| `npm run build`          | Build workspaces and the public executable bundle  |
+| `npm run lint`           | Run ESLint                                         |
+| `npm run format:check`   | Check formatting                                   |
+| `npm run typecheck`      | Type-check all packages                            |
+| `npm test`               | Run Vitest tests                                   |
+| `npm run check`          | Run every local quality gate                       |
+| `npm run example`        | Run the end-to-end example in `examples/quota-app` |
+| `npm run release:check`  | Check code and inspect the npm tarball             |
+| `npm run maru -- --help` | Exercise the workspace CLI build                   |
 
 ### Project commands
 
@@ -250,8 +329,10 @@ See the [Phase 14 Challenger guide](docs/guides/phase-14-challenger-agent.md) an
 
 ## Contributing
 
-Issues and focused pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making
-a substantial change.
+Issues and focused pull requests are welcome, and there is a list of scoped, ready-to-pick tasks in
+[starter issues](docs/contributing/starter-issues.md). [CONTRIBUTING.md](CONTRIBUTING.md) covers
+setup, the exact test commands, how to add a verification check, where the CLI ends and the
+verification libraries begin, and what this project will and will not accept.
 
 ## License
 

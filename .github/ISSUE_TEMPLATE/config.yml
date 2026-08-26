@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Starter issues
+    url: https://github.com/Kidus-M/MaruCheck/blob/main/docs/contributing/starter-issues.md
+    about: Scoped tasks with acceptance criteria, if you are looking for somewhere to start
+  - name: Hosted dashboard (MaruCheck Web)
+    url: https://github.com/Kidus-M/MaruCheck-Web/issues
+    about: Issues about marucheck.dev, the dashboard, or hosted report upload
