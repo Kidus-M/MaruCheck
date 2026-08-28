@@ -236,6 +236,62 @@ approval:
     ).toContain("Free users may upload 10 files.");
   });
 
+  it("installs the agent gate as a Claude Code Stop hook", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const dependencies = { cwd: root };
+
+    await expect(runCli(["init"], output, dependencies)).resolves.toBe(0);
+    await expect(runCli(["hook", "install"], output, dependencies)).resolves.toBe(0);
+
+    const settings = JSON.parse(
+      await readFile(join(root, ".claude", "settings.json"), "utf8"),
+    ) as { hooks: { Stop: { hooks: { command: string }[] }[] } };
+    expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain("maru hook run");
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Agent gate installed"));
+
+    await expect(runCli(["hook", "uninstall"], output, dependencies)).resolves.toBe(0);
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Agent gate removed"));
+  });
+
+  it("returns exit code 2 and the blocking reason when the gate refuses a turn", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const agentGate = vi.fn().mockResolvedValue({
+      blocked: true,
+      exitCode: 2,
+      payload: { hookSpecificOutput: { continue: true, hookEventName: "Stop" } },
+      reason: "MaruCheck gate: BLOCKED.",
+    });
+
+    await expect(
+      runCli(["hook", "run"], output, {
+        agentGate,
+        agentHookInput: async () => '{"session_id":"abc"}',
+        cwd: root,
+      }),
+    ).resolves.toBe(2);
+
+    expect(agentGate).toHaveBeenCalledWith(root, '{"session_id":"abc"}', expect.any(Date));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining('"hookEventName":"Stop"'));
+    expect(output.error).toHaveBeenCalledWith("MaruCheck gate: BLOCKED.");
+  });
+
+  it("stays quiet and exits zero when the agent gate has nothing to say", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const agentGate = vi
+      .fn()
+      .mockResolvedValue({ blocked: false, exitCode: 0, payload: {}, reason: "" });
+
+    await expect(
+      runCli(["hook", "run"], output, { agentGate, agentHookInput: async () => "", cwd: root }),
+    ).resolves.toBe(0);
+
+    expect(output.log).not.toHaveBeenCalled();
+    expect(output.error).not.toHaveBeenCalled();
+  });
+
   it("starts the local MCP server for the current project", async () => {
     const root = await createProject();
     const output = { error: vi.fn(), log: vi.fn() };
