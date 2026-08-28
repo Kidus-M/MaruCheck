@@ -67,7 +67,7 @@ should change goes through `maru drift propose` and a second human approval.
 
 ## Guarantees the gate makes
 
-**It never wedges a session.** Only a *blocked gate* stops a turn. If the project is not initialized,
+**It never wedges a session.** Only a _blocked gate_ stops a turn. If the project is not initialized,
 if the tree is not a Git repository, if verification itself throws — the hook exits 0 and the turn
 ends normally, with a one-line note about why the gate did not run.
 
@@ -82,8 +82,8 @@ and running it twice is a no-op. `maru hook uninstall` removes only the MaruChec
 
 ## Commands
 
-| Command               | Description                                                             |
-| --------------------- | ----------------------------------------------------------------------- |
+| Command               | Description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
 | `maru hook install`   | Register the Stop hook in `.claude/settings.json` (idempotent)           |
 | `maru hook uninstall` | Remove the MaruCheck Stop hook and leave every other hook in place       |
 | `maru hook run`       | The hook entrypoint: reads the payload on stdin, exits 2 to block a turn |

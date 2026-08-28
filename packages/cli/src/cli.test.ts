@@ -48,7 +48,7 @@ describe("maru CLI", () => {
     const output = { error: vi.fn(), log: vi.fn() };
 
     await expect(runCli(["--version"], output)).resolves.toBe(0);
-    expect(output.log).toHaveBeenCalledWith("0.3.0");
+    expect(output.log).toHaveBeenCalledWith("0.4.0");
     expect(output.error).not.toHaveBeenCalled();
   });
 
@@ -244,9 +244,9 @@ approval:
     await expect(runCli(["init"], output, dependencies)).resolves.toBe(0);
     await expect(runCli(["hook", "install"], output, dependencies)).resolves.toBe(0);
 
-    const settings = JSON.parse(
-      await readFile(join(root, ".claude", "settings.json"), "utf8"),
-    ) as { hooks: { Stop: { hooks: { command: string }[] }[] } };
+    const settings = JSON.parse(await readFile(join(root, ".claude", "settings.json"), "utf8")) as {
+      hooks: { Stop: { hooks: { command: string }[] }[] };
+    };
     expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain("maru hook run");
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Agent gate installed"));
 

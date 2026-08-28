@@ -856,7 +856,10 @@ export async function runCli(
 
     if (command === "hook") {
       const action = args[1];
-      if (args.length !== 2 || (action !== "install" && action !== "run" && action !== "uninstall")) {
+      if (
+        args.length !== 2 ||
+        (action !== "install" && action !== "run" && action !== "uninstall")
+      ) {
         output.error(
           "Invalid agent gate command.\nRun maru hook install, maru hook uninstall, or maru hook run.",
         );

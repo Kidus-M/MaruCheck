@@ -24,9 +24,7 @@ const MAX_REPORTED_FINDINGS = 5;
 const HOOK_TIMEOUT_SECONDS = 600;
 
 export type AgentErrorCode =
-  | "AGENT_HOOK_NOT_INITIALIZED"
-  | "AGENT_HOOK_SETTINGS_INVALID"
-  | "AGENT_HOOK_WRITE_FAILED";
+  "AGENT_HOOK_NOT_INITIALIZED" | "AGENT_HOOK_SETTINGS_INVALID" | "AGENT_HOOK_WRITE_FAILED";
 
 export class AgentError extends Error {
   public constructor(

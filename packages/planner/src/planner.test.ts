@@ -203,9 +203,7 @@ describe("verification planner", () => {
     });
 
     const unit = plan.steps.filter((step) => step.category === "unit");
-    expect(unit).toEqual([
-      expect.objectContaining({ adapter: "jest", execution: "automated" }),
-    ]);
+    expect(unit).toEqual([expect.objectContaining({ adapter: "jest", execution: "automated" })]);
     expect(unit[0]?.testFiles).toEqual(["tests/subscription-webhook.test.js"]);
     expect(plan.uncoveredRequirements).toEqual([]);
   });

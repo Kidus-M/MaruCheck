@@ -12,10 +12,7 @@ export const AGENT_HOOK_EVENT = "Stop";
 export const AGENT_GATE_MAX_CONSECUTIVE_BLOCKS = 3;
 
 export type AgentGateSkipReason =
-  | "gate-passed"
-  | "loop-guard"
-  | "not-initialized"
-  | "verification-unavailable";
+  "gate-passed" | "loop-guard" | "not-initialized" | "verification-unavailable";
 
 /** The subset of the Claude Code Stop hook payload the gate reads. */
 export interface AgentHookInput {
