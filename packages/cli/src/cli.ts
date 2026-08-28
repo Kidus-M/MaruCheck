@@ -858,8 +858,7 @@ export async function runCli(
       const action = args[1];
       if (args.length !== 2 || (action !== "install" && action !== "run" && action !== "uninstall")) {
         output.error(
-          "Invalid agent gate command.
-Run maru hook install, maru hook uninstall, or maru hook run.",
+          "Invalid agent gate command.\nRun maru hook install, maru hook uninstall, or maru hook run.",
         );
         return 1;
       }
@@ -873,8 +872,7 @@ Run maru hook install, maru hook uninstall, or maru hook run.",
                 `Stop hook command: ${result.command}`,
                 "Claude Code now runs maru verify --diff before it can end a turn,",
                 "and a blocked gate is handed back to the agent as the reason.",
-              ].join("
-")
+              ].join("\n")
             : `Agent gate already installed: ${result.path}`,
         );
         return 0;
@@ -952,9 +950,7 @@ Run maru hook install, maru hook uninstall, or maru hook run.",
       return 1;
     }
     if (error instanceof AgentError) {
-      output.error(`${error.code}
-${error.message}
-Fix: ${error.remediation}`);
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
     if (error instanceof CiError) {
