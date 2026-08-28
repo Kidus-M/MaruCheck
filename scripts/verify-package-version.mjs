@@ -15,4 +15,17 @@ if (sourceVersion !== packageMetadata.version) {
   process.exit(1);
 }
 
-console.log(`CLI and package versions match: ${sourceVersion}.`);
+const serverSource = await readFile(
+  new URL("../packages/mcp-server/src/server.ts", import.meta.url),
+  "utf8",
+);
+const serverVersion = serverSource.match(/title: "MaruCheck",[^"]*version: "([^"]+)"/u)?.[1];
+
+if (serverVersion !== packageMetadata.version) {
+  console.error(
+    `MCP server version ${serverVersion ?? "missing"} does not match package version ${packageMetadata.version}.`,
+  );
+  process.exit(1);
+}
+
+console.log(`CLI, MCP server, and package versions match: ${sourceVersion}.`);
