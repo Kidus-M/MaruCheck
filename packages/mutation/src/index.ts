@@ -26,7 +26,7 @@ const DEFAULT_MAX_MUTATIONS = 20;
 const MAX_MUTATIONS = 100;
 const MAX_SOURCE_CHARACTERS = 2_000_000;
 const MAX_REPORTED_TEXT = 500;
-const MUTATION_TEST_ADAPTERS = new Set(["axe", "playwright", "vitest"]);
+const MUTATION_TEST_ADAPTERS = new Set(["axe", "jest", "playwright", "vitest"]);
 
 function portableTimestamp(now: Date): string {
   return now.toISOString().replace(/[:.]/gu, "-");

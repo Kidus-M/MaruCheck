@@ -302,7 +302,9 @@ async function findAdapterInvocation(
   const candidates =
     adapter === "vitest"
       ? ["node_modules/vitest/vitest.mjs"]
-      : ["node_modules/@playwright/test/cli.js", "node_modules/playwright/cli.js"];
+      : adapter === "jest"
+        ? ["node_modules/jest/bin/jest.js", "node_modules/jest-cli/bin/jest.js"]
+        : ["node_modules/@playwright/test/cli.js", "node_modules/playwright/cli.js"];
   for (const candidate of candidates) {
     const binary = resolve(root, candidate);
     if (await exists(binary)) return { executable: process.execPath, prefixArgs: [binary] };
@@ -321,6 +323,11 @@ function unavailableAdapterResult(
       "AXE_NOT_INSTALLED",
       "The axe Playwright accessibility adapter is not installed in this project.",
       "Install @axe-core/playwright and @playwright/test, add an axe-backed Playwright accessibility test, then retry.",
+    ),
+    jest: resultError(
+      "JEST_NOT_INSTALLED",
+      "Jest is not installed in this project.",
+      "Install jest in the project, then retry.",
     ),
     gitleaks: resultError(
       "GITLEAKS_NOT_INSTALLED",
@@ -427,7 +434,10 @@ async function executeAutomatedGroup(
   } as const;
 
   const testAdapter =
-    group.adapter === "axe" || group.adapter === "playwright" || group.adapter === "vitest";
+    group.adapter === "axe" ||
+    group.adapter === "jest" ||
+    group.adapter === "playwright" ||
+    group.adapter === "vitest";
   if (testAdapter && testFiles.length === 0) {
     const remediation =
       group.adapter === "axe"
@@ -456,6 +466,18 @@ async function executeAutomatedGroup(
   let adapterArgs: string[];
   if (group.adapter === "vitest") {
     adapterArgs = ["run", ...testFiles, "--reporter=default"];
+  } else if (group.adapter === "jest") {
+    // --runTestsByPath keeps the plan's exact selection instead of treating each
+    // path as a regular expression, and the JSON report records per-test results.
+    await mkdir(dirname(reportPath), { recursive: true });
+    adapterArgs = [
+      "--ci",
+      "--runTestsByPath",
+      ...testFiles,
+      "--json",
+      "--outputFile",
+      portableReportPath,
+    ];
   } else if (group.adapter === "playwright" || group.adapter === "axe") {
     adapterArgs = ["test", ...testFiles, "--reporter=line", "--output", outputDirectory];
   } else if (group.adapter === "semgrep") {
@@ -537,7 +559,7 @@ async function executeAutomatedGroup(
         : executed.exitCode === null || (scanner && executed.exitCode !== 1)
           ? "error"
           : "failed";
-    const reportExists = scanner && (await exists(reportPath));
+    const reportExists = (scanner || group.adapter === "jest") && (await exists(reportPath));
     return {
       ...base,
       artifacts: {
@@ -638,6 +660,7 @@ export async function runVerificationPlan(
       if (
         group.adapter === "axe" ||
         group.adapter === "gitleaks" ||
+        group.adapter === "jest" ||
         group.adapter === "playwright" ||
         group.adapter === "semgrep" ||
         group.adapter === "vitest"

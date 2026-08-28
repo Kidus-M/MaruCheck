@@ -103,12 +103,12 @@ function regressionTests(input: Record<string, unknown>): MemoryRegressionTest[]
     const id = stringValue(test, "id", 100);
     if (
       unknown.length > 0 ||
-      (test.adapter !== "vitest" && test.adapter !== "playwright") ||
+      (test.adapter !== "vitest" && test.adapter !== "jest" && test.adapter !== "playwright") ||
       !REGRESSION_ID.test(id)
     ) {
       invalid(
         `regressionTests[${index}] is invalid.`,
-        "Use a vitest/playwright adapter, kebab-case ID, project path, and requirement references.",
+        "Use a vitest/jest/playwright adapter, kebab-case ID, project path, and requirement references.",
       );
     }
     const requirementRefs = strings(test, "requirementRefs", 100, 241);

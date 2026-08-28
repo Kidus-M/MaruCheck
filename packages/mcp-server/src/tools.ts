@@ -124,7 +124,7 @@ const OBSERVATION_SCHEMA = {
 const MEMORY_REGRESSION_TEST_SCHEMA = {
   additionalProperties: false,
   properties: {
-    adapter: { enum: ["playwright", "vitest"], type: "string" },
+    adapter: { enum: ["jest", "playwright", "vitest"], type: "string" },
     id: {
       maxLength: 100,
       minLength: 1,
@@ -260,7 +260,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
         items: {
           additionalProperties: false,
           properties: {
-            adapter: { enum: ["playwright", "vitest"], type: "string" },
+            adapter: { enum: ["jest", "playwright", "vitest"], type: "string" },
             id: {
               maxLength: 80,
               minLength: 1,
@@ -515,8 +515,10 @@ function temporaryTests(input: Record<string, unknown>): TemporaryTest[] {
       "source",
       "targetPath",
     ]);
-    if (test.adapter !== "vitest" && test.adapter !== "playwright") {
-      throw new ToolInputError(`temporaryTests[${index}].adapter must be vitest or playwright.`);
+    if (test.adapter !== "vitest" && test.adapter !== "jest" && test.adapter !== "playwright") {
+      throw new ToolInputError(
+        `temporaryTests[${index}].adapter must be vitest, jest, or playwright.`,
+      );
     }
     if (
       !Array.isArray(test.requirementRefs) ||

@@ -14,7 +14,7 @@ export type MemoryType =
   | "sensitive-integration";
 
 export interface MemoryRegressionTest {
-  readonly adapter: "playwright" | "vitest";
+  readonly adapter: "jest" | "playwright" | "vitest";
   readonly id: string;
   readonly path: string;
   readonly requirementRefs: readonly string[];

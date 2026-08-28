@@ -5,9 +5,12 @@ export const VERIFICATION_ARTIFACTS_DIRECTORY = ".maru/artifacts/runs";
 
 export type AutomatedVerificationAdapter = Extract<
   VerificationAdapter,
-  "axe" | "gitleaks" | "playwright" | "semgrep" | "vitest"
+  "axe" | "gitleaks" | "jest" | "playwright" | "semgrep" | "vitest"
 >;
-export type TestVerificationAdapter = Extract<VerificationAdapter, "playwright" | "vitest">;
+export type TestVerificationAdapter = Extract<
+  VerificationAdapter,
+  "jest" | "playwright" | "vitest"
+>;
 export type VerificationResultStatus = "error" | "failed" | "passed" | "skipped" | "unavailable";
 export type VerificationRunStatus = "error" | "failed" | "incomplete" | "passed";
 

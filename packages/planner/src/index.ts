@@ -19,7 +19,14 @@ export const VERIFICATION_PLAN_SCHEMA_VERSION = 1;
 export const VERIFICATION_PLAN_PATH = ".maru/generated/verification-plan.json";
 
 export type VerificationAdapter =
-  "axe" | "gitleaks" | "manual-review" | "playwright" | "semgrep" | "unavailable" | "vitest";
+  | "axe"
+  | "gitleaks"
+  | "jest"
+  | "manual-review"
+  | "playwright"
+  | "semgrep"
+  | "unavailable"
+  | "vitest";
 export type VerificationExecution = "automated" | "manual" | "unavailable";
 type TestFramework = ProjectScan["tests"]["frameworks"][number];
 
@@ -319,9 +326,13 @@ function adapterSelectionsFor(
       ? [{ adapter: "playwright", execution: "automated", testFramework: "playwright" }]
       : [{ adapter: "unavailable", execution: "unavailable" }];
   }
-  return project.tests.frameworks.includes("vitest")
-    ? [{ adapter: "vitest", execution: "automated", testFramework: "vitest" }]
-    : [{ adapter: "unavailable", execution: "unavailable" }];
+  // Vitest wins when a project declares both so a single run covers the change.
+  for (const framework of ["vitest", "jest"] as const) {
+    if (project.tests.frameworks.includes(framework)) {
+      return [{ adapter: framework, execution: "automated", testFramework: framework }];
+    }
+  }
+  return [{ adapter: "unavailable", execution: "unavailable" }];
 }
 
 function createSteps(
