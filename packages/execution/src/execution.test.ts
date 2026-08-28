@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createAndRunVerification,
   runVerificationPlan,
+  type CommandRequest,
   type CommandRunner,
   type TemporaryTest,
 } from "./index.js";
@@ -84,6 +85,11 @@ describe("verification execution", () => {
     await writeFile(join(root, "node_modules/@playwright/test/cli.js"), "", "utf8");
     await writeFile(join(root, "node_modules/@axe-core/playwright/package.json"), "{}", "utf8");
     return root;
+  }
+
+  async function installJest(root: string): Promise<void> {
+    await mkdir(join(root, "node_modules/jest/bin"), { recursive: true });
+    await writeFile(join(root, "node_modules/jest/bin/jest.js"), "", "utf8");
   }
 
   async function installScanner(root: string, name: "gitleaks" | "semgrep"): Promise<string> {
@@ -399,6 +405,53 @@ describe("verification execution", () => {
     await expect(readFile(join(root, "tests/existing.test.ts"), "utf8")).resolves.toBe(
       "user-owned",
     );
+  });
+
+  it("runs selected Jest files by path and links the JSON report", async () => {
+    const root = await project();
+    await installJest(root);
+    const runner: CommandRunner = {
+      run: vi.fn().mockImplementation(async (request: CommandRequest) => {
+        const outputFile = request.args[request.args.indexOf("--outputFile") + 1];
+        await writeFile(join(root, outputFile ?? ""), '{"numFailedTests":1}', "utf8");
+        return { durationMs: 31, exitCode: 1, stderr: "", stdout: "1 failed, 1 passed" };
+      }),
+    };
+
+    const result = await runVerificationPlan(
+      root,
+      plan([step("jest", { testFiles: ["tests/quota.test.js"] })]),
+      { commandRunner: runner, now: () => NOW },
+    );
+
+    const [jest] = result.run.results;
+    expect(jest?.status).toBe("failed");
+    expect(jest?.artifacts.report).toMatch(/report.json$/u);
+    expect(result.run.summary).toMatchObject({ blockingFailures: 1, failed: 1 });
+    expect(runner.run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.arrayContaining(["--ci", "--runTestsByPath", "tests/quota.test.js", "--json"]),
+        command: process.execPath,
+        cwd: root,
+      }),
+    );
+  });
+
+  it("reports Jest as unavailable when it is not installed in the project", async () => {
+    const root = await project();
+    const runner: CommandRunner = { run: vi.fn() };
+
+    const result = await runVerificationPlan(
+      root,
+      plan([step("jest", { testFiles: ["tests/quota.test.js"] })]),
+      { commandRunner: runner, now: () => NOW },
+    );
+
+    expect(runner.run).not.toHaveBeenCalled();
+    expect(result.run.results[0]).toMatchObject({
+      error: { code: "JEST_NOT_INSTALLED" },
+      status: "unavailable",
+    });
   });
 
   it("creates and persists the current plan before executing it", async () => {

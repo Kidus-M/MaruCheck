@@ -185,6 +185,48 @@ describe("verification planner", () => {
     }
   });
 
+  it("selects the Jest adapter for unit work in a Jest project", () => {
+    const project = scan();
+    const plan = buildVerificationPlan({
+      assessment: ASSESSMENT,
+      contracts: [CONTRACT],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project: {
+        ...project,
+        dependencies: { ...project.dependencies, development: ["jest"] },
+        tests: {
+          directories: ["tests"],
+          files: [{ framework: "jest", path: "tests/subscription-webhook.test.js" }],
+          frameworks: ["jest"],
+        },
+      },
+    });
+
+    const unit = plan.steps.filter((step) => step.category === "unit");
+    expect(unit).toEqual([
+      expect.objectContaining({ adapter: "jest", execution: "automated" }),
+    ]);
+    expect(unit[0]?.testFiles).toEqual(["tests/subscription-webhook.test.js"]);
+    expect(plan.uncoveredRequirements).toEqual([]);
+  });
+
+  it("prefers Vitest over Jest when a project declares both runners", () => {
+    const project = scan();
+    const plan = buildVerificationPlan({
+      assessment: ASSESSMENT,
+      contracts: [CONTRACT],
+      generatedAt: "2026-08-16T10:30:00.000Z",
+      project: {
+        ...project,
+        tests: { ...project.tests, frameworks: ["jest", "playwright", "vitest"] },
+      },
+    });
+
+    expect(plan.steps.filter((step) => step.category === "unit")).toEqual([
+      expect.objectContaining({ adapter: "vitest" }),
+    ]);
+  });
+
   it("marks automation unavailable and requirements uncovered when no tests are configured", () => {
     const plan = buildVerificationPlan({
       assessment: { ...ASSESSMENT, recommendedTestCategories: ["unit"] },
