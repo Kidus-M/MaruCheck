@@ -6,6 +6,7 @@ coverage/
 *.tgz
 .maru/artifacts/
 examples/quota-app/.workspace/
+examples/quota-app-jest/.workspace/
 *.tsbuildinfo
 .env
 .env.*

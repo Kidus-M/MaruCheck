@@ -58,7 +58,7 @@ export function runExample(options) {
   let step = 0;
   function heading(text) {
     step += 1;
-    process.stdout.write(`\n[1m${step}. ${text}[0m\n`);
+    process.stdout.write(`\n\u001B[1m${step}. ${text}\u001B[0m\n`);
   }
 
   function run(command, args, { allowFailure = false, shell = false } = {}) {
@@ -129,8 +129,8 @@ export function runExample(options) {
   const agentSuite = runNpm(["test", "--silent"], { allowFailure: true });
   console.log(
     agentSuite.status === 0
-      ? "[32mGreen. Every test the agent owns passes.[0m"
-      : "[33mThe agent's own suite failed, which is not what this example demonstrates.[0m",
+      ? "\u001B[32mGreen. Every test the agent owns passes.\u001B[0m"
+      : "\u001B[33mThe agent's own suite failed, which is not what this example demonstrates.\u001B[0m",
   );
 
   heading("Score the change");
@@ -145,8 +145,8 @@ export function runExample(options) {
   const blocked = agentSuite.status === 0 && verification.status !== 0 && drift.status !== 0;
   process.stdout.write(
     blocked
-      ? "\n[31mBLOCKED[0m by the approved contract while the agent's own suite stayed green.\n"
-      : `\n[33mUnexpected result:[0m tests exited ${String(agentSuite.status)}, verify exited ${String(verification.status)}, drift exited ${String(drift.status)}.\n`,
+      ? "\n\u001B[31mBLOCKED\u001B[0m by the approved contract while the agent's own suite stayed green.\n"
+      : `\n\u001B[33mUnexpected result:\u001B[0m tests exited ${String(agentSuite.status)}, verify exited ${String(verification.status)}, drift exited ${String(drift.status)}.\n`,
   );
   console.log(`Evidence: ${join(workspace, ".maru")}`);
   console.log("Remove the workspace with: node run.mjs --clean");

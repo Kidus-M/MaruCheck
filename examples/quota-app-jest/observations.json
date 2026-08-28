@@ -1,0 +1,14 @@
+{
+  "observations": [
+    {
+      "requirementRef": "usage-quota#QUOTA-001",
+      "observed": "Free plan users may perform at most 1000 generations per calendar month.",
+      "source": { "path": "src/quota.js", "line": 14 }
+    },
+    {
+      "requirementRef": "usage-quota#QUOTA-INV-001",
+      "observed": "The plan tier used for a quota decision is read from the client-supplied request whenever the request claims one.",
+      "source": { "path": "src/quota.js", "line": 23 }
+    }
+  ]
+}

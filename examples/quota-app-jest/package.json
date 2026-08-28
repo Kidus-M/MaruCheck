@@ -1,0 +1,14 @@
+{
+  "name": "marucheck-example-quota-app-jest",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runnable MaruCheck example on Jest: an AI change that keeps the test suite green while breaking an approved Quality Contract",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest src",
+    "test:contract": "jest tests"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}

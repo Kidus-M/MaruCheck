@@ -1,0 +1,38 @@
+version: 1
+id: usage-quota
+title: Usage Quota and Plan Resolution
+status: draft
+criticality: high
+intent: Free accounts receive a fixed monthly generation quota, pro accounts are unmetered, and the plan used for every decision comes from the billing record rather than the request.
+owners:
+  - product
+  - engineering
+requirements:
+  - id: QUOTA-001
+    statement: Free plan users may perform at most 10 generations per calendar month.
+    priority: required
+  - id: QUOTA-002
+    statement: Pro plan users have no monthly generation limit.
+    priority: required
+  - id: QUOTA-003
+    statement: A denied generation reports the remaining quota and a human-readable reason.
+    priority: recommended
+invariants:
+  - id: QUOTA-INV-001
+    statement: The plan tier used for a quota decision must be read from the stored subscription record and never from client-supplied request data.
+  - id: QUOTA-INV-002
+    statement: A quota decision must be denied when the subscription does not belong to the requesting user.
+edge_cases:
+  - the client sends a claimed plan that contradicts the stored subscription
+  - usage is already above the free limit when the month rolls over
+  - the request arrives for a different user than the subscription owner
+security:
+  - resolve entitlements server-side from the billing record
+  - never widen a limit in response to client-supplied input
+data_integrity:
+  - keep one authoritative monthly usage counter per user
+  - keep the free limit and the reported remaining quota consistent
+evidence_policy:
+  blocking_requirements:
+    - QUOTA-001
+    - QUOTA-INV-001

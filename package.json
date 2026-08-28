@@ -45,6 +45,7 @@
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "clean": "tsc -b --clean",
     "example": "node examples/quota-app/run.mjs",
+    "example:jest": "node examples/quota-app-jest/run.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

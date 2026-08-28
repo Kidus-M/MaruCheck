@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Run the Vitest example end to end.
+ * Run the Jest example end to end.
  *
- *   node run.mjs                # full run (installs vitest on first use)
+ *   node run.mjs                # full run (installs jest on first use)
  *   node run.mjs --dir <path>   # put the workspace somewhere else
  *   node run.mjs --clean        # delete the workspace and exit
  */
@@ -13,13 +13,6 @@ import { runExample } from "../shared/run-example.mjs";
 process.exitCode = runExample({
   contractId: "usage-quota",
   example: dirname(fileURLToPath(import.meta.url)),
-  fixtureEntries: [
-    "src",
-    "tests",
-    "contracts",
-    "package.json",
-    "observations.json",
-    "vitest.config.mjs",
-  ],
-  runnerPackage: "vitest",
+  fixtureEntries: ["src", "tests", "contracts", "package.json", "observations.json"],
+  runnerPackage: "jest",
 });
