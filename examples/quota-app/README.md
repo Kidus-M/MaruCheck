@@ -17,7 +17,7 @@ agent cannot edit it.
 ```bash
 git clone https://github.com/Kidus-M/MaruCheck.git
 cd MaruCheck
-npm install && npm run build     # or skip this: the runner falls back to npx marucheck@0.3.0
+npm install && npm run build     # or skip this: the runner falls back to npx marucheck@0.4.0
 node examples/quota-app/run.mjs
 ```
 
@@ -89,6 +89,12 @@ protected contract meaning, one requirement reference at a time, with no model i
 "At most 1000 generations" is not "at most 10", so it blocks — and the only way through is a
 human approving an amendment (`maru drift propose`, then `maru drift approve`), which leaves an
 audit record. The agent can ask for a verdict; it cannot grant one.
+
+## The same example on Jest
+
+[`examples/quota-app-jest`](../quota-app-jest/README.md) is this fixture in CommonJS JavaScript
+with Jest instead of Vitest. Same contract, same agent change, same verdict — useful for checking
+that the gate behaves identically on the runner your project actually uses.
 
 ## Try changing it
 

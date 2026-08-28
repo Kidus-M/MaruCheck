@@ -41,7 +41,7 @@ body:
     id: version
     attributes:
       label: MaruCheck version
-      placeholder: "0.3.0 (maru --version)"
+      placeholder: "0.4.0 (maru --version)"
     validations:
       required: true
   - type: input

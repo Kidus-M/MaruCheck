@@ -39,6 +39,7 @@ Exercising the CLI you just built:
 ```bash
 npm run maru -- --help                 # the workspace build
 node examples/quota-app/run.mjs        # the end-to-end example, blocked verdict included
+node examples/quota-app-jest/run.mjs   # the same example on Jest
 npm run test:acceptance:semantic-drift # one scripted acceptance scenario
 ```
 
@@ -58,6 +59,8 @@ between the CLI and the verification libraries:
   stay usable without a CLI, a network call, or a model.
 - `packages/mcp-server` exposes a subset of those libraries to coding agents. It reads and
   proposes; it never approves.
+- `packages/agent` turns a release gate into a coding-agent Stop hook. It decides only whether a
+  turn may end and how to say why; the verdict itself comes from `evidence`.
 - `packages/shared` holds cross-package primitives only. Anything that knows about a verification
   concept belongs in the package that owns that concept.
 

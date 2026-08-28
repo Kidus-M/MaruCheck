@@ -75,20 +75,38 @@ green suite, and then blocks the change — about a minute end to end. Read
 [`examples/quota-app`](examples/quota-app/README.md) for what each file does and what to change to
 see the gate behave differently.
 
+The same story on Jest is `node examples/quota-app-jest/run.mjs`.
+
+## Stop the agent from declaring victory
+
+Verification only helps if it runs. When an AI agent writes the change, the agent decides whether to
+run it — and the agent is exactly who benefits from skipping it. So hand the decision to the harness:
+
+```bash
+maru hook install
+```
+
+That registers verification as a Claude Code **Stop hook**. The agent cannot end a turn while the
+gate is blocked; it gets the failing requirements, the expected and actual behavior, and an explicit
+instruction that editing the contract is not an available fix. The gate never wedges a session — it
+gives up after three consecutive blocks and hands control back to you.
+
+See the [agent gate guide](docs/guides/agent-gate.md).
+
 ## Install
 
 Requirements: Node.js 24 LTS and npm 11 or newer ([why](#why-node-24)).
 
 ```bash
-npx --yes marucheck@0.3.0 init
-npx --yes marucheck@0.3.0 doctor
-npx --yes marucheck@0.3.0 verify --diff
+npx --yes marucheck@0.4.0 init
+npx --yes marucheck@0.4.0 doctor
+npx --yes marucheck@0.4.0 verify --diff
 ```
 
 For regular project or team use, pin the exact public package and prevent implicit downloads:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.3.0
+npm install --save-dev --save-exact marucheck@0.4.0
 npx --no-install maru --help
 ```
 
@@ -163,6 +181,7 @@ node ../maru-cli/packages/cli/dist/index.js mcp
 | `npm test`               | Run Vitest tests                                   |
 | `npm run check`          | Run every local quality gate                       |
 | `npm run example`        | Run the end-to-end example in `examples/quota-app` |
+| `npm run example:jest`   | Run the same example on Jest                       |
 | `npm run release:check`  | Check code and inspect the npm tarball             |
 | `npm run maru -- --help` | Exercise the workspace CLI build                   |
 
@@ -179,6 +198,8 @@ node ../maru-cli/packages/cli/dist/index.js mcp
 | `maru upload [--report <path>] [--url <host>]` | Explicitly send the newest completed report to a connected dashboard project                   |
 | `maru mutate --diff [--max 20]`                | Prove selected tests reject isolated TypeScript mutations                                      |
 | `maru challenge prepare/submit`                | Exchange a bounded adversarial brief with a fresh AI-client QA context                         |
+| `maru hook install`                            | Register verification as a Claude Code Stop hook so an agent cannot finish on a blocked gate   |
+| `maru hook uninstall`                          | Remove the MaruCheck Stop hook and leave every other hook in place                             |
 | `maru ci init`                                 | Install an idempotent least-privilege GitHub pull-request workflow                             |
 | `maru ci verify`                               | Verify, publish a GitHub summary, and return the ProofLayer check status                       |
 | `maru drift check --from observations.json`    | Block approved semantic conflicts without rewriting the contract                               |
@@ -271,7 +292,9 @@ See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-pl
 
 ### Verification execution
 
-`maru verify --diff` executes selected local Vitest, Playwright, axe, Semgrep, and Gitleaks work, distinguishes findings from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
+`maru verify --diff` executes selected local Vitest, Jest, Playwright, axe, Semgrep, and Gitleaks work, distinguishes findings from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
+
+Unit work runs on whichever runner the project declares: Vitest when both are present, Jest otherwise. The Jest adapter selects test files by path with `--runTestsByPath`, and keeps Jest's `--json` report as a run artifact so every assertion result stays inspectable.
 
 See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) and [ADR-006](docs/decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md).
 
@@ -298,6 +321,12 @@ See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009
 `maru ci init` installs a pull-request-only workflow with read-only repository permissions. `maru ci verify` writes the evidence report and an escaped GitHub job summary before mapping the release gate to the process exit code. The workflow uploads `.maru` evidence even when a blocking contract finding fails the ProofLayer check; no GitHub App is required.
 
 See the [Phase 10 GitHub pull-request guide](docs/guides/phase-10-github-pull-request-verification.md) and [ADR-010](docs/decisions/0010-use-workflow-native-pull-request-verification.md).
+
+### Agent gate
+
+`maru hook install` registers `maru hook run` as a Claude Code Stop hook. A blocked release gate stops the agent from ending its turn and is handed back as the reason, with a loop guard that returns control to the human after three consecutive blocks. Installation merges one entry into `.claude/settings.json` and never rewrites hooks it did not add.
+
+See the [agent gate guide](docs/guides/agent-gate.md).
 
 ### Hosted report upload
 

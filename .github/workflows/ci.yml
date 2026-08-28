@@ -63,6 +63,9 @@ jobs:
       - name: Block the agent's change in examples/quota-app
         run: node examples/quota-app/run.mjs
 
+      - name: Block the same change on Jest
+        run: node examples/quota-app-jest/run.mjs
+
   # Informational only, and non-blocking: it finds out whether MaruCheck actually works on the
   # Node versions its engines field currently excludes. Installing with engine-strict disabled is
   # deliberate — the declared range is the thing under test. See docs/contributing/starter-issues.md.
