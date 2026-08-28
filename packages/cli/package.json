@@ -16,6 +16,7 @@
     "dist"
   ],
   "dependencies": {
+    "@maru/agent": "0.1.0",
     "@maru/challenger": "0.1.0",
     "@maru/ci": "0.1.0",
     "@maru/contracts": "0.1.0",

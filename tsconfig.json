@@ -13,6 +13,7 @@
     { "path": "./packages/mutation" },
     { "path": "./packages/evidence" },
     { "path": "./packages/ci" },
+    { "path": "./packages/agent" },
     { "path": "./packages/drift" },
     { "path": "./packages/cli" },
     { "path": "./packages/mcp-server" }

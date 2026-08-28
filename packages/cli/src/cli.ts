@@ -1,6 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import {
+  AgentError,
+  installAgentHook,
+  parseAgentHookInput,
+  runAgentGate,
+  uninstallAgentHook,
+  type AgentGateDecision,
+  type AgentHookInstallResult,
+  type AgentHookUninstallResult,
+} from "@maru/agent";
+import {
   ChallengeError,
   formatChallengeBrief,
   formatChallengeReport,
@@ -87,6 +97,10 @@ export interface CliOutput {
 }
 
 export interface CliDependencies {
+  readonly agentGate?: (root: string, input: string, now: Date) => Promise<AgentGateDecision>;
+  readonly agentHookInput?: () => Promise<string>;
+  readonly agentHookInstaller?: (root: string) => Promise<AgentHookInstallResult>;
+  readonly agentHookUninstaller?: (root: string) => Promise<AgentHookUninstallResult>;
   readonly challengeBrief?: (
     root: string,
     now: Date,
@@ -140,6 +154,7 @@ Commands:
   verify     Execute tests and write evidence, findings, and a JSON report
   upload     Explicitly send one completed report to a connected dashboard project
   ci         Install and run GitHub pull-request verification
+  hook       Gate a coding agent so it cannot finish a turn on a blocked verdict
   mcp        Run the local MaruCheck MCP server over stdio
 
 Contract commands:
@@ -170,6 +185,11 @@ Planning commands:
 Verification commands:
   maru verify --diff
 
+Agent gate commands:
+  maru hook install
+  maru hook uninstall
+  maru hook run
+
 Hosted report commands:
   maru upload [--report <report.json>] [--url https://marucheck.dev]
 
@@ -196,6 +216,22 @@ function stackSummary(result: Awaited<ReturnType<typeof initializeProject>>): st
     ...result.stack.testFrameworks,
   ].filter((value) => value !== "unknown");
   return detected.length > 0 ? detected.join(", ") : "no supported stack markers";
+}
+
+const MAX_HOOK_INPUT_BYTES = 1_000_000;
+
+/** Read the hook payload Claude Code writes to stdin, without blocking a terminal run. */
+async function readStandardInput(): Promise<string> {
+  if (process.stdin.isTTY === true) return "";
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of process.stdin) {
+    const buffer = chunk as Buffer;
+    size += buffer.byteLength;
+    if (size > MAX_HOOK_INPUT_BYTES) break;
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 function reportProjectError(error: ProjectError, output: CliOutput): void {
@@ -818,6 +854,56 @@ export async function runCli(
       return result.conclusion === "failure" ? 1 : 0;
     }
 
+    if (command === "hook") {
+      const action = args[1];
+      if (args.length !== 2 || (action !== "install" && action !== "run" && action !== "uninstall")) {
+        output.error(
+          "Invalid agent gate command.
+Run maru hook install, maru hook uninstall, or maru hook run.",
+        );
+        return 1;
+      }
+
+      if (action === "install") {
+        const result = await (dependencies.agentHookInstaller ?? installAgentHook)(root);
+        output.log(
+          result.created || result.updated
+            ? [
+                `Agent gate installed: ${result.path}`,
+                `Stop hook command: ${result.command}`,
+                "Claude Code now runs maru verify --diff before it can end a turn,",
+                "and a blocked gate is handed back to the agent as the reason.",
+              ].join("
+")
+            : `Agent gate already installed: ${result.path}`,
+        );
+        return 0;
+      }
+
+      if (action === "uninstall") {
+        const result = await (dependencies.agentHookUninstaller ?? uninstallAgentHook)(root);
+        output.log(
+          result.removed
+            ? `Agent gate removed from ${result.path}.`
+            : `No agent gate was installed in ${result.path}.`,
+        );
+        return 0;
+      }
+
+      const raw = await (dependencies.agentHookInput ?? readStandardInput)();
+      const decision = await (
+        dependencies.agentGate ??
+        ((projectRoot, hookInput, now) =>
+          runAgentGate(projectRoot, { input: parseAgentHookInput(hookInput), now }))
+      )(root, raw, dependencies.now?.() ?? new Date());
+
+      if (Object.keys(decision.payload).length > 0) {
+        output.log(JSON.stringify(decision.payload));
+      }
+      if (decision.blocked) output.error(decision.reason);
+      return decision.exitCode;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -863,6 +949,12 @@ export async function runCli(
     }
     if (error instanceof ChallengeError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
+      return 1;
+    }
+    if (error instanceof AgentError) {
+      output.error(`${error.code}
+${error.message}
+Fix: ${error.remediation}`);
       return 1;
     }
     if (error instanceof CiError) {
