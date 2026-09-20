@@ -32,8 +32,12 @@ function list(items: readonly string[]): string {
   return items.length > LISTED_PATHS ? `${shown}, and ${items.length - LISTED_PATHS} more` : shown;
 }
 
-function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : pluralForm}`;
+function noun(count: number, singular: string, pluralForm = `${singular}s`): string {
+  return count === 1 ? singular : pluralForm;
+}
+
+function counted(count: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${count} ${noun(count, singular, pluralForm)}`;
 }
 
 function share(penalty: number, affected: number, total: number): number {
@@ -94,14 +98,14 @@ function regressionTestsSignal(
   if (missing.length === 0) {
     return {
       code: "regression-tests-present",
-      message: `Recorded regression ${plural(paths.length, "test")} still ${paths.length === 1 ? "exists" : "exist"}: ${list(paths)}.`,
+      message: `Recorded regression ${noun(paths.length, "test")} still ${paths.length === 1 ? "exists" : "exist"}: ${list(paths)}.`,
       paths,
       points: 0,
     };
   }
   return {
     code: "regression-tests-present",
-    message: `Recorded regression ${plural(missing.length, "test")} no longer ${missing.length === 1 ? "exists" : "exist"}: ${list(missing)}.`,
+    message: `Recorded regression ${noun(missing.length, "test")} no longer ${missing.length === 1 ? "exists" : "exist"}: ${list(missing)}.`,
     paths: missing,
     points: share(MEMORY_RELEVANCE_PENALTIES.regressionTestsMissing, missing.length, paths.length),
   };
@@ -121,7 +125,7 @@ function relatedContractsSignal(
   if (inactive === 0) {
     return {
       code: "related-contracts-active",
-      message: `Related Quality ${plural(total, "Contract")} ${total === 1 ? "remains" : "remain"} active: ${list(sorted.map((id) => `${id} (${statuses.get(id)})`))}.`,
+      message: `Related Quality ${noun(total, "Contract")} ${total === 1 ? "remains" : "remain"} active: ${list(sorted.map((id) => `${id} (${statuses.get(id)})`))}.`,
       points: 0,
     };
   }
@@ -135,7 +139,7 @@ function relatedContractsSignal(
   ];
   return {
     code: "related-contracts-active",
-    message: `Related Quality ${plural(inactive, "Contract")} ${details.join("; ")}.`,
+    message: `Related Quality ${noun(inactive, "Contract")} ${details.join("; ")}.`,
     points: share(MEMORY_RELEVANCE_PENALTIES.relatedContractsInactive, inactive, total),
   };
 }
@@ -161,7 +165,7 @@ function regressionTestsChangedSignal(
   if (changed.length === 0) {
     return {
       code: "regression-tests-changed",
-      message: `Recorded regression ${plural(paths.length, "test")} ${paths.length === 1 ? "is" : "are"} unchanged since the record was created.`,
+      message: `Recorded regression ${noun(paths.length, "test")} ${paths.length === 1 ? "is" : "are"} unchanged since the record was created.`,
       paths,
       points: 0,
     };
@@ -170,7 +174,7 @@ function regressionTestsChangedSignal(
   const rewritten = most >= REWRITTEN_COMMITS;
   return {
     code: "regression-tests-changed",
-    message: `Recorded regression ${plural(changed.length, "test")} changed${rewritten ? " significantly" : ""} since the record was created (${plural(most, "commit")}): ${list(changed.map(([path]) => path))}.`,
+    message: `Recorded regression ${noun(changed.length, "test")} changed${rewritten ? " significantly" : ""} since the record was created (${counted(most, "commit")}): ${list(changed.map(([path]) => path))}.`,
     paths: changed.map(([path]) => path),
     points: rewritten
       ? -MEMORY_RELEVANCE_PENALTIES.regressionTestsChanged.rewritten
@@ -183,7 +187,7 @@ function ageSignal(record: QAMemoryRecord, now: string): MemoryRelevanceSignal |
   if (!Number.isFinite(days) || days < 180) return undefined;
   return {
     code: "age",
-    message: `Record is ${plural(days, "day")} old.`,
+    message: `Record is ${counted(days, "day")} old.`,
     points:
       days >= 365
         ? -MEMORY_RELEVANCE_PENALTIES.age.overOneYear
@@ -234,7 +238,7 @@ export function assessMemoryRelevance(
       ? undefined
       : {
           code: "superseded" as const,
-          message: `Superseded by newer QA ${plural(newer.length, "memory", "memories")}: ${newer.join(", ")}.`,
+          message: `Superseded by newer QA ${noun(newer.length, "memory", "memories")}: ${newer.join(", ")}.`,
           points: -MEMORY_RELEVANCE_PENALTIES.superseded,
         },
     context.existingPaths === undefined

@@ -144,44 +144,53 @@ describe("deterministic risk engine", () => {
     },
   );
 
+  const INVOICE_MEMORY: QAMemoryRecord = {
+    createdAt: "2026-08-18T08:00:00.000Z",
+    id: "MEM-0143",
+    regressionTests: [
+      {
+        adapter: "vitest",
+        id: "invoice-cross-account-access",
+        path: "tests/regressions/cross-account.test.ts",
+        requirementRefs: ["invoice-access#INV-001"],
+      },
+    ],
+    relatedContracts: ["invoice-access"],
+    relatedFiles: ["src/services/invoices.ts"],
+    rootCause: "Missing ownership check.",
+    schemaVersion: 1,
+    severity: "critical",
+    source: "manual",
+    status: "active",
+    summary: "A user could read another account's invoice.",
+    supersedes: [],
+    tags: ["authorization", "idor", "invoices"],
+    title: "Cross-account invoice access",
+    type: "security-regression",
+  };
+  const INVOICE_CONTRACT: QualityContract = {
+    ...SUBSCRIPTION_CONTRACT,
+    id: "invoice-access",
+    intent: "Users may read only invoices owned by their account.",
+    title: "Invoice Access",
+  };
+  const invoiceAuthorizationChange = analysis([
+    file({
+      classifications: ["authorization", "billing", "business-logic", "security-sensitive"],
+      path: "src/services/invoices/authorization.ts",
+      symbols: ["authorizeInvoiceRead"],
+    }),
+  ]);
+
   it("raises risk when an invoice authorization change matches a critical historical bug", () => {
-    const memory: QAMemoryRecord = {
-      createdAt: "2026-08-18T08:00:00.000Z",
-      id: "MEM-0143",
-      regressionTests: [
-        {
-          adapter: "vitest",
-          id: "invoice-cross-account-access",
-          path: "tests/regressions/cross-account.test.ts",
-          requirementRefs: ["invoice-access#INV-001"],
-        },
-      ],
-      relatedContracts: ["invoice-access"],
-      relatedFiles: ["src/services/invoices.ts"],
-      rootCause: "Missing ownership check.",
-      schemaVersion: 1,
-      severity: "critical",
-      source: "manual",
-      status: "active",
-      summary: "A user could read another account's invoice.",
-      tags: ["authorization", "idor", "invoices"],
-      title: "Cross-account invoice access",
-      type: "security-regression",
-    };
-    const result = assessRisk(
-      analysis([
-        file({
-          classifications: ["authorization", "billing", "business-logic", "security-sensitive"],
-          path: "src/services/invoices/authorization.ts",
-          symbols: ["authorizeInvoiceRead"],
-        }),
-      ]),
-      [],
-      [memory],
-    );
+    const result = assessRisk(invoiceAuthorizationChange, [], [INVOICE_MEMORY]);
 
     expect(result.historicalRisks).toEqual([
-      expect.objectContaining({ memoryId: "MEM-0143", severity: "critical" }),
+      expect.objectContaining({
+        memoryId: "MEM-0143",
+        relevance: expect.objectContaining({ level: "high" }),
+        severity: "critical",
+      }),
     ]);
     expect(result.reasons).toEqual(
       expect.arrayContaining([
@@ -191,5 +200,76 @@ describe("deterministic risk engine", () => {
     expect(result.recommendedTestCategories).toEqual(
       expect.arrayContaining(["contract-regression", "security"]),
     );
+  });
+
+  it("preserves stale history without a risk increase and explains the relevance decision", () => {
+    const fresh = assessRisk(invoiceAuthorizationChange, [INVOICE_CONTRACT], [INVOICE_MEMORY], {
+      existingPaths: new Set(["src/services/invoices.ts", "tests/regressions/cross-account.test.ts"]),
+      history: [],
+      now: "2026-09-01T00:00:00.000Z",
+    });
+    const stale = assessRisk(invoiceAuthorizationChange, [], [INVOICE_MEMORY], {
+      existingPaths: new Set(),
+      history: [],
+      now: "2026-09-01T00:00:00.000Z",
+    });
+
+    expect(fresh.historicalRisks[0]?.relevance).toMatchObject({ level: "high", score: 100 });
+    expect(fresh.reasons).toContainEqual(
+      expect.objectContaining({ code: "historical-regression", points: 25 }),
+    );
+    expect(stale.historicalRisks).toEqual([
+      expect.objectContaining({
+        memoryId: "MEM-0143",
+        relevance: expect.objectContaining({
+          level: "low",
+          score: 10,
+          signals: expect.arrayContaining([
+            expect.objectContaining({ code: "related-files-present", points: -35 }),
+            expect.objectContaining({ code: "related-contracts-active", points: -25 }),
+            expect.objectContaining({ code: "regression-tests-present", points: -30 }),
+          ]),
+        }),
+      }),
+    ]);
+    expect(stale.reasons.map((reason) => reason.code)).not.toContain("historical-regression");
+    expect(stale.reasons).toContainEqual({
+      code: "historical-stale",
+      message:
+        "Preserved 1 low-relevance historical QA memory without a risk increase: MEM-0143.",
+      points: 0,
+    });
+    expect(stale.recommendedTestCategories).not.toContain("contract-regression");
+  });
+
+  it("halves historical points for medium relevance and picks the highest effective memory", () => {
+    const stale: QAMemoryRecord = {
+      ...INVOICE_MEMORY,
+      id: "MEM-0001",
+      relatedFiles: ["src/legacy/invoice-service.ts"],
+      severity: "critical",
+    };
+    const partial: QAMemoryRecord = { ...INVOICE_MEMORY, id: "MEM-0002", severity: "high" };
+    const result = assessRisk(
+      invoiceAuthorizationChange,
+      [{ ...INVOICE_CONTRACT, status: "deprecated" }],
+      [stale, partial],
+      { existingPaths: new Set(["src/services/invoices.ts"]) },
+    );
+
+    expect(result.historicalRisks.map((memory) => [memory.memoryId, memory.relevance.level])).toEqual(
+      [
+        ["MEM-0001", "low"],
+        ["MEM-0002", "medium"],
+      ],
+    );
+    expect(result.reasons).toContainEqual(
+      expect.objectContaining({
+        code: "historical-regression",
+        message: expect.stringContaining("MEM-0002 (high, medium relevance)"),
+        points: 9,
+      }),
+    );
+    expect(result.recommendedTestCategories).toContain("contract-regression");
   });
 });

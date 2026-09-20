@@ -51,6 +51,7 @@ function risk(level: RiskAssessment["level"]): RiskAssessment {
         reasons: ["Touches a prior tenant-isolation regression."],
         regressionTests: [],
         relatedContracts: ["invoice-access"],
+        relevance: { level: "high", score: 100, signals: [], supersededBy: [] },
         severity: "critical",
         title: "Cross-tenant invoice exposure",
         type: "security-regression",
@@ -168,7 +169,10 @@ describe("client-mediated Challenger protocol", () => {
 
     expect(prepared.brief.activation.triggers).toEqual(["critical-risk"]);
     expect(prepared.brief.context.requirements).toEqual(requirements);
-    expect(prepared.brief.context.historicalRisks[0]?.memoryId).toBe("MEM-20260820-001");
+    expect(prepared.brief.context.historicalRisks[0]).toMatchObject({
+      memoryId: "MEM-20260820-001",
+      relevance: "high",
+    });
     expect(prepared.brief.briefHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(persisted).toEqual(prepared.brief);
     expect(prepared.brief.context.changedFiles[0]).not.toHaveProperty("source");
