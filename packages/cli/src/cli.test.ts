@@ -352,6 +352,106 @@ approval:
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Memory matches: 1"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining('"rootCause"'));
     expect(output.error).not.toHaveBeenCalled();
+
+    await writeFile(
+      join(root, "invoice-rewrite.json"),
+      JSON.stringify({
+        ...JSON.parse(await readFile(join(root, "invoice-idor.json"), "utf8")),
+        supersedes: ["MEM-0001"],
+        title: "Invoice ownership rewrite",
+      }),
+      "utf8",
+    );
+    await expect(
+      runCli(["memory", "add", "--from", "invoice-rewrite.json"], output, dependencies),
+    ).resolves.toBe(0);
+    await expect(runCli(["memory", "list"], output, dependencies)).resolves.toBe(0);
+    expect(output.log).toHaveBeenLastCalledWith(
+      expect.stringContaining("Cross-account invoice access\t(superseded by MEM-0002)"),
+    );
+  });
+
+  it("explains QA memory relevance alongside the risk assessment", async () => {
+    const root = await createProject();
+    const output = { error: vi.fn(), log: vi.fn() };
+    const memory = {
+      exactFileMatches: ["src/services/invoices.ts"],
+      matchedTerms: ["invoice"],
+      memoryId: "MEM-0001",
+      reasons: ["Changed 1 file linked to historical memory MEM-0001."],
+      regressionTests: [],
+      relatedContracts: ["invoice-access"],
+      severity: "critical" as const,
+      title: "Cross-account invoice access",
+      type: "security-regression" as const,
+    };
+    const riskAssessment = vi.fn().mockResolvedValue({
+      analysis: {
+        clean: false,
+        files: [],
+        summary: { additions: 1, changedFiles: 1, deletions: 1 },
+      },
+      historicalRisks: [
+        {
+          ...memory,
+          relevance: {
+            level: "high",
+            score: 100,
+            signals: [
+              {
+                code: "related-contracts-active",
+                message: "Related Quality Contract remains active: invoice-access (approved).",
+                points: 0,
+              },
+            ],
+            supersededBy: [],
+          },
+        },
+        {
+          ...memory,
+          memoryId: "MEM-0002",
+          relevance: {
+            level: "low",
+            score: 30,
+            signals: [
+              {
+                code: "superseded",
+                message: "Superseded by newer QA memory: MEM-0003.",
+                points: -70,
+              },
+            ],
+            supersededBy: ["MEM-0003"],
+          },
+        },
+      ],
+      level: "high",
+      reasons: [
+        { code: "historical-regression", message: "Touches relevant history.", points: 25 },
+        { code: "historical-stale", message: "Preserved stale history.", points: 0 },
+      ],
+      recommendedTestCategories: ["contract-regression", "unit"],
+      relatedContracts: [],
+      score: 50,
+    });
+
+    await expect(runCli(["risk", "--diff"], output, { cwd: root, riskAssessment })).resolves.toBe(
+      0,
+    );
+
+    const printed = output.log.mock.calls[0]?.[0] as string;
+    expect(printed).toContain("Historical risks: MEM-0001 (high), MEM-0002 (low)");
+    expect(printed).toContain(
+      [
+        "QA memory MEM-0001: relevance HIGH (100/100)",
+        "  - Related Quality Contract remains active: invoice-access (approved).",
+        "  Risk increased.",
+        "QA memory MEM-0002: relevance LOW (30/100)",
+        "  - Superseded by newer QA memory: MEM-0003.",
+        "  Historical record preserved, but no risk increase applied.",
+      ].join("\n"),
+    );
+    expect(printed).toContain("+0 Preserved stale history.");
+    expect(output.error).not.toHaveBeenCalled();
   });
 
   it("prints an inspectable deterministic risk assessment for the current diff", async () => {

@@ -7,7 +7,7 @@ import {
   type RequirementPriority,
 } from "@maru/contracts";
 import { scanProject, type ProjectScan } from "@maru/core";
-import type { MemorySeverity } from "@maru/memory";
+import type { MemoryRelevance, MemorySeverity } from "@maru/memory";
 import {
   assessProjectRisk,
   type RecommendedTestCategory,
@@ -51,9 +51,12 @@ export interface AffectedTest {
 
 export interface HistoricalRegression {
   readonly availableTestFiles: readonly string[];
+  /** False when relevance is low: the record is preserved but its tests are not forced into the plan. */
+  readonly included: boolean;
   readonly memoryId: string;
   readonly missingTestFiles: readonly string[];
   readonly reasons: readonly string[];
+  readonly relevance: MemoryRelevance;
   readonly requirementRefs: readonly string[];
   readonly severity: MemorySeverity;
   readonly title: string;
@@ -243,6 +246,7 @@ function findAffectedTests(
   const discovered = new Map(project.tests.files.map((test) => [test.path, test]));
 
   for (const memory of assessment.historicalRisks) {
+    if (memory.relevance.level === "low") continue;
     for (const regression of memory.regressionTests) {
       const test = discovered.get(regression.path);
       if (test === undefined || test.framework !== regression.adapter) continue;
@@ -280,9 +284,11 @@ function historicalRegressions(
     );
     return {
       availableTestFiles: available.map((test) => test.path).sort(),
+      included: memory.relevance.level !== "low",
       memoryId: memory.memoryId,
       missingTestFiles: unavailable.map((test) => test.path).sort(),
       reasons: memory.reasons,
+      relevance: memory.relevance,
       requirementRefs: [
         ...new Set(memory.regressionTests.flatMap((test) => test.requirementRefs)),
       ].sort(),
@@ -477,7 +483,7 @@ export async function createVerificationPlan(
   now = new Date(),
 ): Promise<VerificationPlan> {
   const [assessment, project, summaries] = await Promise.all([
-    assessProjectRisk(root),
+    assessProjectRisk(root, { now }),
     scanProject(root, now),
     listContracts(root),
   ]);

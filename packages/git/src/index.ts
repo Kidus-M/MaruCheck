@@ -153,3 +153,4 @@ export {
   type GitFileChange,
   type ParsedGitFileDiff,
 } from "./diff.js";
+export { listPathHistory, parsePathHistory, type GitPathCommit } from "./history.js";

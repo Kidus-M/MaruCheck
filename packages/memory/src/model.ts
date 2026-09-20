@@ -28,6 +28,8 @@ export interface CreateMemoryRecordInput {
   readonly severity: MemorySeverity;
   readonly source?: MemorySource;
   readonly summary: string;
+  /** Older records whose failure context this record replaces. */
+  readonly supersedes?: readonly string[];
   readonly tags: readonly string[];
   readonly title: string;
   readonly type: MemoryType;
@@ -39,6 +41,57 @@ export interface QAMemoryRecord extends CreateMemoryRecordInput {
   readonly schemaVersion: 1;
   readonly source: MemorySource;
   readonly status: "active";
+  readonly supersedes: readonly string[];
+}
+
+export type MemoryRelevanceLevel = "high" | "low" | "medium";
+export type MemoryRelevanceSignalCode =
+  | "age"
+  | "current-change"
+  | "regression-tests-changed"
+  | "regression-tests-present"
+  | "related-contracts-active"
+  | "related-files-present"
+  | "superseded";
+
+export interface MemoryRelevanceSignal {
+  readonly code: MemoryRelevanceSignalCode;
+  readonly message: string;
+  readonly paths?: readonly string[];
+  readonly points: number;
+}
+
+/** Deterministic freshness of one historical record relative to the current project. */
+export interface MemoryRelevance {
+  readonly level: MemoryRelevanceLevel;
+  readonly score: number;
+  readonly signals: readonly MemoryRelevanceSignal[];
+  readonly supersededBy: readonly string[];
+}
+
+export interface MemoryRelevanceContract {
+  readonly id: string;
+  readonly status: "amended" | "approved" | "deprecated" | "draft" | "review";
+}
+
+export interface MemoryPathCommit {
+  readonly committedAt: string;
+  readonly paths: readonly string[];
+}
+
+/**
+ * Project evidence used to judge relevance. Every field is optional so callers without that
+ * evidence skip the related signal instead of guessing.
+ */
+export interface MemoryRelevanceContext {
+  /** Every Quality Contract currently present in the project; recorded contracts absent here no longer exist. */
+  readonly contracts?: readonly MemoryRelevanceContract[];
+  /** Every recorded path that currently exists; recorded paths absent here no longer exist. */
+  readonly existingPaths?: ReadonlySet<string>;
+  /** Commits that touched recorded regression tests, used to detect tests rewritten since the record. */
+  readonly history?: readonly MemoryPathCommit[];
+  /** ISO timestamp used for the secondary age signal. */
+  readonly now?: string;
 }
 
 export interface MemorySearchMatch {
@@ -55,6 +108,7 @@ export interface HistoricalRiskMatch {
   readonly reasons: readonly string[];
   readonly regressionTests: readonly MemoryRegressionTest[];
   readonly relatedContracts: readonly string[];
+  readonly relevance: MemoryRelevance;
   readonly severity: MemorySeverity;
   readonly title: string;
   readonly type: MemoryType;

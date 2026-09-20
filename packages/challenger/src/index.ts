@@ -155,6 +155,7 @@ export async function prepareAndWriteChallengeBrief(
       historicalRisks: assessment.historicalRisks.slice(0, MAX_HISTORICAL_RISKS).map((memory) => ({
         memoryId: memory.memoryId,
         reasons: memory.reasons,
+        relevance: memory.relevance.level,
         severity: memory.severity,
         title: memory.title,
       })),

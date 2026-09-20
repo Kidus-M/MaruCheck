@@ -69,6 +69,7 @@ import {
   listMemoryRecords,
   parseMemoryRecordInput,
   searchMemoryRecords,
+  supersededBy,
 } from "@maru/memory";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
@@ -251,13 +252,25 @@ function reportGitError(error: GitAnalysisError, output: CliOutput): void {
   output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
 }
 
+function formatHistoricalRisk(memory: RiskAssessment["historicalRisks"][number]): string[] {
+  const { relevance } = memory;
+  return [
+    `QA memory ${memory.memoryId}: relevance ${relevance.level.toUpperCase()} (${relevance.score}/100)`,
+    ...relevance.signals.map((signal) => `  - ${signal.message}`),
+    relevance.level === "low"
+      ? "  Historical record preserved, but no risk increase applied."
+      : `  Risk increased${memory.regressionTests.length === 0 ? "" : " and recorded regression tests are eligible for the verification plan"}.`,
+  ];
+}
+
 function formatRiskAssessment(assessment: RiskAssessment): string {
   const related = assessment.relatedContracts.map((contract) => contract.contractId).join(", ");
   return [
     `Risk: ${assessment.level.toUpperCase()} (${assessment.score}/100)`,
     `Changed files: ${assessment.analysis.summary.changedFiles} (+${assessment.analysis.summary.additions} -${assessment.analysis.summary.deletions})`,
     `Related contracts: ${related.length === 0 ? "none" : related}`,
-    `Historical risks: ${assessment.historicalRisks.length === 0 ? "none" : assessment.historicalRisks.map((memory) => memory.memoryId).join(", ")}`,
+    `Historical risks: ${assessment.historicalRisks.length === 0 ? "none" : assessment.historicalRisks.map((memory) => `${memory.memoryId} (${memory.relevance.level})`).join(", ")}`,
+    ...assessment.historicalRisks.flatMap(formatHistoricalRisk),
     "Why:",
     ...assessment.reasons.map((reason) => `  +${reason.points} ${reason.message}`),
     `Recommended tests: ${assessment.recommendedTestCategories.join(", ") || "none"}`,
@@ -572,11 +585,15 @@ async function runMemoryCommand(
 
   if (action === "list") {
     const records = await listMemoryRecords(root);
+    const superseded = supersededBy(records);
     output.log(
       records.length === 0
         ? "No QA memory records found."
         : records
-            .map((record) => `${record.id}\t${record.severity}\t${record.type}\t${record.title}`)
+            .map((record) => {
+              const newer = superseded.get(record.id);
+              return `${record.id}\t${record.severity}\t${record.type}\t${record.title}${newer === undefined ? "" : `\t(superseded by ${newer.join(", ")})`}`;
+            })
             .join("\n"),
     );
     return 0;
@@ -704,7 +721,9 @@ export async function runCli(
         output.error("Invalid risk command.\nRun maru risk --diff.");
         return 1;
       }
-      const assessment = await (dependencies.riskAssessment ?? assessProjectRisk)(root);
+      const assessment = await (dependencies.riskAssessment === undefined
+        ? assessProjectRisk(root, { now: dependencies.now?.() ?? new Date() })
+        : dependencies.riskAssessment(root));
       output.log(formatRiskAssessment(assessment));
       return 0;
     }

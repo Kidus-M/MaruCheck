@@ -581,6 +581,22 @@ evidence_policy:`,
         ok: true,
       },
     });
+
+    const superseding = await callMaruTool(
+      "maru_record_bug",
+      { ...memory, supersedes: ["MEM-0001"], title: "Invoice ownership rewrite" },
+      { now: () => new Date("2026-08-19T08:00:00.000Z"), root },
+    );
+    expect(superseding).toMatchObject({
+      isError: false,
+      structuredContent: { ok: true, record: { id: "MEM-0002", supersedes: ["MEM-0001"] } },
+    });
+    await expect(
+      callMaruTool("maru_record_bug", { ...memory, supersedes: ["MEM-0099"] }, { root }),
+    ).resolves.toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "MEMORY_NOT_FOUND" } },
+    });
   });
 
   it("enforces initialization before listing or calling tools", async () => {

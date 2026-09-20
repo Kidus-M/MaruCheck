@@ -1,6 +1,12 @@
 import type { GitDiffAnalysis } from "@maru/git";
-import type { HistoricalRiskMatch, MemorySearchMatch, QAMemoryRecord } from "./model.js";
+import type {
+  HistoricalRiskMatch,
+  MemoryRelevanceContext,
+  MemorySearchMatch,
+  QAMemoryRecord,
+} from "./model.js";
 import { MemoryError } from "./model.js";
+import { assessMemoryRelevance } from "./relevance.js";
 import { listMemoryRecords } from "./repository.js";
 
 const STOP_WORDS = new Set([
@@ -105,10 +111,15 @@ export async function searchMemoryRecords(
   return searchMemory(await listMemoryRecords(root), query);
 }
 
-/** Match historical defects to a later Git change using exact paths and meaningful vocabulary. */
+/**
+ * Match historical defects to a later Git change using exact paths and meaningful vocabulary.
+ * Every match carries its current relevance so consumers can preserve stale history without
+ * letting it inflate risk.
+ */
 export function matchHistoricalRisks(
   analysis: GitDiffAnalysis,
   records: readonly QAMemoryRecord[],
+  context: MemoryRelevanceContext = {},
 ): HistoricalRiskMatch[] {
   if (analysis.clean) return [];
   const changedPaths = new Set(analysis.files.map((file) => file.path.replaceAll("\\", "/")));
@@ -140,6 +151,10 @@ export function matchHistoricalRisks(
         reasons,
         regressionTests: record.regressionTests,
         relatedContracts: record.relatedContracts,
+        relevance: assessMemoryRelevance(record, records, context, {
+          exactFileMatches,
+          matchedTerms,
+        }),
         severity: record.severity,
         title: record.title,
         type: record.type,

@@ -451,6 +451,7 @@ describe("verification planner", () => {
               },
             ],
             relatedContracts: ["invoice-access"],
+            relevance: { level: "high", score: 100, signals: [], supersededBy: [] },
             severity: "critical",
             title: "Cross-account invoice access",
             type: "security-regression",
@@ -475,8 +476,10 @@ describe("verification planner", () => {
     expect(plan.historicalRegressions).toEqual([
       expect.objectContaining({
         availableTestFiles: ["tests/regressions/cross-account.test.ts"],
+        included: true,
         memoryId: "MEM-0143",
         missingTestFiles: ["tests/profile.test.ts"],
+        relevance: expect.objectContaining({ level: "high" }),
       }),
     ]);
     expect(plan.affectedTests).toEqual(
@@ -495,6 +498,73 @@ describe("verification planner", () => {
           testFiles: expect.arrayContaining(["tests/regressions/cross-account.test.ts"]),
         }),
       ]),
+    );
+    expect(plan.summary.historicalRegressions).toBe(1);
+  });
+
+  it("preserves low-relevance memory in the plan without forcing its regression test", () => {
+    const project = scan();
+    const relevance = {
+      level: "low" as const,
+      score: 30,
+      signals: [
+        {
+          code: "superseded" as const,
+          message: "Superseded by newer QA memory: MEM-0200.",
+          points: -70,
+        },
+      ],
+      supersededBy: ["MEM-0200"],
+    };
+    const plan = buildVerificationPlan({
+      assessment: {
+        ...ASSESSMENT,
+        historicalRisks: [
+          {
+            exactFileMatches: [],
+            matchedTerms: ["authorization", "invoices"],
+            memoryId: "MEM-0143",
+            reasons: ["Matches historical authorization and invoice terms."],
+            regressionTests: [
+              {
+                adapter: "vitest",
+                id: "invoice-cross-account-access",
+                path: "tests/regressions/cross-account.test.ts",
+                requirementRefs: ["invoice-access#INV-001"],
+              },
+            ],
+            relatedContracts: ["invoice-access"],
+            relevance,
+            severity: "critical",
+            title: "Cross-account invoice access",
+            type: "security-regression",
+          },
+        ],
+      },
+      contracts: [],
+      generatedAt: "2026-08-18T10:00:00.000Z",
+      project: {
+        ...project,
+        tests: {
+          ...project.tests,
+          files: [
+            ...project.tests.files,
+            { framework: "vitest", path: "tests/regressions/cross-account.test.ts" },
+          ],
+        },
+      },
+    });
+
+    expect(plan.historicalRegressions).toEqual([
+      expect.objectContaining({
+        availableTestFiles: ["tests/regressions/cross-account.test.ts"],
+        included: false,
+        memoryId: "MEM-0143",
+        relevance,
+      }),
+    ]);
+    expect(plan.affectedTests.map((test) => test.path)).not.toContain(
+      "tests/regressions/cross-account.test.ts",
     );
     expect(plan.summary.historicalRegressions).toBe(1);
   });

@@ -240,7 +240,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
   definition(
     "maru_assess_risk",
     "Assess deterministic change risk",
-    "Score the current Git diff from 0 to 100 with explicit rule contributions, related contracts, and recommended test categories.",
+    "Score the current Git diff from 0 to 100 with explicit rule contributions, related contracts, recommended test categories, and matched QA memory with deterministic relevance; low-relevance history is preserved without raising risk.",
     CLOSED_EMPTY_SCHEMA,
     true,
   ),
@@ -379,7 +379,7 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
   definition(
     "maru_record_bug",
     "Record a QA bug memory",
-    "Persist an immutable historical bug, its root cause, affected files/contracts, tags, and executable regression tests for future verification.",
+    "Persist an immutable historical bug, its root cause, affected files/contracts, tags, and executable regression tests for future verification. Optionally list older records it supersedes so their stale context stops raising risk.",
     schema(
       {
         regressionTests: {
@@ -408,6 +408,11 @@ export const MARU_MCP_TOOLS: readonly McpToolDefinition[] = [
           type: "string",
         },
         summary: { maxLength: 10000, minLength: 1, type: "string" },
+        supersedes: {
+          items: { maxLength: 20, minLength: 8, pattern: "^MEM-[0-9]{4,}$", type: "string" },
+          maxItems: 50,
+          type: "array",
+        },
         tags: {
           items: { maxLength: 80, minLength: 1, type: "string" },
           maxItems: 100,
@@ -820,6 +825,7 @@ export async function callMaruTool(
         "rootCause",
         "severity",
         "summary",
+        "supersedes",
         "tags",
         "title",
         "type",
@@ -845,7 +851,9 @@ export async function callMaruTool(
       return success({ diff, scope: "staged-unstaged-untracked" });
     }
     if (name === "maru_assess_risk") {
-      const assessment = await (dependencies.assessRisk ?? assessProjectRisk)(root);
+      const assessment = await (dependencies.assessRisk === undefined
+        ? assessProjectRisk(root, { now: dependencies.now?.() ?? new Date() })
+        : dependencies.assessRisk(root));
       return success({ assessment });
     }
     const result = await (dependencies.createVerificationPlan ?? createAndWriteVerificationPlan)(
