@@ -69,6 +69,7 @@ import {
   listMemoryRecords,
   parseMemoryRecordInput,
   searchMemoryRecords,
+  supersededBy,
 } from "@maru/memory";
 import { runStdioMcpServer } from "@maru/mcp-server";
 import {
@@ -584,11 +585,15 @@ async function runMemoryCommand(
 
   if (action === "list") {
     const records = await listMemoryRecords(root);
+    const superseded = supersededBy(records);
     output.log(
       records.length === 0
         ? "No QA memory records found."
         : records
-            .map((record) => `${record.id}\t${record.severity}\t${record.type}\t${record.title}`)
+            .map((record) => {
+              const newer = superseded.get(record.id);
+              return `${record.id}\t${record.severity}\t${record.type}\t${record.title}${newer === undefined ? "" : `\t(superseded by ${newer.join(", ")})`}`;
+            })
             .join("\n"),
     );
     return 0;
@@ -716,7 +721,9 @@ export async function runCli(
         output.error("Invalid risk command.\nRun maru risk --diff.");
         return 1;
       }
-      const assessment = await (dependencies.riskAssessment ?? assessProjectRisk)(root);
+      const assessment = await (dependencies.riskAssessment === undefined
+        ? assessProjectRisk(root, { now: dependencies.now?.() ?? new Date() })
+        : dependencies.riskAssessment(root));
       output.log(formatRiskAssessment(assessment));
       return 0;
     }
