@@ -1,5 +1,7 @@
 import type { RiskAssessment, RiskLevel } from "@maru/risk";
 
+type MemoryRelevanceLevel = RiskAssessment["historicalRisks"][number]["relevance"]["level"];
+
 export const CHALLENGE_BRIEF_SCHEMA_VERSION = 1;
 export const CHALLENGE_REPORT_SCHEMA_VERSION = 1;
 export const CHALLENGE_SUBMISSION_SCHEMA_VERSION = 1;
@@ -72,6 +74,7 @@ export interface ChallengeBrief {
     readonly historicalRisks: readonly {
       readonly memoryId: string;
       readonly reasons: readonly string[];
+      readonly relevance: MemoryRelevanceLevel;
       readonly severity: string;
       readonly title: string;
     }[];
