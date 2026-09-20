@@ -48,7 +48,7 @@ describe("maru CLI", () => {
     const output = { error: vi.fn(), log: vi.fn() };
 
     await expect(runCli(["--version"], output)).resolves.toBe(0);
-    expect(output.log).toHaveBeenCalledWith("0.4.0");
+    expect(output.log).toHaveBeenCalledWith("0.5.0");
     expect(output.error).not.toHaveBeenCalled();
   });
 

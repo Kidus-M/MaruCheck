@@ -1,6 +1,6 @@
 {
   "name": "marucheck",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": false,
   "description": "Local-first independent verification tooling for MaruCheck",
   "license": "MIT",

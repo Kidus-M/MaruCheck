@@ -17,7 +17,7 @@ agent cannot edit it.
 ```bash
 git clone https://github.com/Kidus-M/MaruCheck.git
 cd MaruCheck
-npm install && npm run build     # or skip this: the runner falls back to npx marucheck@0.4.0
+npm install && npm run build     # or skip this: the runner falls back to npx marucheck@0.5.0
 node examples/quota-app/run.mjs
 ```
 
