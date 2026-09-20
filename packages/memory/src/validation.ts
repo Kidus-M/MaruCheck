@@ -141,6 +141,7 @@ export function parseMemoryRecordInput(
     "severity",
     "source",
     "summary",
+    "supersedes",
     "tags",
     "title",
     "type",
@@ -165,6 +166,11 @@ export function parseMemoryRecordInput(
   if (relatedContracts.some((id) => !CONTRACT_ID.test(id))) {
     invalid("relatedContracts contains an invalid ID.", "Use lowercase kebab-case contract IDs.");
   }
+  const supersedes =
+    input.supersedes === undefined ? [] : strings(input, "supersedes", 50, 20).sort();
+  if (supersedes.some((id) => !MEMORY_ID.test(id))) {
+    invalid("supersedes contains an invalid QA memory ID.", "Use identifiers such as MEM-0001.");
+  }
   return {
     regressionTests: regressionTests(input),
     relatedContracts,
@@ -175,6 +181,7 @@ export function parseMemoryRecordInput(
     severity,
     source: sourceValue as MemorySource,
     summary: stringValue(input, "summary", 10_000),
+    supersedes,
     tags: strings(input, "tags", 100, 80).map((tag) => tag.toLowerCase()),
     title: stringValue(input, "title", 300),
     type,
@@ -208,6 +215,7 @@ export function parseStoredMemoryRecord(value: unknown, path: string): QAMemoryR
         severity: input.severity,
         source: input.source,
         summary: input.summary,
+        ...(input.supersedes === undefined ? {} : { supersedes: input.supersedes }),
         tags: input.tags,
         title: input.title,
         type: input.type,
@@ -225,6 +233,13 @@ export function parseStoredMemoryRecord(value: unknown, path: string): QAMemoryR
       { cause: error },
     );
   }
+  if (parsed.supersedes?.includes(input.id)) {
+    throw new MemoryError(
+      "MEMORY_READ_FAILED",
+      `Stored QA memory supersedes itself: ${path}`,
+      "Repair or remove the invalid memory file, then retry.",
+    );
+  }
   return {
     ...parsed,
     createdAt: input.createdAt,
@@ -232,5 +247,6 @@ export function parseStoredMemoryRecord(value: unknown, path: string): QAMemoryR
     schemaVersion: 1,
     source: parsed.source ?? "manual",
     status: "active",
+    supersedes: parsed.supersedes ?? [],
   };
 }

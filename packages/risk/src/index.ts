@@ -11,9 +11,11 @@ import {
   type GitFileChange,
 } from "@maru/git";
 import {
+  buildMemoryRelevanceContext,
   listMemoryRecords,
   matchHistoricalRisks,
   type HistoricalRiskMatch,
+  type MemoryRelevanceContext,
   type QAMemoryRecord,
 } from "@maru/memory";
 
@@ -45,8 +47,12 @@ export interface RelatedContractMatch {
   readonly title: string;
 }
 
+/** Local evidence for QA memory relevance; contracts are always taken from the assessed set. */
+export type RiskMemoryContext = Omit<MemoryRelevanceContext, "contracts">;
+
 export interface RiskAssessment {
   readonly analysis: GitDiffAnalysis;
+  /** Every matched memory, including low-relevance history preserved without a risk increase. */
   readonly historicalRisks: readonly HistoricalRiskMatch[];
   readonly level: RiskLevel;
   readonly reasons: readonly RiskReason[];
@@ -116,6 +122,16 @@ const CRITICALITY_POINTS: Record<ContractCriticality, number> = {
   high: 15,
   critical: 25,
 };
+
+const MEMORY_SEVERITY_POINTS = { critical: 25, high: 18, info: 2, low: 5, medium: 10 } as const;
+
+/** Low-relevance history is preserved but scores nothing; medium relevance counts half. */
+function historicalPoints(memory: HistoricalRiskMatch): number {
+  const points = MEMORY_SEVERITY_POINTS[memory.severity];
+  if (memory.relevance.level === "high") return points;
+  if (memory.relevance.level === "medium") return Math.round(points / 2);
+  return 0;
+}
 
 function terms(text: string): Set<string> {
   const separated = text.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").toLowerCase();
@@ -200,6 +216,7 @@ function recommendations(
   historicalRisks: readonly HistoricalRiskMatch[],
 ): RecommendedTestCategory[] {
   const result = new Set<RecommendedTestCategory>(["unit"]);
+  const relevantHistory = historicalRisks.filter((memory) => memory.relevance.level !== "low");
   if (
     classifications.has("api-contract") ||
     classifications.has("external-integration") ||
@@ -217,16 +234,16 @@ function recommendations(
     result.add("security");
   }
   if (classifications.has("ui-only")) result.add("accessibility");
-  if (relatedContracts.length > 0 || historicalRisks.length > 0) result.add("contract-regression");
+  if (relatedContracts.length > 0 || relevantHistory.length > 0) result.add("contract-regression");
   if (
-    historicalRisks.some(
+    relevantHistory.some(
       (memory) => memory.type === "security-finding" || memory.type === "security-regression",
     )
   ) {
     result.add("security");
   }
   if (
-    historicalRisks.some((memory) =>
+    relevantHistory.some((memory) =>
       memory.regressionTests.some((test) => test.adapter === "playwright"),
     )
   ) {
@@ -237,11 +254,16 @@ function recommendations(
   return [...result].sort();
 }
 
-/** Score one analyzed change set using deterministic path, size, and contract factors. */
+/**
+ * Score one analyzed change set using deterministic path, size, contract, and history factors.
+ * `memoryContext` supplies local evidence (existing paths, test history, current time) so stale
+ * QA memory is preserved without inflating risk; omitted evidence skips the related signal.
+ */
 export function assessRisk(
   analysis: GitDiffAnalysis,
   contracts: readonly QualityContract[],
   memories: readonly QAMemoryRecord[] = [],
+  memoryContext: RiskMemoryContext = {},
 ): RiskAssessment {
   if (analysis.clean) {
     return {
@@ -256,7 +278,10 @@ export function assessRisk(
   }
 
   const reasons: RiskReason[] = [];
-  const historicalRisks = matchHistoricalRisks(analysis, memories);
+  const historicalRisks = matchHistoricalRisks(analysis, memories, {
+    ...memoryContext,
+    contracts: contracts.map((contract) => ({ id: contract.id, status: contract.status })),
+  });
   const classifications = new Set(analysis.files.flatMap((file) => file.classifications));
   for (const [classification, factor] of Object.entries(CLASSIFICATION_POINTS) as [
     ChangeClassification,
@@ -356,17 +381,26 @@ export function assessRisk(
     );
   }
 
-  if (historicalRisks.length > 0) {
-    const severityPoints = { critical: 25, high: 18, info: 2, low: 5, medium: 10 } as const;
-    const highest = historicalRisks.reduce((left, right) =>
-      severityPoints[left.severity] >= severityPoints[right.severity] ? left : right,
+  const relevantHistory = historicalRisks.filter((memory) => memory.relevance.level !== "low");
+  const staleHistory = historicalRisks.filter((memory) => memory.relevance.level === "low");
+  if (relevantHistory.length > 0) {
+    const highest = relevantHistory.reduce((left, right) =>
+      historicalPoints(left) >= historicalPoints(right) ? left : right,
     );
     addReason(
       reasons,
       "historical-regression",
-      `Touches code related to ${historicalRisks.length} historical QA memor${historicalRisks.length === 1 ? "y" : "ies"}; highest is ${highest.memoryId} (${highest.severity}): ${highest.title}.`,
-      severityPoints[highest.severity],
-      [...new Set(historicalRisks.flatMap((memory) => memory.exactFileMatches))].sort(),
+      `Touches code related to ${relevantHistory.length} relevant historical QA memor${relevantHistory.length === 1 ? "y" : "ies"}; highest is ${highest.memoryId} (${highest.severity}, ${highest.relevance.level} relevance): ${highest.title}.`,
+      historicalPoints(highest),
+      [...new Set(relevantHistory.flatMap((memory) => memory.exactFileMatches))].sort(),
+    );
+  }
+  if (staleHistory.length > 0) {
+    addReason(
+      reasons,
+      "historical-stale",
+      `Preserved ${staleHistory.length} low-relevance historical QA memor${staleHistory.length === 1 ? "y" : "ies"} without a risk increase: ${staleHistory.map((memory) => memory.memoryId).join(", ")}.`,
+      0,
     );
   }
 
@@ -389,13 +423,19 @@ export function assessRisk(
   };
 }
 
-/** Analyze the current Git change set, load local contracts, and calculate deterministic risk. */
-export async function assessProjectRisk(root: string): Promise<RiskAssessment> {
+/** Analyze the current Git change set, load local contracts and memory, and calculate deterministic risk. */
+export async function assessProjectRisk(
+  root: string,
+  options: { readonly now?: Date } = {},
+): Promise<RiskAssessment> {
   const [analysis, summaries, memories] = await Promise.all([
     analyzeGitDiff(root),
     listContracts(root),
     listMemoryRecords(root),
   ]);
-  const contracts = await Promise.all(summaries.map((summary) => getContract(root, summary.id)));
-  return assessRisk(analysis, contracts, memories);
+  const [contracts, memoryContext] = await Promise.all([
+    Promise.all(summaries.map((summary) => getContract(root, summary.id))),
+    buildMemoryRelevanceContext(root, memories, { now: options.now ?? new Date() }),
+  ]);
+  return assessRisk(analysis, contracts, memories, memoryContext);
 }

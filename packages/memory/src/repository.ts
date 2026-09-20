@@ -93,7 +93,16 @@ export async function createMemoryRecord(
 ): Promise<{ readonly path: string; readonly record: QAMemoryRecord }> {
   await requireInitialization(root);
   const normalized = parseMemoryRecordInput(input);
-  let sequence = nextSequence(await memoryFileNames(root));
+  const names = await memoryFileNames(root);
+  const missing = (normalized.supersedes ?? []).filter((id) => !names.includes(`${id}.json`));
+  if (missing.length > 0) {
+    throw new MemoryError(
+      "MEMORY_NOT_FOUND",
+      `Superseded QA memory not found: ${missing.join(", ")}`,
+      "Only supersede records listed by maru memory list.",
+    );
+  }
+  let sequence = nextSequence(names);
   for (let attempt = 0; attempt < 100; attempt += 1, sequence += 1) {
     const id = `MEM-${String(sequence).padStart(4, "0")}`;
     const record: QAMemoryRecord = {
@@ -103,6 +112,7 @@ export async function createMemoryRecord(
       schemaVersion: QA_MEMORY_SCHEMA_VERSION,
       source: normalized.source ?? "manual",
       status: "active",
+      supersedes: normalized.supersedes ?? [],
     };
     const path = `${MEMORY_DIRECTORY}/${id}.json`;
     try {

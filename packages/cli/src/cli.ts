@@ -251,13 +251,25 @@ function reportGitError(error: GitAnalysisError, output: CliOutput): void {
   output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
 }
 
+function formatHistoricalRisk(memory: RiskAssessment["historicalRisks"][number]): string[] {
+  const { relevance } = memory;
+  return [
+    `QA memory ${memory.memoryId}: relevance ${relevance.level.toUpperCase()} (${relevance.score}/100)`,
+    ...relevance.signals.map((signal) => `  - ${signal.message}`),
+    relevance.level === "low"
+      ? "  Historical record preserved, but no risk increase applied."
+      : `  Risk increased${memory.regressionTests.length === 0 ? "" : " and recorded regression tests are eligible for the verification plan"}.`,
+  ];
+}
+
 function formatRiskAssessment(assessment: RiskAssessment): string {
   const related = assessment.relatedContracts.map((contract) => contract.contractId).join(", ");
   return [
     `Risk: ${assessment.level.toUpperCase()} (${assessment.score}/100)`,
     `Changed files: ${assessment.analysis.summary.changedFiles} (+${assessment.analysis.summary.additions} -${assessment.analysis.summary.deletions})`,
     `Related contracts: ${related.length === 0 ? "none" : related}`,
-    `Historical risks: ${assessment.historicalRisks.length === 0 ? "none" : assessment.historicalRisks.map((memory) => memory.memoryId).join(", ")}`,
+    `Historical risks: ${assessment.historicalRisks.length === 0 ? "none" : assessment.historicalRisks.map((memory) => `${memory.memoryId} (${memory.relevance.level})`).join(", ")}`,
+    ...assessment.historicalRisks.flatMap(formatHistoricalRisk),
     "Why:",
     ...assessment.reasons.map((reason) => `  +${reason.points} ${reason.message}`),
     `Recommended tests: ${assessment.recommendedTestCategories.join(", ") || "none"}`,
