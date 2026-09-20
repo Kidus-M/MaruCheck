@@ -226,7 +226,10 @@ export function assessMemoryRelevance(
   record: QAMemoryRecord,
   records: readonly QAMemoryRecord[],
   context: MemoryRelevanceContext = {},
-  match: { readonly exactFileMatches: readonly string[]; readonly matchedTerms: readonly string[] } = {
+  match: {
+    readonly exactFileMatches: readonly string[];
+    readonly matchedTerms: readonly string[];
+  } = {
     exactFileMatches: [],
     matchedTerms: [],
   },
@@ -244,9 +247,7 @@ export function assessMemoryRelevance(
     context.existingPaths === undefined
       ? undefined
       : relatedFilesSignal(record, context.existingPaths),
-    context.contracts === undefined
-      ? undefined
-      : relatedContractsSignal(record, context.contracts),
+    context.contracts === undefined ? undefined : relatedContractsSignal(record, context.contracts),
     context.existingPaths === undefined
       ? undefined
       : regressionTestsSignal(record, context.existingPaths),

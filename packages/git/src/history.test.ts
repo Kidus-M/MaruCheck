@@ -19,7 +19,10 @@ describe("Git path history", () => {
         committedAt: "2026-08-28T14:01:03.000Z",
         paths: ["src/services/invoices.ts", "tests/regressions/cross-account.test.ts"],
       },
-      { committedAt: "2026-08-20T06:00:00.000Z", paths: ["tests/regressions/cross-account.test.ts"] },
+      {
+        committedAt: "2026-08-20T06:00:00.000Z",
+        paths: ["tests/regressions/cross-account.test.ts"],
+      },
     ]);
     expect(parsePathHistory("")).toEqual([]);
   });

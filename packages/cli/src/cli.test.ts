@@ -386,7 +386,11 @@ approval:
       type: "security-regression" as const,
     };
     const riskAssessment = vi.fn().mockResolvedValue({
-      analysis: { clean: false, files: [], summary: { additions: 1, changedFiles: 1, deletions: 1 } },
+      analysis: {
+        clean: false,
+        files: [],
+        summary: { additions: 1, changedFiles: 1, deletions: 1 },
+      },
       historicalRisks: [
         {
           ...memory,

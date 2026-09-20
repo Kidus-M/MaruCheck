@@ -204,7 +204,10 @@ describe("deterministic risk engine", () => {
 
   it("preserves stale history without a risk increase and explains the relevance decision", () => {
     const fresh = assessRisk(invoiceAuthorizationChange, [INVOICE_CONTRACT], [INVOICE_MEMORY], {
-      existingPaths: new Set(["src/services/invoices.ts", "tests/regressions/cross-account.test.ts"]),
+      existingPaths: new Set([
+        "src/services/invoices.ts",
+        "tests/regressions/cross-account.test.ts",
+      ]),
       history: [],
       now: "2026-09-01T00:00:00.000Z",
     });
@@ -235,8 +238,7 @@ describe("deterministic risk engine", () => {
     expect(stale.reasons.map((reason) => reason.code)).not.toContain("historical-regression");
     expect(stale.reasons).toContainEqual({
       code: "historical-stale",
-      message:
-        "Preserved 1 low-relevance historical QA memory without a risk increase: MEM-0143.",
+      message: "Preserved 1 low-relevance historical QA memory without a risk increase: MEM-0143.",
       points: 0,
     });
     expect(stale.recommendedTestCategories).not.toContain("contract-regression");
@@ -257,12 +259,12 @@ describe("deterministic risk engine", () => {
       { existingPaths: new Set(["src/services/invoices.ts"]) },
     );
 
-    expect(result.historicalRisks.map((memory) => [memory.memoryId, memory.relevance.level])).toEqual(
-      [
-        ["MEM-0001", "low"],
-        ["MEM-0002", "medium"],
-      ],
-    );
+    expect(
+      result.historicalRisks.map((memory) => [memory.memoryId, memory.relevance.level]),
+    ).toEqual([
+      ["MEM-0001", "low"],
+      ["MEM-0002", "medium"],
+    ]);
     expect(result.reasons).toContainEqual(
       expect.objectContaining({
         code: "historical-regression",

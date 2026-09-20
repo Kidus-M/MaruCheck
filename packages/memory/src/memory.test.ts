@@ -150,9 +150,7 @@ describe("QA memory", () => {
       }),
     ]);
     expect(matches[0]?.reasons.join(" ")).toContain("historical");
-    expect(matches[0]?.relevance.signals.map((signal) => signal.code)).toEqual([
-      "current-change",
-    ]);
+    expect(matches[0]?.relevance.signals.map((signal) => signal.code)).toEqual(["current-change"]);
   });
 
   it("keeps a record fully relevant while its files, contract, and regression test still exist", () => {
@@ -180,7 +178,8 @@ describe("QA memory", () => {
         }),
         expect.objectContaining({
           code: "regression-tests-present",
-          message: "Recorded regression test still exists: tests/regressions/cross-account.test.ts.",
+          message:
+            "Recorded regression test still exists: tests/regressions/cross-account.test.ts.",
           points: 0,
         }),
         expect.objectContaining({ code: "regression-tests-changed", points: 0 }),
@@ -317,9 +316,11 @@ describe("QA memory", () => {
     const root = await project();
     await mkdir(join(root, "src", "services"), { recursive: true });
     await writeFile(join(root, "src", "services", "invoices.ts"), "export {};\n", "utf8");
-    const run = vi.fn().mockResolvedValue(
-      "\u001e2026-08-20T08:00:00+00:00\n\ntests/regressions/cross-account.test.ts\n",
-    );
+    const run = vi
+      .fn()
+      .mockResolvedValue(
+        "\u001e2026-08-20T08:00:00+00:00\n\ntests/regressions/cross-account.test.ts\n",
+      );
 
     const context = await buildMemoryRelevanceContext(root, [storedRecord()], {
       now: new Date("2026-09-01T00:00:00.000Z"),
@@ -343,9 +344,9 @@ describe("QA memory", () => {
       ]),
       root,
     );
-    await expect(
-      buildMemoryRelevanceContext(root, [], { runner: { run } }),
-    ).resolves.toMatchObject({ existingPaths: new Set(), history: [] });
+    await expect(buildMemoryRelevanceContext(root, [], { runner: { run } })).resolves.toMatchObject(
+      { existingPaths: new Set(), history: [] },
+    );
     expect(run).toHaveBeenCalledTimes(1);
   });
 

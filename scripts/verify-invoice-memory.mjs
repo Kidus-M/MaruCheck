@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { runCli } from "../packages/cli/dist/cli.js";
 import { getContract } from "../packages/contracts/dist/index.js";
 import { scanProject } from "../packages/core/dist/index.js";
-import { listMemoryRecords } from "../packages/memory/dist/index.js";
+import { buildMemoryRelevanceContext, listMemoryRecords } from "../packages/memory/dist/index.js";
 import { buildVerificationPlan } from "../packages/planner/dist/index.js";
 import { assessRisk } from "../packages/risk/dist/index.js";
 
@@ -100,7 +100,7 @@ approval:
         relatedContracts: ["invoice-access"],
         relatedFiles: ["src/services/invoices/authorization.ts"],
         rootCause: "Missing server-side invoice ownership check.",
-        severity: "critical",
+        severity: "high",
         source: "manual",
         summary: "Users could access another account's invoice by changing invoiceId.",
         tags: ["authorization", "idor", "invoices"],
@@ -118,6 +118,42 @@ approval:
     })) !== 0
   ) {
     throw new Error("Unable to record the invoice IDOR memory.");
+  }
+  // Older, more severe history whose service, contract, and regression test were all removed.
+  await write(
+    root,
+    "legacy-invoice-leak.json",
+    `${JSON.stringify(
+      {
+        regressionTests: [
+          {
+            adapter: "vitest",
+            id: "legacy-invoice-authorization",
+            path: "tests/legacy/invoice-authorization.test.ts",
+            requirementRefs: ["legacy-invoice-service#LEG-001"],
+          },
+        ],
+        relatedContracts: ["legacy-invoice-service"],
+        relatedFiles: ["src/legacy/invoice-service.ts"],
+        rootCause: "The legacy invoice service trusted the client-supplied account ID.",
+        severity: "critical",
+        source: "manual",
+        summary: "The retired legacy invoice service leaked invoices across accounts.",
+        tags: ["authorization", "invoices", "legacy"],
+        title: "Legacy invoice authorization leak",
+        type: "security-regression",
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  if (
+    (await runCli(["memory", "add", "--from", "legacy-invoice-leak.json"], output, {
+      cwd: root,
+      now: () => new Date("2025-01-10T08:00:00.000Z"),
+    })) !== 0
+  ) {
+    throw new Error("Unable to record the legacy invoice memory.");
   }
 
   await write(
@@ -147,7 +183,11 @@ approval:
     listMemoryRecords(root),
     scanProject(root, new Date("2026-08-18T10:00:00.000Z")),
   ]);
-  const assessment = assessRisk(analysis, [contract], memories);
+  const memoryContext = await buildMemoryRelevanceContext(root, memories, {
+    now: new Date("2026-08-18T10:00:00.000Z"),
+    runner: { run: async () => "" },
+  });
+  const assessment = assessRisk(analysis, [contract], memories, memoryContext);
   const plan = buildVerificationPlan({
     assessment,
     contracts: [contract],
@@ -155,13 +195,25 @@ approval:
     project,
   });
   const memory = assessment.historicalRisks.find((item) => item.memoryId === "MEM-0001");
+  const legacy = assessment.historicalRisks.find((item) => item.memoryId === "MEM-0002");
+  const historical = assessment.reasons.find((reason) => reason.code === "historical-regression");
   const regression = plan.affectedTests.find(
     (test) => test.path === "tests/regressions/cross-account.test.ts",
   );
+  const legacyPlan = plan.historicalRegressions.find((item) => item.memoryId === "MEM-0002");
   if (
     memory === undefined ||
-    !assessment.reasons.some((reason) => reason.code === "historical-regression") ||
+    memory.relevance.level !== "high" ||
+    legacy === undefined ||
+    legacy.relevance.level !== "low" ||
+    legacy.relevance.signals.length < 3 ||
+    historical === undefined ||
+    // The stale critical record must not outrank the relevant high-severity record.
+    historical.points !== 18 ||
+    !assessment.reasons.some((reason) => reason.code === "historical-stale") ||
     !plan.historicalRegressions.some((item) => item.memoryId === "MEM-0001") ||
+    legacyPlan === undefined ||
+    legacyPlan.included ||
     regression === undefined ||
     !regression.historicalMemoryIds.includes("MEM-0001") ||
     !plan.steps.some((step) => step.testFiles.includes(regression.path))
@@ -171,7 +223,7 @@ approval:
     );
   }
   process.stdout.write(
-    "QA memory acceptance passed: the invoice IDOR history raised risk and automatically included its regression test.\n",
+    "QA memory acceptance passed: the invoice IDOR history raised risk and included its regression test, while the stale legacy record was preserved without a risk increase.\n",
   );
 } finally {
   await rm(root, { force: true, recursive: true });
