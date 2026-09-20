@@ -229,7 +229,7 @@ node ../maru-cli/packages/cli/dist/index.js mcp
 | Command                                      | Description                                                  |
 | -------------------------------------------- | ------------------------------------------------------------ |
 | `maru memory add --from memory.json`         | Store one immutable versioned historical QA record           |
-| `maru memory list`                           | List active records newest first                             |
+| `maru memory list`                           | List active records newest first, marking superseded ones    |
 | `maru memory search "invoice authorization"` | Search IDs, defects, root causes, paths, contracts, and tags |
 | `maru memory show <MEM-id>`                  | Print one complete record including linked regression tests  |
 
@@ -314,7 +314,9 @@ See the [Phase 8 semantic drift guide](docs/guides/phase-8-semantic-drift.md) an
 
 Confirmed bugs can be stored under `.maru/memory` with their root cause, related contracts/files, tags, and regression tests. Future diffs automatically match that history, increase risk, and force available recorded regression files into verification plans.
 
-See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md) and [ADR-009](docs/decisions/0009-store-local-qa-memory-as-immutable-records.md).
+Every match is scored for freshness before it influences anything: missing files, removed or deprecated contracts, deleted or rewritten regression tests, explicit `supersedes` links, and age lower a deterministic relevance level. Low-relevance history is preserved and explained but adds no risk.
+
+See the [Phase 9 QA memory guide](docs/guides/phase-9-qa-memory.md), [ADR-009](docs/decisions/0009-store-local-qa-memory-as-immutable-records.md), and [ADR-018](docs/decisions/0018-score-qa-memory-freshness-deterministically.md).
 
 ### GitHub pull-request verification
 

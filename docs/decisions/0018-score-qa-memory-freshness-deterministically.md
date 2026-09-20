@@ -28,13 +28,13 @@ Records must remain immutable and preserved regardless of how relevant they beco
 Attach a deterministic `relevance` result to every historical risk match. Each record starts fully
 relevant at 100 and only loses points when local project evidence shows its context changed:
 
-| Signal                     | Evidence                                                  | Penalty                          |
-| -------------------------- | --------------------------------------------------------- | -------------------------------- |
-| `superseded`               | An active record lists this record in `supersedes`        | 70                               |
-| `related-files-present`    | Recorded related files are missing from the working tree  | up to 35, proportional           |
-| `regression-tests-present` | Recorded regression test files are missing                | up to 30, proportional           |
-| `related-contracts-active` | Related contracts were removed or deprecated              | up to 25, proportional           |
-| `regression-tests-changed` | Existing regression tests changed in commits since record | 10, or 20 for three or more      |
+| Signal                     | Evidence                                                  | Penalty                           |
+| -------------------------- | --------------------------------------------------------- | --------------------------------- |
+| `superseded`               | An active record lists this record in `supersedes`        | 70                                |
+| `related-files-present`    | Recorded related files are missing from the working tree  | up to 35, proportional            |
+| `regression-tests-present` | Recorded regression test files are missing                | up to 30, proportional            |
+| `related-contracts-active` | Related contracts were removed or deprecated              | up to 25, proportional            |
+| `regression-tests-changed` | Existing regression tests changed in commits since record | 10, or 20 for three or more       |
 | `age`                      | Record age, secondary only                                | 5 after 180 days, 10 after 1 year |
 
 Every signal is skipped when its evidence is not supplied, so a caller without the working tree or
