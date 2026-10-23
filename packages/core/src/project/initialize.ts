@@ -25,7 +25,7 @@ function selectedFramework(
 
 function createConfiguration(name: string, stack: DetectedStack): string {
   const unitFramework = selectedFramework(stack.testFrameworks, ["vitest", "jest"]);
-  const e2eFramework = selectedFramework(stack.testFrameworks, ["playwright"]);
+  const e2eFramework = selectedFramework(stack.testFrameworks, ["playwright", "cypress"]);
   const testLines = ["test:"];
 
   if (unitFramework === undefined && e2eFramework === undefined) {

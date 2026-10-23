@@ -120,6 +120,110 @@ describe("verification evidence and findings", () => {
     );
   });
 
+  it.each([
+    ["passed", undefined, undefined],
+    ["failed", undefined, "requirement-failure"],
+    ["error", "CYPRESS_CONFIG_INVALID", "execution-error"],
+    ["error", "CYPRESS_REPORT_INVALID", "execution-error"],
+    ["unavailable", "CYPRESS_NOT_INSTALLED", "verification-gap"],
+    ["skipped", "CYPRESS_TESTS_SKIPPED", "verification-gap"],
+  ] as const)(
+    "normalizes Cypress %s into requirement-linked e2e evidence",
+    (status, errorCode, kind) => {
+      const verificationPlan = plan();
+      const raw = run(status === "passed" ? "passed" : "failed");
+      const base = raw.results[0];
+      if (base === undefined) throw new Error("Missing fixture result");
+      const testResults = [
+        {
+          file: "cypress/e2e/subscription.cy.ts",
+          name: "cancels subscription",
+          durationMs: 31,
+          status: status === "failed" ? ("failed" as const) : ("passed" as const),
+          ...(status === "failed" ? { error: "AssertionError: expected free to be pro" } : {}),
+        },
+      ];
+      const report = buildVerificationReport({
+        generatedAt: NOW.toISOString(),
+        plan: {
+          ...verificationPlan,
+          steps: verificationPlan.steps.map((step) => ({
+            ...step,
+            adapter: "cypress",
+            category: "e2e",
+          })),
+        },
+        run: {
+          ...raw,
+          results: [
+            {
+              ...base,
+              adapter: "cypress",
+              status,
+              testFiles: ["cypress/e2e/subscription.cy.ts"],
+              artifacts: {
+                report: `${RUN_DIRECTORY}/cypress/report.json`,
+                outputDirectory: `${RUN_DIRECTORY}/cypress/test-output`,
+              },
+              ...(status === "passed" || status === "failed" ? { testResults } : {}),
+              ...(errorCode === undefined
+                ? {}
+                : {
+                    error: {
+                      code: errorCode,
+                      message: "Cypress setup needs attention",
+                      remediation: "Fix Cypress",
+                    },
+                  }),
+            },
+          ],
+        },
+      });
+      expect(report.evidence[0]).toMatchObject({
+        adapter: "cypress",
+        type: "e2e-test",
+        artifactRefs: expect.arrayContaining([
+          `${RUN_DIRECTORY}/cypress/report.json`,
+          `${RUN_DIRECTORY}/cypress/test-output`,
+        ]),
+        requirementRefs: ["subscription-management#SUB-004"],
+      });
+      expect(report.gate.status).toBe(status === "passed" ? "passed" : "blocked");
+      if (status === "passed" || status === "failed")
+        expect(report.evidence[0]?.testResults).toEqual(testResults);
+      if (kind !== undefined) expect(report.findings[0]).toMatchObject({ kind });
+      if (status === "failed")
+        expect(report.findings[0]?.actual).toContain("expected free to be pro");
+    },
+  );
+
+  it("keeps an unlinked Cypress execution error distinct from a verification gap", () => {
+    const raw = run();
+    const base = raw.results[0];
+    if (base === undefined) throw new Error("Missing fixture result");
+    const report = buildVerificationReport({
+      generatedAt: NOW.toISOString(),
+      plan: { ...plan(), selectedRequirements: [] },
+      run: {
+        ...raw,
+        results: [
+          {
+            ...base,
+            adapter: "cypress",
+            status: "error",
+            requirementRefs: [],
+            error: {
+              code: "CYPRESS_CONFIG_INVALID",
+              message: "Cypress configuration is invalid",
+              remediation: "Fix configuration",
+            },
+          },
+        ],
+      },
+    });
+    expect(report.findings[0]).toMatchObject({ kind: "execution-error", blocking: false });
+  });
+
   it("turns a blocking failed test into traceable evidence and a complete critical finding", () => {
     const report = buildVerificationReport({
       diagnostics: ['AssertionError: expected "free" to be "pro". Received: "free".'],

@@ -20,6 +20,7 @@ export const VERIFICATION_PLAN_PATH = ".maru/generated/verification-plan.json";
 
 export type VerificationAdapter =
   | "axe"
+  | "cypress"
   | "gitleaks"
   | "jest"
   | "manual-review"
@@ -328,8 +329,15 @@ function adapterSelectionsFor(
       : [{ adapter: "unavailable", execution: "unavailable" }];
   }
   if (category === "e2e") {
-    return project.tests.frameworks.includes("playwright")
-      ? [{ adapter: "playwright", execution: "automated", testFramework: "playwright" }]
+    const frameworks = (["playwright", "cypress"] as const).filter((framework) =>
+      project.tests.frameworks.includes(framework),
+    );
+    return frameworks.length > 0
+      ? frameworks.map((framework) => ({
+          adapter: framework,
+          execution: "automated",
+          testFramework: framework,
+        }))
       : [{ adapter: "unavailable", execution: "unavailable" }];
   }
   // Vitest wins when a project declares both so a single run covers the change.
@@ -403,7 +411,10 @@ function createSteps(
       category,
       execution: selection.execution,
       id: `step-${String(index + 1).padStart(2, "0")}-${category}${
-        category === "security" ? `-${selection.adapter}` : ""
+        category === "security" ||
+        (category === "e2e" && project.tests.frameworks.includes("cypress"))
+          ? `-${selection.adapter}`
+          : ""
       }`,
       reasons,
       requirementRefs,

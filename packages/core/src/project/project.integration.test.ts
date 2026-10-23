@@ -86,6 +86,57 @@ describe("Phase 1 project workflow", () => {
     });
   });
 
+  it.each(["ts", "js", "mjs", "cjs"])(
+    "detects cypress.config.%s without evaluating project configuration",
+    async (extension) => {
+      await writeFixtureFile(
+        fixtureRoot,
+        `cypress.config.${extension}`,
+        "throw new Error('do not evaluate');",
+      );
+      expect((await detectStack(fixtureRoot)).testFrameworks).toContain("cypress");
+    },
+  );
+
+  it("discovers Cypress specs without confusing them with Vitest or Playwright tests", async () => {
+    await writeFixtureFile(
+      fixtureRoot,
+      "package.json",
+      JSON.stringify({
+        devDependencies: { cypress: "15.0.0", vitest: "4.0.0", "@playwright/test": "1.0.0" },
+      }),
+    );
+    for (const extension of ["ts", "js", "tsx", "jsx"]) {
+      await writeFixtureFile(fixtureRoot, `checks/checkout.cy.${extension}`);
+    }
+    await writeFixtureFile(fixtureRoot, "cypress/e2e/checkout.spec.js");
+    await writeFixtureFile(fixtureRoot, "cypress/support/commands.ts");
+    await writeFixtureFile(fixtureRoot, "cypress/fixtures/customer.json", "{}");
+    await initializeProject(fixtureRoot);
+    const scan = await scanProject(fixtureRoot);
+    expect(scan.tests.frameworks).toContain("cypress");
+    expect(scan.tests.directories).toContain("cypress/e2e");
+    expect(scan.tests.files.filter((test) => test.framework === "cypress")).toHaveLength(5);
+    expect(scan.tests.files).toContainEqual({ framework: "playwright", path: "e2e/home.spec.ts" });
+    expect(scan.tests.files).toContainEqual({ framework: "vitest", path: "src/lib/math.test.ts" });
+    expect(scan.tests.files.map((test) => test.path)).not.toContain("cypress/support/commands.ts");
+    expect(scan.tests.files.map((test) => test.path)).not.toContain(
+      "cypress/fixtures/customer.json",
+    );
+  });
+
+  it("initializes Cypress end-to-end configuration in a Cypress-only project", async () => {
+    await writeFixtureFile(
+      fixtureRoot,
+      "package.json",
+      JSON.stringify({ devDependencies: { cypress: "15.0.0" } }),
+    );
+    await initializeProject(fixtureRoot);
+    expect(await readFile(join(fixtureRoot, ".maru/maru.yml"), "utf8")).toContain(
+      "e2e:\n    framework: cypress",
+    );
+  });
+
   it("initializes an idempotent local configuration without cloud access", async () => {
     const first = await initializeProject(fixtureRoot);
 

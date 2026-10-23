@@ -1,6 +1,7 @@
 import type {
   CommandRunner,
   TemporaryTest,
+  TestCaseResult,
   VerificationResultStatus,
   VerificationRun,
   VerificationRunResult,
@@ -42,6 +43,7 @@ export interface Evidence {
   readonly stepIds: readonly string[];
   readonly targetFiles?: readonly string[];
   readonly testFiles: readonly string[];
+  readonly testResults?: readonly TestCaseResult[];
   readonly tool: string;
   readonly type: EvidenceType;
 }

@@ -185,6 +185,51 @@ describe("verification planner", () => {
     }
   });
 
+  it.each([false, true])(
+    "plans requirement-linked Cypress e2e work alongside Playwright: %s",
+    (withPlaywright) => {
+      const project = scan();
+      const cypressFile = "cypress/e2e/subscription-webhook.cy.ts";
+      const plan = buildVerificationPlan({
+        assessment: ASSESSMENT,
+        contracts: [CONTRACT],
+        generatedAt: project.generatedAt,
+        project: {
+          ...project,
+          tests: {
+            directories: ["cypress/e2e", "e2e"],
+            frameworks: withPlaywright ? ["cypress", "playwright"] : ["cypress"],
+            files: [
+              { framework: "cypress", path: cypressFile },
+              ...(withPlaywright
+                ? [{ framework: "playwright" as const, path: "e2e/subscription-webhook.spec.ts" }]
+                : []),
+              { framework: "cypress", path: "cypress/e2e/profile.cy.ts" },
+            ],
+          },
+        },
+      });
+      const e2e = plan.steps.filter((step) => step.category === "e2e");
+      expect(e2e).toHaveLength(withPlaywright ? 2 : 1);
+      expect(new Set(e2e.map((step) => step.id)).size).toBe(e2e.length);
+      expect(e2e).toContainEqual(
+        expect.objectContaining({
+          adapter: "cypress",
+          execution: "automated",
+          testFiles: [cypressFile],
+          requirementRefs: expect.arrayContaining(["subscription-management#SUB-001"]),
+        }),
+      );
+      if (withPlaywright)
+        expect(e2e).toContainEqual(
+          expect.objectContaining({
+            adapter: "playwright",
+            testFiles: ["e2e/subscription-webhook.spec.ts"],
+          }),
+        );
+    },
+  );
+
   it("selects the Jest adapter for unit work in a Jest project", () => {
     const project = scan();
     const plan = buildVerificationPlan({

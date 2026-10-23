@@ -1,7 +1,7 @@
 export type PackageManager = "bun" | "npm" | "pnpm" | "unknown" | "yarn";
 export type Framework = "nextjs" | "react";
 export type ProjectLanguage = "javascript" | "typescript";
-export type TestFramework = "jest" | "playwright" | "vitest";
+export type TestFramework = "cypress" | "jest" | "playwright" | "vitest";
 
 export interface DetectedStack {
   readonly ci: {
