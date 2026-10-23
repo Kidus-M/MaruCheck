@@ -102,7 +102,8 @@ function evidenceType(
   if (adapter === "manual-review") return "manual";
   if (adapter === "semgrep" || adapter === "gitleaks") return "security-scan";
   if (categories.length === 1 && categories[0] === "accessibility") return "accessibility";
-  if (adapter === "playwright" || categories.includes("e2e")) return "e2e-test";
+  if (adapter === "cypress" || adapter === "playwright" || categories.includes("e2e"))
+    return "e2e-test";
   if (categories.length === 1 && categories[0] === "api") return "api-test";
   return "unit-test";
 }
@@ -145,7 +146,15 @@ function resultEvidence(
       ),
       categories,
       createdAt: run.completedAt,
-      diagnostic: diagnosticExcerpt(diagnostics[index] ?? "", fallback),
+      diagnostic: diagnosticExcerpt(
+        result.adapter === "cypress"
+          ? (result.error?.message ??
+              result.testResults?.find((test) => test.status === "failed")?.error ??
+              diagnostics[index] ??
+              "")
+          : (diagnostics[index] ?? ""),
+        fallback,
+      ),
       durationMs: result.durationMs,
       ...(result.error === undefined ? {} : { errorCode: result.error.code }),
       exitCode: result.exitCode,
@@ -156,6 +165,7 @@ function resultEvidence(
       stepIds: unique(result.stepIds),
       ...(result.targetFiles === undefined ? {} : { targetFiles: unique(result.targetFiles) }),
       testFiles: unique(result.testFiles),
+      ...(result.testResults === undefined ? {} : { testResults: result.testResults }),
       tool: result.adapter,
       type: evidenceType(result.adapter, categories),
     };
@@ -220,6 +230,9 @@ function findingKind(
       (item) =>
         item.errorCode === "ADAPTER_EXECUTION_FAILED" ||
         item.errorCode === "ADAPTER_TIMEOUT" ||
+        item.errorCode === "CYPRESS_CONFIG_INVALID" ||
+        item.errorCode === "CYPRESS_REPORT_INVALID" ||
+        item.errorCode === "CYPRESS_SPEC_INVALID" ||
         /could not start|execution failed|exceeded.+timeout/iu.test(item.diagnostic),
     )
   ) {
@@ -303,8 +316,7 @@ function requirementFinding(
 }
 
 function unlinkedFinding(evidence: Evidence, risk: RiskLevel, index: number): AdvisoryFinding {
-  const kind: FindingKind =
-    evidence.status === "failed" ? "requirement-failure" : "verification-gap";
+  const kind = findingKind([evidence], evidence.status);
   return {
     actual: evidence.diagnostic,
     artifactRefs: evidence.artifactRefs,

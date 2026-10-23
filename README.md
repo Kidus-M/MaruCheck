@@ -292,9 +292,11 @@ See the [Phase 5 verification planner guide](docs/guides/phase-5-verification-pl
 
 ### Verification execution
 
-`maru verify --diff` executes selected local Vitest, Jest, Playwright, axe, Semgrep, and Gitleaks work, distinguishes findings from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
+`maru verify --diff` executes selected local Vitest, Jest, Playwright, Cypress, axe, Semgrep, and Gitleaks work, distinguishes findings from adapter errors or unavailable work, and writes bounded raw artifacts under `.maru/artifacts/runs/`. It never downloads missing tools during verification.
 
 Unit work runs on whichever runner the project declares: Vitest when both are present, Jest otherwise. The Jest adapter selects test files by path with `--runTestsByPath`, and keeps Jest's `--json` report as a run artifact so every assertion result stays inspectable.
+
+Cypress end-to-end specs are detected from dependencies or standard configuration files and selected by the verification plan. Mixed Cypress/Playwright projects run affected specs for each framework. Cypress results include individual test outcomes and links to screenshots and videos without cloud recording. See the [Cypress verification guide](docs/guides/cypress-verification.md).
 
 See the [Phase 6 test execution guide](docs/guides/phase-6-test-execution.md) and [ADR-006](docs/decisions/0006-isolate-local-test-execution-and-preserve-raw-artifacts.md).
 

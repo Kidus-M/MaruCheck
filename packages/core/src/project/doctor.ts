@@ -117,7 +117,8 @@ export async function diagnoseProject(
       : {
           code: "test-frameworks",
           details: "No supported test framework was detected.",
-          remediation: "Add Vitest, Jest, or Playwright when verification coverage is introduced.",
+          remediation:
+            "Add Vitest, Jest, Playwright, or Cypress when verification coverage is introduced.",
           status: "warn",
         },
   );

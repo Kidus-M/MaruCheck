@@ -21,7 +21,7 @@ const DATABASE_PACKAGES: Readonly<Record<string, string>> = {
 };
 
 const SOURCE_DIRECTORY_CANDIDATES = ["src", "app", "pages", "server", "lib"];
-const TEST_DIRECTORY_CANDIDATES = ["__tests__", "e2e", "test", "tests"];
+const TEST_DIRECTORY_CANDIDATES = ["__tests__", "cypress/e2e", "e2e", "test", "tests"];
 
 async function detectPackageManager(
   workspace: ProjectWorkspace,
@@ -93,6 +93,12 @@ export async function detectStack(root: string): Promise<DetectedStack> {
     languages.push("typescript");
   }
 
+  if (
+    "cypress" in dependencies ||
+    files.some((file) => /^cypress\.config\.(?:ts|js|mjs|cjs)$/.test(file))
+  ) {
+    testFrameworks.push("cypress");
+  }
   if ("@playwright/test" in dependencies || "playwright" in dependencies) {
     testFrameworks.push("playwright");
   }

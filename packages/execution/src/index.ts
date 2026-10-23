@@ -8,6 +8,7 @@ import {
   type VerificationStep,
 } from "@maru/planner";
 import { defaultCommandRunner } from "./runner.js";
+import { CYPRESS_RUNNER_SOURCE, readCypressOutcome, validCypressSpecs } from "./cypress.js";
 import {
   VERIFICATION_ARTIFACTS_DIRECTORY,
   VERIFICATION_RUN_SCHEMA_VERSION,
@@ -280,6 +281,11 @@ async function findAdapterInvocation(
   root: string,
   adapter: AutomatedVerificationAdapter,
 ): Promise<AdapterInvocation | undefined> {
+  if (adapter === "cypress") {
+    return (await exists(resolve(root, "node_modules/cypress/package.json")))
+      ? { executable: process.execPath, prefixArgs: ["--eval", CYPRESS_RUNNER_SOURCE, "--"] }
+      : undefined;
+  }
   if (adapter === "semgrep" || adapter === "gitleaks") {
     const localCandidates =
       process.platform === "win32"
@@ -319,6 +325,11 @@ function unavailableAdapterResult(
   error?: VerificationResultError,
 ): AdapterExecutionResult {
   const errors: Partial<Record<VerificationAdapter, VerificationResultError>> = {
+    cypress: resultError(
+      "CYPRESS_NOT_INSTALLED",
+      "Cypress is not installed in this project.",
+      "Install Cypress and its required browser dependencies in the project, then retry.",
+    ),
     axe: resultError(
       "AXE_NOT_INSTALLED",
       "The axe Playwright accessibility adapter is not installed in this project.",
@@ -435,6 +446,7 @@ async function executeAutomatedGroup(
 
   const testAdapter =
     group.adapter === "axe" ||
+    group.adapter === "cypress" ||
     group.adapter === "jest" ||
     group.adapter === "playwright" ||
     group.adapter === "vitest";
@@ -457,6 +469,21 @@ async function executeAutomatedGroup(
     };
   }
 
+  if (group.adapter === "cypress" && !validCypressSpecs(root, testFiles)) {
+    return {
+      ...base,
+      artifacts: {},
+      durationMs: 0,
+      error: resultError(
+        "CYPRESS_SPEC_INVALID",
+        "Cypress specs must be literal paths inside the project, without commas or glob characters.",
+        "Use project-relative spec paths without glob characters or commas, then recreate the plan.",
+      ),
+      exitCode: null,
+      status: "error",
+    };
+  }
+
   const invocation = await findAdapterInvocation(root, group.adapter);
   if (invocation === undefined) return unavailableAdapterResult(group, testFiles, targetFiles);
 
@@ -464,7 +491,17 @@ async function executeAutomatedGroup(
   const reportPath = resolve(runDirectory, group.adapter, "report.json");
   const portableReportPath = relativePath(root, reportPath);
   let adapterArgs: string[];
-  if (group.adapter === "vitest") {
+  if (group.adapter === "cypress") {
+    await mkdir(dirname(reportPath), { recursive: true });
+    adapterArgs = [
+      JSON.stringify({
+        project: resolve(root),
+        spec: testFiles.join(","),
+        reportPath,
+        outputDirectory,
+      }),
+    ];
+  } else if (group.adapter === "vitest") {
     adapterArgs = ["run", ...testFiles, "--reporter=default"];
   } else if (group.adapter === "jest") {
     // --runTestsByPath keeps the plan's exact selection instead of treating each
@@ -542,7 +579,12 @@ async function executeAutomatedGroup(
       args,
       command: invocation.executable,
       cwd: root,
-      env: { CI: "1", FORCE_COLOR: "0", NO_COLOR: "1" },
+      env: {
+        CI: "1",
+        FORCE_COLOR: "0",
+        NO_COLOR: "1",
+        ...(group.adapter === "cypress" ? { CYPRESS_CRASH_REPORTS: "0" } : {}),
+      },
       timeoutMs: options.timeoutMs,
     });
     const artifacts = await writeOutputArtifacts(
@@ -553,19 +595,42 @@ async function executeAutomatedGroup(
       executed.stderr,
     );
     const scanner = group.adapter === "semgrep" || group.adapter === "gitleaks";
-    const status: VerificationResultStatus =
-      executed.exitCode === 0
+    const status: VerificationResultStatus = executed.timedOut
+      ? "error"
+      : executed.exitCode === 0
         ? "passed"
         : executed.exitCode === null || (scanner && executed.exitCode !== 1)
           ? "error"
           : "failed";
-    const reportExists = (scanner || group.adapter === "jest") && (await exists(reportPath));
+    const reportExists =
+      (scanner || group.adapter === "jest" || group.adapter === "cypress") &&
+      (await exists(reportPath));
+    let cypressOutcome =
+      group.adapter === "cypress" && !executed.timedOut && executed.exitCode !== null
+        ? await readCypressOutcome(
+            root,
+            reportPath,
+            testFiles,
+            `${executed.stdout}\n${executed.stderr}`,
+          )
+        : undefined;
+    if (cypressOutcome?.status === "passed" && executed.exitCode !== 0) {
+      cypressOutcome = {
+        ...cypressOutcome,
+        status: "error",
+        error: resultError(
+          "ADAPTER_EXECUTION_FAILED",
+          "Cypress exited unsuccessfully despite reporting passing tests.",
+          "Inspect the captured Cypress output and retry.",
+        ),
+      };
+    }
     return {
       ...base,
       artifacts: {
         ...artifacts,
         ...(reportExists ? { report: portableReportPath } : {}),
-        ...(group.adapter === "playwright" || group.adapter === "axe"
+        ...(group.adapter === "playwright" || group.adapter === "axe" || group.adapter === "cypress"
           ? { outputDirectory: relativePath(root, outputDirectory) }
           : {}),
       },
@@ -590,6 +655,7 @@ async function executeAutomatedGroup(
           : {}),
       exitCode: executed.exitCode,
       status,
+      ...cypressOutcome,
     };
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
@@ -659,6 +725,7 @@ export async function runVerificationPlan(
     for (const group of groupSteps(plan, temporaryTests)) {
       if (
         group.adapter === "axe" ||
+        group.adapter === "cypress" ||
         group.adapter === "gitleaks" ||
         group.adapter === "jest" ||
         group.adapter === "playwright" ||

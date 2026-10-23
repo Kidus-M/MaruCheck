@@ -5,7 +5,7 @@ import type { ProjectRoute, ProjectScan, ProjectTestFile, TestFramework } from "
 import { dependencyNames, ProjectWorkspace, readPackageManifest } from "./workspace.js";
 
 const SOURCE_FILE_PATTERN = /\.(?:cjs|css|js|jsx|json|mjs|scss|ts|tsx)$/;
-const TEST_FILE_PATTERN = /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)|\.(?:spec|test)\.[^.]+$/;
+const TEST_FILE_PATTERN = /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)|\.(?:cy|spec|test)\.[^.]+$/;
 const ROUTE_METHOD_PATTERN =
   /export\s+(?:async\s+)?(?:function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g;
 
@@ -89,6 +89,13 @@ function testFrameworkForFile(
   file: string,
   detectedFrameworks: readonly TestFramework[],
 ): ProjectTestFile["framework"] {
+  // Cypress filenames and directories take precedence in mixed-runner projects.
+  if (
+    /(?:^|\/)cypress\/e2e\/|\.cy\.(?:js|jsx|ts|tsx)$/.test(file) &&
+    detectedFrameworks.includes("cypress")
+  ) {
+    return "cypress";
+  }
   if (/(?:^|\/)e2e\//.test(file) && detectedFrameworks.includes("playwright")) {
     return "playwright";
   }

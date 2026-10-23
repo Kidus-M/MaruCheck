@@ -5,7 +5,7 @@ export const VERIFICATION_ARTIFACTS_DIRECTORY = ".maru/artifacts/runs";
 
 export type AutomatedVerificationAdapter = Extract<
   VerificationAdapter,
-  "axe" | "gitleaks" | "jest" | "playwright" | "semgrep" | "vitest"
+  "axe" | "cypress" | "gitleaks" | "jest" | "playwright" | "semgrep" | "vitest"
 >;
 export type TestVerificationAdapter = Extract<
   VerificationAdapter,
@@ -56,6 +56,14 @@ export interface VerificationResultError {
   readonly remediation: string;
 }
 
+export interface TestCaseResult {
+  readonly file: string;
+  readonly name: string;
+  readonly status: "passed" | "failed" | "skipped";
+  readonly durationMs: number;
+  readonly error?: string;
+}
+
 export interface AdapterExecutionResult {
   readonly adapter: VerificationAdapter;
   readonly artifacts: {
@@ -77,6 +85,7 @@ export interface AdapterExecutionResult {
   readonly stepIds: readonly string[];
   readonly targetFiles?: readonly string[];
   readonly testFiles: readonly string[];
+  readonly testResults?: readonly TestCaseResult[];
 }
 
 export interface VerificationRun {
