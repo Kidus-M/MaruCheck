@@ -100,15 +100,15 @@ Requirements: Node.js 24 LTS and npm 11 or newer ([why](#why-node-24)).
 <!-- x-release-please-start-version -->
 
 ```bash
-npx --yes marucheck@0.6.0 init
-npx --yes marucheck@0.6.0 doctor
-npx --yes marucheck@0.6.0 verify --diff
+npx --yes marucheck@0.6.1 init
+npx --yes marucheck@0.6.1 doctor
+npx --yes marucheck@0.6.1 verify --diff
 ```
 
 For regular project or team use, pin the exact public package and prevent implicit downloads:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.6.0
+npm install --save-dev --save-exact marucheck@0.6.1
 npx --no-install maru --help
 ```
 
