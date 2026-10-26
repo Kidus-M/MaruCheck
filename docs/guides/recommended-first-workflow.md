@@ -15,11 +15,13 @@ Run every command from that repository's root.
 ## 1. Pin the current release
 
 <!-- x-release-please-start-version -->
+
 ```bash
 npm install --save-dev --save-exact marucheck@0.5.0
 npx --no-install maru --version
 npx --no-install maru init
 ```
+
 <!-- x-release-please-end -->
 
 Use an exact project dependency instead of a global install for team and CI work. This records the

@@ -98,6 +98,7 @@ See the [agent gate guide](docs/guides/agent-gate.md).
 Requirements: Node.js 24 LTS and npm 11 or newer ([why](#why-node-24)).
 
 <!-- x-release-please-start-version -->
+
 ```bash
 npx --yes marucheck@0.5.0 init
 npx --yes marucheck@0.5.0 doctor
@@ -110,6 +111,7 @@ For regular project or team use, pin the exact public package and prevent implic
 npm install --save-dev --save-exact marucheck@0.5.0
 npx --no-install maru --help
 ```
+
 <!-- x-release-please-end -->
 
 See the [recommended first workflow](docs/guides/recommended-first-workflow.md) before adding

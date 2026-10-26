@@ -5,6 +5,7 @@ coding agent to start the published package with the target project's directory 
 directory:
 
 <!-- x-release-please-start-version -->
+
 ```bash
 npx --yes marucheck@0.5.0 mcp
 ```
@@ -99,6 +100,7 @@ Add `.cursor/mcp.json` to the target project:
   }
 }
 ```
+
 <!-- x-release-please-end -->
 
 Restart Cursor and enable `maru` in MCP settings.

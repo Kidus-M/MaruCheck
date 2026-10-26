@@ -9,6 +9,7 @@ npm package that already owns the name `maru`.
 Run the current release once without changing the project dependency list:
 
 <!-- x-release-please-start-version -->
+
 ```bash
 npx --yes marucheck@0.5.0 init
 npx --yes marucheck@0.5.0 doctor
@@ -25,6 +26,7 @@ npx --no-install maru init
 npx --no-install maru ci init
 npx --no-install maru ci verify
 ```
+
 <!-- x-release-please-end -->
 
 The CLI requires Node.js 24 and npm 11 or newer. Core contracts, risk, planning, evidence, memory,
