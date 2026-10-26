@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "marucheck",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
+      "changelog-path": "CHANGELOG.md",
+      "pull-request-title-pattern": "chore: release v${version}",
+      "extra-files": [
+        "packages/cli/src/version.ts",
+        "packages/cli/src/cli.test.ts",
+        "packages/mcp-server/src/server.ts",
+        "packages/mcp-server/src/server.test.ts",
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        "README.md",
+        "docs/guides/phase-10-github-pull-request-verification.md",
+        "docs/guides/phase-3-mcp-integration.md",
+        "docs/guides/public-installation-and-release.md",
+        "docs/guides/recommended-first-workflow.md",
+        "examples/quota-app-jest/README.md",
+        "examples/quota-app/README.md"
+      ]
+    }
+  }
+}

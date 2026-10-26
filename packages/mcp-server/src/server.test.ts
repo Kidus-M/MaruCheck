@@ -621,7 +621,7 @@ evidence_policy:`,
       result: {
         capabilities: { tools: { listChanged: false } },
         protocolVersion: MCP_PROTOCOL_VERSION,
-        serverInfo: { name: "maru", version: "0.5.0" },
+        serverInfo: { name: "maru", version: "0.5.0" }, // x-release-please-version
       },
     });
     await expect(
