@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "maru": "./dist/maru.cjs"
+    "maru": "dist/maru.cjs"
   },
   "files": [
     "dist/maru.cjs",
