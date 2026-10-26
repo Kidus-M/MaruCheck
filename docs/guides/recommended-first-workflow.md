@@ -17,7 +17,7 @@ Run every command from that repository's root.
 <!-- x-release-please-start-version -->
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.5.0
+npm install --save-dev --save-exact marucheck@0.6.0
 npx --no-install maru --version
 npx --no-install maru init
 ```
