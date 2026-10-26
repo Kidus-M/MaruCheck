@@ -7,14 +7,14 @@ directory:
 <!-- x-release-please-start-version -->
 
 ```bash
-npx --yes marucheck@0.6.0 mcp
+npx --yes marucheck@0.6.1 mcp
 ```
 
 For reproducible team use, install the exact package in the target project and prevent implicit
 downloads:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.6.0
+npm install --save-dev --save-exact marucheck@0.6.1
 npx --no-install maru mcp
 ```
 
@@ -56,7 +56,7 @@ The sibling `maru-web` repository includes this portable project-scoped configur
 ```toml
 [mcp_servers.maru]
 command = "npx"
-args = ["--yes", "marucheck@0.6.0", "mcp"]
+args = ["--yes", "marucheck@0.6.1", "mcp"]
 required = false
 default_tools_approval_mode = "writes"
 ```
@@ -67,7 +67,7 @@ project dependency, replace the arguments with `["--no-install", "maru", "mcp"]`
 Alternatively, add the published server while inside the target project:
 
 ```powershell
-codex mcp add maru -- npx --yes marucheck@0.6.0 mcp
+codex mcp add maru -- npx --yes marucheck@0.6.1 mcp
 codex mcp list
 ```
 
@@ -80,7 +80,7 @@ This file is only a Codex convenience. The `maru mcp` process uses standard MCP 
 From the target project, add a project-scoped stdio server:
 
 ```powershell
-claude mcp add maru --scope project -- npx --yes marucheck@0.6.0 mcp
+claude mcp add maru --scope project -- npx --yes marucheck@0.6.1 mcp
 claude mcp list
 ```
 
@@ -95,7 +95,7 @@ Add `.cursor/mcp.json` to the target project:
   "mcpServers": {
     "maru": {
       "command": "npx",
-      "args": ["--yes", "marucheck@0.6.0", "mcp"]
+      "args": ["--yes", "marucheck@0.6.1", "mcp"]
     }
   }
 }

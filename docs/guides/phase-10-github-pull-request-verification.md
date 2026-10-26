@@ -16,7 +16,7 @@ Install the published package at an exact version before generating the workflow
 <!-- x-release-please-start-version -->
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.6.0
+npm install --save-dev --save-exact marucheck@0.6.1
 ```
 
 <!-- x-release-please-end -->

@@ -11,16 +11,16 @@ Run the current release once without changing the project dependency list:
 <!-- x-release-please-start-version -->
 
 ```bash
-npx --yes marucheck@0.6.0 init
-npx --yes marucheck@0.6.0 doctor
-npx --yes marucheck@0.6.0 risk --diff
-npx --yes marucheck@0.6.0 verify --diff
+npx --yes marucheck@0.6.1 init
+npx --yes marucheck@0.6.1 doctor
+npx --yes marucheck@0.6.1 risk --diff
+npx --yes marucheck@0.6.1 verify --diff
 ```
 
 For regular project, team, or CI use, pin the exact release:
 
 ```bash
-npm install --save-dev --save-exact marucheck@0.6.0
+npm install --save-dev --save-exact marucheck@0.6.1
 npx --no-install maru --version
 npx --no-install maru init
 npx --no-install maru ci init
