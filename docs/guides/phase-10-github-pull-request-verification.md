@@ -13,9 +13,11 @@ The target repository must have:
 
 Install the published package at an exact version before generating the workflow:
 
+<!-- x-release-please-start-version -->
 ```bash
 npm install --save-dev --save-exact marucheck@0.5.0
 ```
+<!-- x-release-please-end -->
 
 The generated workflow intentionally uses `npx --no-install`: GitHub installs exactly what the
 repository lockfile declares and never downloads an unreviewed CLI release during verification.

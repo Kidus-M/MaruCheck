@@ -8,6 +8,7 @@ npm package that already owns the name `maru`.
 
 Run the current release once without changing the project dependency list:
 
+<!-- x-release-please-start-version -->
 ```bash
 npx --yes marucheck@0.5.0 init
 npx --yes marucheck@0.5.0 doctor
@@ -24,6 +25,7 @@ npx --no-install maru init
 npx --no-install maru ci init
 npx --no-install maru ci verify
 ```
+<!-- x-release-please-end -->
 
 The CLI requires Node.js 24 and npm 11 or newer. Core contracts, risk, planning, evidence, memory,
 and MCP operations remain local; the hosted account is optional unless the user chooses to upload
@@ -94,10 +96,23 @@ On the `marucheck` package's npm settings, add a GitHub Actions trusted publishe
 Then add required reviewers to the GitHub `production` environment and protect version tags. After
 one successful automated release, restrict traditional token-based publishing in npm.
 
-After that setup, update the version, merge it, and push the matching `vX.Y.Z` tag. GitHub uses
-short-lived OIDC credentials; no long-lived `NPM_TOKEN` is stored in the repository. The workflow
-publishes npm first and creates the GitHub Release only after the package and consumer-install
-checks succeed.
+In the repository's Actions settings, allow GitHub Actions to create and approve pull requests so
+release-please can open its release pull request.
+
+After that setup, releases are driven by [release-please](https://github.com/googleapis/release-please).
+Every push to `main` updates an open `chore: release vX.Y.Z` pull request whose version comes from
+the Conventional Commit messages since the last release (`fix:` bumps the patch, `feat:` bumps the
+minor, and breaking changes bump the minor while the version is below 1.0). That pull request
+updates `package.json`, the lockfile, `CHANGELOG.md`, and every version string marked with
+`x-release-please-version` or wrapped in `x-release-please-start-version` / `x-release-please-end`
+comments. When adding a new pinned version string anywhere, mark it the same way and list the file
+in `release-please-config.json`.
+
+Merging the release pull request creates the `vX.Y.Z` tag and GitHub Release, then the same
+workflow publishes npm and attaches the tested tarball and checksum. Pushing a `vX.Y.Z` tag by hand
+still runs the publish job. GitHub uses short-lived OIDC credentials; no long-lived `NPM_TOKEN` is
+stored in the repository. The workflow publishes npm first and attaches release assets only after
+the package and consumer-install checks succeed.
 
 ## Rollback and correction
 
