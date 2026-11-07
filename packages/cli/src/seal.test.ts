@@ -15,7 +15,7 @@ import {
   type ObservedBehavior,
 } from "@maru/drift";
 import { createAndWriteVerificationReport } from "@maru/evidence";
-import { createSeal, generateSealKey, SealError, verifySeal } from "@maru/seal";
+import { createSeal, generateSealKey, SealBrokenError, SealError, verifySeal } from "@maru/seal";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const NOW = new Date("2026-11-07T12:00:00.000Z");
@@ -137,12 +137,44 @@ describe("seal", () => {
     await writeFile(join(root, ...TEST_PATH), CONTRACT_TEST.replace("toBe(10)", "toBe(1000)"));
     commitAll(root, "agent raises the limit and approves it");
 
-    const result = await createAndWriteVerificationReport(root, NOW, {
-      base: "base",
-      strict: true,
-    });
-    expect(result.report.gate.status).toBe("blocked");
-    expect(result.report.gate.reasons.join("\n")).toContain("Sealed file changed");
+    await expect(
+      createAndWriteVerificationReport(root, NOW, { base: "base", strict: true }),
+    ).rejects.toBeInstanceOf(SealBrokenError);
+  }, 60_000);
+
+  it("never executes a change whose protected files were altered", async () => {
+    const marker = join(root, "executed.txt");
+    await writeFile(
+      join(root, ...TEST_PATH),
+      [
+        'import { writeFileSync } from "node:fs";',
+        'import { it } from "vitest";',
+        `it("x", () => { writeFileSync(${JSON.stringify(marker)}, "ran"); });`,
+        "",
+      ].join("\n"),
+    );
+    await expect(
+      createAndWriteVerificationReport(root, NOW, { base: "base", strict: true }),
+    ).rejects.toBeInstanceOf(SealBrokenError);
+    await expect(readFile(marker, "utf8")).rejects.toThrow();
+  }, 60_000);
+
+  it("blocks when protected files change while the tests run", async () => {
+    const path = join(root, ...CONTRACT_PATH);
+    const sealed = await readFile(path, "utf8");
+    await expect(
+      createAndWriteVerificationReport(root, NOW, {
+        base: "base",
+        runPlan: async () => {
+          await writeFile(path, `${sealed}\n# changed during the run\n`);
+          throw new Error("stop after the change");
+        },
+        strict: true,
+      }),
+    ).rejects.toThrow("stop after the change");
+    await expect(verifySeal(root, "base")).resolves.toEqual([
+      "Sealed file changed: .maru/contracts/usage-quota.yml",
+    ]);
   }, 60_000);
 
   it("blocks approval laundering between two agents", async () => {

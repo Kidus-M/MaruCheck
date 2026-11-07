@@ -64,9 +64,7 @@ export class SealBrokenError extends Error {
     "Restore the protected files, or have the key holder review the change and run maru seal create.";
 
   public constructor(public readonly issues: readonly string[]) {
-    super(`Verification did not run. The seal is broken:
-${issues.join("
-")}`);
+    super(`Verification did not run. The seal is broken:\n${issues.join("\n")}`);
     this.name = "SealBrokenError";
   }
 }
