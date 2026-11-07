@@ -57,6 +57,20 @@ export class SealError extends Error {
   }
 }
 
+/** Verification refused to run because the protected files do not match the seal. */
+export class SealBrokenError extends Error {
+  public readonly code = "SEAL_BROKEN";
+  public readonly remediation =
+    "Restore the protected files, or have the key holder review the change and run maru seal create.";
+
+  public constructor(public readonly issues: readonly string[]) {
+    super(`Verification did not run. The seal is broken:
+${issues.join("
+")}`);
+    this.name = "SealBrokenError";
+  }
+}
+
 function sha256(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
 }

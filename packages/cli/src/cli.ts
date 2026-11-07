@@ -62,7 +62,7 @@ import {
   proposeContractAmendment,
 } from "@maru/drift";
 import { GitAnalysisError, GitBaseError } from "@maru/git";
-import { createSeal, generateSealKey, SealError, verifySeal } from "@maru/seal";
+import { createSeal, generateSealKey, SealBrokenError, SealError, verifySeal } from "@maru/seal";
 import {
   MemoryError,
   createMemoryRecord,
@@ -1037,7 +1037,11 @@ export async function runCli(
       reportGitError(error, output);
       return 1;
     }
-    if (error instanceof GitBaseError || error instanceof SealError) {
+    if (
+      error instanceof GitBaseError ||
+      error instanceof SealBrokenError ||
+      error instanceof SealError
+    ) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

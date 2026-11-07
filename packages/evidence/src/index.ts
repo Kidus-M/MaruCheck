@@ -5,7 +5,7 @@ import {
   type AdapterExecutionResult,
   type VerificationResultStatus,
 } from "@maru/execution";
-import { verifySeal } from "@maru/seal";
+import { SealBrokenError, verifySeal } from "@maru/seal";
 import {
   createAndWriteVerificationPlan,
   type SelectedRequirement,
@@ -491,6 +491,13 @@ export async function createAndWriteVerificationReport(
   now = new Date(),
   options: CreateVerificationReportOptions = {},
 ): Promise<VerificationReportResult> {
+  // The seal needs a trusted commit to anchor to, so it only applies to a base-range run.
+  const sealBase = options.strict === true ? options.base : undefined;
+  if (sealBase !== undefined) {
+    // Never execute code from a change whose protected files have been altered.
+    const issues = await verifySeal(root, sealBase);
+    if (issues.length > 0) throw new SealBrokenError(issues);
+  }
   const planned = await (
     options.createPlan ??
     ((planRoot: string, planNow: Date) =>
@@ -510,11 +517,9 @@ export async function createAndWriteVerificationReport(
   const diagnostics = await Promise.all(
     executed.run.results.map((result) => readDiagnostic(root, result)),
   );
-  // The seal needs a trusted commit to anchor to, so it only applies to a base-range run.
-  const sealIssues =
-    options.strict === true && options.base !== undefined
-      ? await verifySeal(root, options.base)
-      : [];
+  // Tests execute code from the change, which could restore tampered files once it has
+  // run. Checking again here catches that, and any other change made during the run.
+  const sealIssues = sealBase === undefined ? [] : await verifySeal(root, sealBase);
   const report = buildVerificationReport({
     diagnostics,
     generatedAt: (options.now?.() ?? now).toISOString(),
