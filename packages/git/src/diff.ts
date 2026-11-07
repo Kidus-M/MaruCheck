@@ -210,19 +210,70 @@ function mergeFile(left: ParsedGitFileDiff, right: ParsedGitFileDiff): ParsedGit
   };
 }
 
-/** Analyze staged, unstaged, and untracked changes using Git directly without a shell. */
+export interface AnalyzeGitDiffOptions {
+  /** Compare against the merge base of this ref, so committed work stays in scope. */
+  readonly base?: string;
+}
+
+export class GitBaseError extends Error {
+  public readonly code = "GIT_BASE_UNRESOLVED";
+  public readonly remediation =
+    "Pass a branch, tag, or commit that exists locally, and fetch full history in CI.";
+
+  public constructor(ref: string, options?: ErrorOptions) {
+    super(`Unable to resolve the verification base: ${ref}`, options);
+    this.name = "GitBaseError";
+  }
+}
+
+/** Resolve a user-supplied ref to the commit the current HEAD diverged from. */
+export async function resolveMergeBase(
+  root: string,
+  ref: string,
+  runner: GitRunner = defaultGitRunner,
+): Promise<string> {
+  if (ref.trim() === "" || ref.startsWith("-")) throw new GitBaseError(ref);
+  try {
+    const commit = (
+      await runner.run(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root)
+    ).trim();
+    return (await runner.run(["merge-base", commit, "HEAD"], root)).trim();
+  } catch (error) {
+    throw new GitBaseError(ref, { cause: error });
+  }
+}
+
+/**
+ * Analyze changes using Git directly without a shell. By default this covers staged,
+ * unstaged, and untracked files. With a base it covers everything since that base,
+ * including commits, so a committed change cannot leave the verification scope.
+ */
 export async function analyzeGitDiff(
   root: string,
   runner: GitRunner = defaultGitRunner,
+  options: AnalyzeGitDiffOptions = {},
 ): Promise<GitDiffAnalysis> {
   try {
     const workingTree = await analyzeWorkingTree(root, runner);
-    const [staged, unstaged] = await Promise.all([
-      runner.run(["diff", "--cached", ...DIFF_ARGS], root),
-      runner.run(["diff", ...DIFF_ARGS], root),
-    ]);
+    const diffs =
+      options.base === undefined
+        ? await Promise.all([
+            runner.run(["diff", "--cached", ...DIFF_ARGS], root),
+            runner.run(["diff", ...DIFF_ARGS], root),
+          ])
+        : [
+            await runner.run(
+              [
+                "diff",
+                ...DIFF_ARGS.slice(0, -1),
+                await resolveMergeBase(root, options.base, runner),
+                "--",
+              ],
+              root,
+            ),
+          ];
     const files = new Map<string, ParsedGitFileDiff>();
-    for (const parsed of [...parseUnifiedDiff(staged), ...parseUnifiedDiff(unstaged)]) {
+    for (const parsed of diffs.flatMap((diff) => parseUnifiedDiff(diff))) {
       const existing = files.get(parsed.path);
       files.set(parsed.path, existing === undefined ? parsed : mergeFile(existing, parsed));
     }
@@ -268,7 +319,7 @@ export async function analyzeGitDiff(
       },
     };
   } catch (error) {
-    if (error instanceof GitAnalysisError) throw error;
+    if (error instanceof GitAnalysisError || error instanceof GitBaseError) throw error;
     throw new GitAnalysisError({ cause: error });
   }
 }

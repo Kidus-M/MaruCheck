@@ -146,7 +146,10 @@ export async function analyzeWorkingTree(
 export { classifyChangedPath, type ChangeClassification } from "./classification.js";
 export {
   analyzeGitDiff,
+  GitBaseError,
   parseUnifiedDiff,
+  resolveMergeBase,
+  type AnalyzeGitDiffOptions,
   type GitChangeStatus,
   type GitDiffAnalysis,
   type GitDiffHunk,

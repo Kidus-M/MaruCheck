@@ -212,7 +212,7 @@ describe("GitHub pull-request verification", () => {
       reportPath: ".maru/artifacts/runs/pr-42/report.json",
       summaryPath: CI_GITHUB_SUMMARY_PATH,
     });
-    expect(verificationReport).toHaveBeenCalledWith(root, expect.any(Date));
+    expect(verificationReport).toHaveBeenCalledWith(root, expect.any(Date), {});
     await expect(readFile(join(root, CI_GITHUB_SUMMARY_PATH), "utf8")).resolves.toContain(
       "Invoice ownership verification failed",
     );

@@ -88,8 +88,10 @@ export interface VerificationPlan {
     readonly level: RiskLevel;
     readonly score: number;
   };
+  /** Set when verification covers everything since this ref rather than the working tree. */
+  readonly base?: string;
   readonly schemaVersion: 1;
-  readonly scope: "working-tree";
+  readonly scope: "base-range" | "working-tree";
   readonly selectedRequirements: readonly SelectedRequirement[];
   readonly steps: readonly VerificationStep[];
   readonly summary: {
@@ -100,7 +102,14 @@ export interface VerificationPlan {
     readonly selectedRequirements: number;
     readonly unavailableSteps: number;
   };
+  /** Strict plans sweep every approved requirement instead of matching the diff. */
+  readonly strict?: boolean;
   readonly uncoveredRequirements: readonly string[];
+}
+
+export interface VerificationPlanOptions {
+  readonly base?: string;
+  readonly strict?: boolean;
 }
 
 export interface VerificationPlanResult {
@@ -207,6 +216,63 @@ function selectRequirements(
     (left, right) =>
       left.contractId.localeCompare(right.contractId) || left.id.localeCompare(right.id),
   );
+}
+
+/** Strict mode: every approved requirement, whatever the diff happens to mention. */
+function selectEveryApprovedRequirement(
+  contracts: readonly QualityContract[],
+): SelectedRequirement[] {
+  const reasons = ["Selected by the strict full contract sweep."];
+  return contracts
+    .filter((contract) => contract.status === "approved")
+    .flatMap((contract) => {
+      const base = { blocking: true, contractId: contract.id, contractTitle: contract.title };
+      return [
+        ...contract.requirements.map(
+          (item): SelectedRequirement => ({
+            ...base,
+            id: item.id,
+            kind: "requirement",
+            priority: item.priority,
+            reasons,
+            statement: item.statement,
+          }),
+        ),
+        ...contract.invariants.map(
+          (item): SelectedRequirement => ({
+            ...base,
+            id: item.id,
+            kind: "invariant",
+            priority: "invariant",
+            reasons,
+            statement: item.statement,
+          }),
+        ),
+      ];
+    })
+    .sort(
+      (left, right) =>
+        left.contractId.localeCompare(right.contractId) || left.id.localeCompare(right.id),
+    );
+}
+
+/** Strict mode: every discovered test, so a neutrally named file cannot avoid selection. */
+function everyTest(
+  project: ProjectScan,
+  requirements: readonly SelectedRequirement[],
+): AffectedTest[] {
+  const requirementRefs = requirements.map(requirementRef);
+  return project.tests.files
+    .map(
+      (test): AffectedTest => ({
+        framework: test.framework,
+        historicalMemoryIds: [],
+        matchedTerms: [],
+        path: test.path,
+        requirementRefs,
+      }),
+    )
+    .sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function findAffectedTests(
@@ -354,6 +420,7 @@ function createSteps(
   project: ProjectScan,
   requirements: readonly SelectedRequirement[],
   affectedTests: readonly AffectedTest[],
+  strict = false,
 ): VerificationStep[] {
   const requirementRefs = [
     ...new Set([
@@ -364,6 +431,7 @@ function createSteps(
     ]),
   ].sort();
   const blocking =
+    strict ||
     assessment.level === "high" ||
     assessment.level === "critical" ||
     requirements.some((requirement) => requirement.blocking);
@@ -372,11 +440,18 @@ function createSteps(
     .filter((file) => file.status !== "deleted" && !file.binary)
     .map((file) => file.path)
     .sort();
-  const selected = [...assessment.recommendedTestCategories]
-    .sort()
-    .flatMap((category) =>
-      adapterSelectionsFor(category, project).map((selection) => ({ category, selection })),
-    );
+  const categories: readonly RecommendedTestCategory[] = strict
+    ? ["contract-regression"]
+    : [...assessment.recommendedTestCategories].sort();
+  const selected = categories.flatMap((category) =>
+    adapterSelectionsFor(category, project).map((selection) => ({ category, selection })),
+  );
+  // A project with no e2e runner should not block a change its real tests already cover.
+  const hasRunnableTests = selected.some(
+    ({ selection }) =>
+      selection.testFramework !== undefined &&
+      affectedTests.some((test) => test.framework === selection.testFramework),
+  );
 
   return selected.map(({ category, selection }, index): VerificationStep => {
     const testFiles = affectedTests
@@ -407,7 +482,10 @@ function createSteps(
     ];
     return {
       adapter: selection.adapter,
-      blocking: blocking || category === "security",
+      blocking:
+        category === "e2e" && selection.execution === "unavailable" && hasRunnableTests
+          ? false
+          : blocking || category === "security",
       category,
       execution: selection.execution,
       id: `step-${String(index + 1).padStart(2, "0")}-${category}${
@@ -431,12 +509,24 @@ export function buildVerificationPlan(input: {
   readonly assessment: RiskAssessment;
   readonly contracts: readonly QualityContract[];
   readonly generatedAt: string;
+  readonly options?: VerificationPlanOptions;
   readonly project: ProjectScan;
 }): VerificationPlan {
-  const selectedRequirements = selectRequirements(input.assessment, input.contracts);
-  const affectedTests = findAffectedTests(input.assessment, input.project, selectedRequirements);
+  const strict = input.options?.strict === true;
+  const selectedRequirements = strict
+    ? selectEveryApprovedRequirement(input.contracts)
+    : selectRequirements(input.assessment, input.contracts);
+  const affectedTests = strict
+    ? everyTest(input.project, selectedRequirements)
+    : findAffectedTests(input.assessment, input.project, selectedRequirements);
   const memoryRegressions = historicalRegressions(input.assessment, input.project);
-  const steps = createSteps(input.assessment, input.project, selectedRequirements, affectedTests);
+  const steps = createSteps(
+    input.assessment,
+    input.project,
+    selectedRequirements,
+    affectedTests,
+    strict,
+  );
   const covered = new Set(affectedTests.flatMap((test) => test.requirementRefs));
   const uncoveredRequirements = selectedRequirements
     .map(requirementRef)
@@ -444,6 +534,7 @@ export function buildVerificationPlan(input: {
 
   return {
     affectedTests,
+    ...(input.options?.base === undefined ? {} : { base: input.options.base }),
     changeSummary: input.assessment.analysis.summary,
     generatedAt: input.generatedAt,
     historicalRegressions: memoryRegressions,
@@ -453,9 +544,10 @@ export function buildVerificationPlan(input: {
     },
     risk: { level: input.assessment.level, score: input.assessment.score },
     schemaVersion: VERIFICATION_PLAN_SCHEMA_VERSION,
-    scope: "working-tree",
+    scope: input.options?.base === undefined ? "working-tree" : "base-range",
     selectedRequirements,
     steps,
+    ...(strict ? { strict } : {}),
     summary: {
       affectedTests: affectedTests.length,
       automatedSteps: steps.filter((step) => step.execution === "automated").length,
@@ -492,9 +584,10 @@ export async function writeVerificationPlan(
 export async function createVerificationPlan(
   root: string,
   now = new Date(),
+  options: VerificationPlanOptions = {},
 ): Promise<VerificationPlan> {
   const [assessment, project, summaries] = await Promise.all([
-    assessProjectRisk(root, { now }),
+    assessProjectRisk(root, { now, ...(options.base === undefined ? {} : { base: options.base }) }),
     scanProject(root, now),
     listContracts(root),
   ]);
@@ -503,6 +596,7 @@ export async function createVerificationPlan(
     assessment,
     contracts,
     generatedAt: now.toISOString(),
+    options,
     project,
   });
 }
@@ -511,8 +605,9 @@ export async function createVerificationPlan(
 export async function createAndWriteVerificationPlan(
   root: string,
   now = new Date(),
+  options: VerificationPlanOptions = {},
 ): Promise<VerificationPlanResult> {
-  const plan = await createVerificationPlan(root, now);
+  const plan = await createVerificationPlan(root, now, options);
   const path = await writeVerificationPlan(root, plan);
   return { path, plan };
 }

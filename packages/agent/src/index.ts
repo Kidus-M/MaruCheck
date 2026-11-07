@@ -60,11 +60,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** The Stop hook group MaruCheck installs into Claude Code settings. */
-export function createStopHookGroup(): Record<string, unknown> {
+export function createStopHookGroup(command: string = AGENT_HOOK_COMMAND): Record<string, unknown> {
   return {
     hooks: [
       {
-        command: AGENT_HOOK_COMMAND,
+        command,
         statusMessage: "Verifying the change against approved Quality Contracts",
         timeout: HOOK_TIMEOUT_SECONDS,
         type: "command",
@@ -134,7 +134,10 @@ async function writeSettings(path: string, settings: Record<string, unknown>): P
  * Register the verification gate as a Claude Code Stop hook, preserving every
  * other setting and every hook the project already declares.
  */
-export async function installAgentHook(root: string): Promise<AgentHookInstallResult> {
+export async function installAgentHook(
+  root: string,
+  options: AgentGateVerificationOptions = {},
+): Promise<AgentHookInstallResult> {
   if (!(await initialized(root))) {
     throw new AgentError(
       "AGENT_HOOK_NOT_INITIALIZED",
@@ -148,13 +151,18 @@ export async function installAgentHook(root: string): Promise<AgentHookInstallRe
   const hooks = isRecord(settings.hooks) ? { ...settings.hooks } : {};
   const declared = hooks[AGENT_HOOK_EVENT];
   const existing = Array.isArray(declared) ? [...declared] : [];
-  const base = { command: AGENT_HOOK_COMMAND, path: AGENT_HOOK_SETTINGS_PATH } as const;
+  const command = [
+    AGENT_HOOK_COMMAND,
+    ...(options.strict === true ? ["--strict"] : []),
+    ...(options.base === undefined ? [] : ["--base", options.base]),
+  ].join(" ");
+  const base = { command, path: AGENT_HOOK_SETTINGS_PATH } as const;
 
   if (existing.some((group) => isMaruHookGroup(group))) {
     return { ...base, created: false, updated: false };
   }
 
-  hooks[AGENT_HOOK_EVENT] = [...existing, createStopHookGroup()];
+  hooks[AGENT_HOOK_EVENT] = [...existing, createStopHookGroup(command)];
   await writeSettings(path, { ...settings, hooks });
   return { ...base, created: existing.length === 0, updated: existing.length > 0 };
 }
@@ -281,10 +289,24 @@ function passthroughPayload(systemMessage?: string): Record<string, unknown> {
   return systemMessage === undefined ? {} : { systemMessage };
 }
 
-export interface RunAgentGateOptions {
-  readonly createReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
+export interface AgentGateVerificationOptions {
+  readonly base?: string;
+  /** Block when verification cannot run, instead of letting the turn end unverified. */
+  readonly strict?: boolean;
+}
+
+export interface RunAgentGateOptions extends AgentGateVerificationOptions {
+  readonly createReport?: (
+    root: string,
+    now: Date,
+    options: AgentGateVerificationOptions,
+  ) => Promise<VerificationReportResult>;
   readonly input?: AgentHookInput;
   readonly now?: Date;
+}
+
+function failClosed(reason: string): AgentGateDecision {
+  return { blocked: true, exitCode: 2, payload: blockedPayload(reason), reason };
 }
 
 /**
@@ -299,14 +321,38 @@ export async function runAgentGate(
   const input = options.input ?? {};
   const now = options.now ?? new Date();
   const sessionId = input.session_id ?? "";
+  const strict = options.strict === true;
 
   if (!(await initialized(root))) {
+    if (strict) {
+      return failClosed(
+        "MaruCheck gate: BLOCKED. .maru/maru.yml is missing, so nothing can be verified. " +
+          "Restore the MaruCheck configuration; do not end the turn without it.",
+      );
+    }
     return { blocked: false, exitCode: 0, payload: {}, reason: "", skipped: "not-initialized" };
   }
 
   const previous = await readState(root);
   const priorBlocks = previous?.sessionId === sessionId ? previous.consecutiveBlocks : 0;
-  if (input.stop_hook_active === true || priorBlocks >= AGENT_GATE_MAX_CONSECUTIVE_BLOCKS) {
+  if (strict && priorBlocks >= AGENT_GATE_MAX_CONSECUTIVE_BLOCKS) {
+    // A Stop hook cannot hold a session forever. Say plainly that the work is unverified,
+    // and keep the count so every later stop says it again. The merge gate is what refuses it.
+    const message =
+      `MaruCheck gate: UNVERIFIED after ${String(priorBlocks)} blocked attempt(s). ` +
+      "This work has not passed verification and the merge gate will reject it.";
+    return {
+      blocked: false,
+      exitCode: 0,
+      payload: passthroughPayload(message),
+      reason: message,
+      skipped: "loop-guard",
+    };
+  }
+  if (
+    !strict &&
+    (input.stop_hook_active === true || priorBlocks >= AGENT_GATE_MAX_CONSECUTIVE_BLOCKS)
+  ) {
     const message =
       `MaruCheck gate is still blocked after ${String(priorBlocks)} attempt(s). ` +
       "Returning control to the human instead of looping; run maru verify --diff to see why.";
@@ -322,9 +368,20 @@ export async function runAgentGate(
 
   let result: VerificationReportResult;
   try {
-    result = await (options.createReport ?? createAndWriteVerificationReport)(root, now);
+    result = await (options.createReport ?? createAndWriteVerificationReport)(root, now, {
+      ...(options.base === undefined ? {} : { base: options.base }),
+      ...(options.strict === undefined ? {} : { strict: options.strict }),
+    });
   } catch (error) {
     const detail = error instanceof Error ? bounded(error.message) : "unknown error";
+    if (strict) {
+      await writeState(root, {
+        consecutiveBlocks: priorBlocks + 1,
+        lastBlockedAt: now.toISOString(),
+        sessionId,
+      });
+      return failClosed(`MaruCheck gate: BLOCKED. Verification could not run: ${detail}`);
+    }
     const message = `MaruCheck gate did not run: ${detail} The turn was not blocked.`;
     return {
       blocked: false,

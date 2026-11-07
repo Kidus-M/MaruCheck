@@ -176,8 +176,11 @@ function requirementRef(requirement: SelectedRequirement): string {
   return `${requirement.contractId}#${requirement.id}`;
 }
 
-function requirementStatus(evidence: readonly Evidence[]): RequirementEvidenceStatus {
-  if (evidence.length === 0) return "unverified";
+function requirementStatus(allEvidence: readonly Evidence[]): RequirementEvidenceStatus {
+  if (allEvidence.length === 0) return "unverified";
+  // A check that could not run says nothing when another check actually ran.
+  const ran = allEvidence.filter((item) => item.adapter !== "unavailable");
+  const evidence = ran.length > 0 ? ran : allEvidence;
   if (evidence.some((item) => item.status === "failed")) return "failed";
   if (evidence.some((item) => item.status === "inconclusive")) return "inconclusive";
   return "passed";
@@ -415,6 +418,9 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
     ...(reportSummary.blockingFindings > 0
       ? [`${reportSummary.blockingFindings} blocking finding(s) remain open.`]
       : []),
+    ...(input.plan.strict === true && input.plan.selectedRequirements.length === 0
+      ? ["Strict verification found no approved requirement to verify."]
+      : []),
   ];
   return {
     artifacts,
@@ -483,7 +489,14 @@ export async function createAndWriteVerificationReport(
   now = new Date(),
   options: CreateVerificationReportOptions = {},
 ): Promise<VerificationReportResult> {
-  const planned = await (options.createPlan ?? createAndWriteVerificationPlan)(root, now);
+  const planned = await (
+    options.createPlan ??
+    ((planRoot: string, planNow: Date) =>
+      createAndWriteVerificationPlan(planRoot, planNow, {
+        ...(options.base === undefined ? {} : { base: options.base }),
+        ...(options.strict === undefined ? {} : { strict: options.strict }),
+      }))
+  )(root, now);
   const runOptions = {
     ...(options.commandRunner === undefined ? {} : { commandRunner: options.commandRunner }),
     now: options.now ?? (() => now),

@@ -426,10 +426,10 @@ export function assessRisk(
 /** Analyze the current Git change set, load local contracts and memory, and calculate deterministic risk. */
 export async function assessProjectRisk(
   root: string,
-  options: { readonly now?: Date } = {},
+  options: { readonly base?: string; readonly now?: Date } = {},
 ): Promise<RiskAssessment> {
   const [analysis, summaries, memories] = await Promise.all([
-    analyzeGitDiff(root),
+    analyzeGitDiff(root, undefined, options.base === undefined ? {} : { base: options.base }),
     listContracts(root),
     listMemoryRecords(root),
   ]);

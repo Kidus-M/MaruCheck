@@ -33,8 +33,16 @@ export interface GitHubWorkflowInstallResult {
 }
 
 export interface PullRequestVerificationOptions {
+  /** Defaults to `origin/$GITHUB_BASE_REF` when GitHub provides one. */
+  readonly base?: string;
+  readonly environment?: Readonly<Record<string, string | undefined>>;
   readonly githubStepSummaryPath?: string;
-  readonly verificationReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
+  readonly strict?: boolean;
+  readonly verificationReport?: (
+    root: string,
+    now: Date,
+    options: { readonly base?: string; readonly strict?: boolean },
+  ) => Promise<VerificationReportResult>;
 }
 
 export interface PullRequestVerificationResult {
@@ -67,6 +75,7 @@ jobs:
       - name: Checkout pull request
         uses: actions/checkout@v7
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node.js
@@ -268,17 +277,28 @@ export async function runPullRequestVerification(
   now = new Date(),
   options: PullRequestVerificationOptions = {},
 ): Promise<PullRequestVerificationResult> {
+  const environment = options.environment ?? process.env;
+  // A pull-request checkout has a clean working tree, so the change only exists as commits.
+  const base =
+    options.base ??
+    (environment.GITHUB_BASE_REF ? `origin/${environment.GITHUB_BASE_REF}` : undefined);
   const verification = await (options.verificationReport ?? createAndWriteVerificationReport)(
     root,
     now,
+    {
+      ...(base === undefined ? {} : { base }),
+      ...(options.strict === undefined ? {} : { strict: options.strict }),
+    },
   );
+  const nothingVerified = base === undefined && verification.report.summary.evidence === 0;
   const publishedToGitHub = await writeSummary(
     root,
     verification.report,
     options.githubStepSummaryPath ?? process.env.GITHUB_STEP_SUMMARY,
   );
   return {
-    conclusion: verification.report.gate.status === "blocked" ? "failure" : "success",
+    conclusion:
+      verification.report.gate.status === "blocked" || nothingVerified ? "failure" : "success",
     publishedToGitHub,
     reportPath: verification.path,
     summaryPath: portablePath(relative(resolve(root), resolve(root, CI_GITHUB_SUMMARY_PATH))),

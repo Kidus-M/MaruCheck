@@ -61,7 +61,7 @@ import {
   parseObservedBehaviors,
   proposeContractAmendment,
 } from "@maru/drift";
-import { GitAnalysisError } from "@maru/git";
+import { GitAnalysisError, GitBaseError } from "@maru/git";
 import {
   MemoryError,
   createMemoryRecord,
@@ -100,7 +100,10 @@ export interface CliOutput {
 export interface CliDependencies {
   readonly agentGate?: (root: string, input: string, now: Date) => Promise<AgentGateDecision>;
   readonly agentHookInput?: () => Promise<string>;
-  readonly agentHookInstaller?: (root: string) => Promise<AgentHookInstallResult>;
+  readonly agentHookInstaller?: (
+    root: string,
+    options: GateFlags,
+  ) => Promise<AgentHookInstallResult>;
   readonly agentHookUninstaller?: (root: string) => Promise<AgentHookUninstallResult>;
   readonly challengeBrief?: (
     root: string,
@@ -116,7 +119,11 @@ export interface CliDependencies {
     responsePath: string,
     now: Date,
   ) => Promise<ChallengeReportResult>;
-  readonly ciVerification?: (root: string, now: Date) => Promise<PullRequestVerificationResult>;
+  readonly ciVerification?: (
+    root: string,
+    now: Date,
+    options: GateFlags,
+  ) => Promise<PullRequestVerificationResult>;
   readonly ciWorkflowInstaller?: (root: string) => Promise<GitHubWorkflowInstallResult>;
   readonly cwd?: string;
   readonly doctorEnvironment?: DoctorEnvironment;
@@ -134,7 +141,36 @@ export interface CliDependencies {
   readonly now?: () => Date;
   readonly riskAssessment?: (root: string) => Promise<RiskAssessment>;
   readonly verificationPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
-  readonly verificationReport?: (root: string, now: Date) => Promise<VerificationReportResult>;
+  readonly verificationReport?: (
+    root: string,
+    now: Date,
+    options: GateFlags,
+  ) => Promise<VerificationReportResult>;
+}
+
+export interface GateFlags {
+  readonly base?: string;
+  readonly strict?: boolean;
+}
+
+/** Parse the shared gate flags, returning undefined for anything unrecognized. */
+function gateFlags(args: readonly string[]): GateFlags | undefined {
+  const flags: { base?: string; strict?: boolean } = {};
+  for (let index = 0; index < args.length; index += 1) {
+    const flag = args[index];
+    if (flag === "--strict") {
+      flags.strict = true;
+      continue;
+    }
+    const value = args[index + 1];
+    // Refs end up in a hook command line, so only plain ref characters are accepted.
+    if (flag !== "--base" || value === undefined || !/^[\w][\w./-]*$/u.test(value)) {
+      return undefined;
+    }
+    flags.base = value;
+    index += 1;
+  }
+  return flags;
 }
 
 const HELP = `${MARU_PRODUCT.name} — ${MARU_PRODUCT.positioning}
@@ -184,12 +220,12 @@ Planning commands:
   maru plan --diff
 
 Verification commands:
-  maru verify --diff
+  maru verify --diff [--base <ref>] [--strict]
 
 Agent gate commands:
-  maru hook install
+  maru hook install [--strict] [--base <ref>]
   maru hook uninstall
-  maru hook run
+  maru hook run [--strict] [--base <ref>]
 
 Hosted report commands:
   maru upload [--report <report.json>] [--url https://marucheck.dev]
@@ -742,13 +778,17 @@ export async function runCli(
     }
 
     if (command === "verify") {
-      if (args.length !== 2 || args[1] !== "--diff") {
-        output.error("Invalid verification command.\nRun maru verify --diff.");
+      const verifyOptions = args[1] === "--diff" ? gateFlags(args.slice(2)) : undefined;
+      if (verifyOptions === undefined) {
+        output.error(
+          "Invalid verification command.\nRun maru verify --diff [--base <ref>] [--strict].",
+        );
         return 1;
       }
       const result = await (dependencies.verificationReport ?? createAndWriteVerificationReport)(
         root,
         dependencies.now?.() ?? new Date(),
+        verifyOptions,
       );
       output.log(formatVerificationReport(result));
       return result.report.gate.status === "blocked" ? 1 : 0;
@@ -845,8 +885,13 @@ export async function runCli(
 
     if (command === "ci") {
       const action = args[1];
-      if (args.length !== 2 || (action !== "init" && action !== "verify")) {
-        output.error("Invalid CI command.\nRun maru ci init or maru ci verify.");
+      const ciOptions = action === "verify" ? gateFlags(args.slice(2)) : {};
+      if (
+        (action !== "init" && action !== "verify") ||
+        ciOptions === undefined ||
+        (action === "init" && args.length !== 2)
+      ) {
+        output.error("Invalid CI command.\nRun maru ci init or maru ci verify [--base <ref>] [--strict].");
         return 1;
       }
       if (action === "init") {
@@ -861,6 +906,7 @@ export async function runCli(
       const result = await (dependencies.ciVerification ?? runPullRequestVerification)(
         root,
         dependencies.now?.() ?? new Date(),
+        ciOptions,
       );
       output.log(
         [
@@ -875,18 +921,23 @@ export async function runCli(
 
     if (command === "hook") {
       const action = args[1];
+      const hookOptions = action === "uninstall" ? {} : gateFlags(args.slice(2));
       if (
-        args.length !== 2 ||
-        (action !== "install" && action !== "run" && action !== "uninstall")
+        (action !== "install" && action !== "run" && action !== "uninstall") ||
+        hookOptions === undefined ||
+        (action === "uninstall" && args.length !== 2)
       ) {
         output.error(
-          "Invalid agent gate command.\nRun maru hook install, maru hook uninstall, or maru hook run.",
+          "Invalid agent gate command.\nRun maru hook install [--strict] [--base <ref>], maru hook uninstall, or maru hook run [--strict] [--base <ref>].",
         );
         return 1;
       }
 
       if (action === "install") {
-        const result = await (dependencies.agentHookInstaller ?? installAgentHook)(root);
+        const result = await (dependencies.agentHookInstaller ?? installAgentHook)(
+          root,
+          hookOptions,
+        );
         output.log(
           result.created || result.updated
             ? [
@@ -914,7 +965,11 @@ export async function runCli(
       const decision = await (
         dependencies.agentGate ??
         ((projectRoot, hookInput, now) =>
-          runAgentGate(projectRoot, { input: parseAgentHookInput(hookInput), now }))
+          runAgentGate(projectRoot, {
+            input: parseAgentHookInput(hookInput),
+            now,
+            ...hookOptions,
+          }))
       )(root, raw, dependencies.now?.() ?? new Date());
 
       if (Object.keys(decision.payload).length > 0) {
@@ -941,6 +996,10 @@ export async function runCli(
     }
     if (error instanceof GitAnalysisError) {
       reportGitError(error, output);
+      return 1;
+    }
+    if (error instanceof GitBaseError) {
+      output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }
     if (error instanceof VerificationPlanError) {
