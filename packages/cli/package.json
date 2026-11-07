@@ -29,6 +29,7 @@
     "@maru/memory": "0.1.0",
     "@maru/mutation": "0.1.0",
     "@maru/planner": "0.1.0",
-    "@maru/risk": "0.1.0"
+    "@maru/risk": "0.1.0",
+    "@maru/seal": "0.1.0"
   }
 }

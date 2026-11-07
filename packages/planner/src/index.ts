@@ -228,26 +228,22 @@ function selectEveryApprovedRequirement(
     .flatMap((contract) => {
       const base = { blocking: true, contractId: contract.id, contractTitle: contract.title };
       return [
-        ...contract.requirements.map(
-          (item): SelectedRequirement => ({
-            ...base,
-            id: item.id,
-            kind: "requirement",
-            priority: item.priority,
-            reasons,
-            statement: item.statement,
-          }),
-        ),
-        ...contract.invariants.map(
-          (item): SelectedRequirement => ({
-            ...base,
-            id: item.id,
-            kind: "invariant",
-            priority: "invariant",
-            reasons,
-            statement: item.statement,
-          }),
-        ),
+        ...contract.requirements.map((item): SelectedRequirement => ({
+          ...base,
+          id: item.id,
+          kind: "requirement",
+          priority: item.priority,
+          reasons,
+          statement: item.statement,
+        })),
+        ...contract.invariants.map((item): SelectedRequirement => ({
+          ...base,
+          id: item.id,
+          kind: "invariant",
+          priority: "invariant",
+          reasons,
+          statement: item.statement,
+        })),
       ];
     })
     .sort(
@@ -263,15 +259,13 @@ function everyTest(
 ): AffectedTest[] {
   const requirementRefs = requirements.map(requirementRef);
   return project.tests.files
-    .map(
-      (test): AffectedTest => ({
-        framework: test.framework,
-        historicalMemoryIds: [],
-        matchedTerms: [],
-        path: test.path,
-        requirementRefs,
-      }),
-    )
+    .map((test): AffectedTest => ({
+      framework: test.framework,
+      historicalMemoryIds: [],
+      matchedTerms: [],
+      path: test.path,
+      requirementRefs,
+    }))
     .sort((left, right) => left.path.localeCompare(right.path));
 }
 

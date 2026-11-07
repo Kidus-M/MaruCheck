@@ -50,7 +50,10 @@ describe("swarm mode", () => {
         type: "module",
       }),
     );
-    await writeFile(join(root, ".gitignore"), "node_modules/\n.maru/generated/\n.maru/artifacts/\n");
+    await writeFile(
+      join(root, ".gitignore"),
+      "node_modules/\n.maru/generated/\n.maru/artifacts/\n",
+    );
     await writeFile(join(root, ".maru", "maru.yml"), "version: 1\n");
     draftContract = await readFile(
       join(repositoryRoot, "examples", "quota-app", "contracts", "usage-quota.yml"),

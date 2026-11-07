@@ -5,6 +5,7 @@ import {
   type AdapterExecutionResult,
   type VerificationResultStatus,
 } from "@maru/execution";
+import { verifySeal } from "@maru/seal";
 import {
   createAndWriteVerificationPlan,
   type SelectedRequirement,
@@ -421,6 +422,7 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
     ...(input.plan.strict === true && input.plan.selectedRequirements.length === 0
       ? ["Strict verification found no approved requirement to verify."]
       : []),
+    ...(input.sealIssues ?? []),
   ];
   return {
     artifacts,
@@ -508,11 +510,17 @@ export async function createAndWriteVerificationReport(
   const diagnostics = await Promise.all(
     executed.run.results.map((result) => readDiagnostic(root, result)),
   );
+  // The seal needs a trusted commit to anchor to, so it only applies to a base-range run.
+  const sealIssues =
+    options.strict === true && options.base !== undefined
+      ? await verifySeal(root, options.base)
+      : [];
   const report = buildVerificationReport({
     diagnostics,
     generatedAt: (options.now?.() ?? now).toISOString(),
     plan: planned.plan,
     run: executed.run,
+    sealIssues,
   });
   const path = await writeVerificationReport(root, report);
   return {

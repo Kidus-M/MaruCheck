@@ -15,6 +15,7 @@
   "dependencies": {
     "@maru/execution": "0.1.0",
     "@maru/planner": "0.1.0",
+    "@maru/seal": "0.1.0",
     "@maru/risk": "0.1.0"
   }
 }

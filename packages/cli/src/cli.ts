@@ -62,6 +62,7 @@ import {
   proposeContractAmendment,
 } from "@maru/drift";
 import { GitAnalysisError, GitBaseError } from "@maru/git";
+import { createSeal, generateSealKey, SealError, verifySeal } from "@maru/seal";
 import {
   MemoryError,
   createMemoryRecord,
@@ -221,6 +222,11 @@ Planning commands:
 
 Verification commands:
   maru verify --diff [--base <ref>] [--strict]
+
+Seal commands:
+  maru seal keygen --out <path-outside-project>
+  maru seal create --key <path> --by <accountable-owner>
+  maru seal verify --base <ref>
 
 Agent gate commands:
   maru hook install [--strict] [--base <ref>]
@@ -891,7 +897,9 @@ export async function runCli(
         ciOptions === undefined ||
         (action === "init" && args.length !== 2)
       ) {
-        output.error("Invalid CI command.\nRun maru ci init or maru ci verify [--base <ref>] [--strict].");
+        output.error(
+          "Invalid CI command.\nRun maru ci init or maru ci verify [--base <ref>] [--strict].",
+        );
         return 1;
       }
       if (action === "init") {
@@ -979,6 +987,37 @@ export async function runCli(
       return decision.exitCode;
     }
 
+    if (command === "seal") {
+      const action = args[1];
+      const key = option(args, "--key");
+      const signer = option(args, "--by");
+      const out = option(args, "--out");
+      const base = option(args, "--base");
+      if (action === "keygen" && out !== undefined) {
+        const path = await generateSealKey(root, out);
+        output.log(
+          `Seal key written: ${path}\nKeep it where agents cannot read it, and commit .maru/seal.pub.`,
+        );
+        return 0;
+      }
+      if (action === "create" && key !== undefined && signer !== undefined) {
+        const manifest = await createSeal(root, { keyPath: key, signer });
+        output.log(
+          `Seal ${String(manifest.sequence)} signed by ${manifest.signer}: ${String(Object.keys(manifest.files).length)} protected files.`,
+        );
+        return 0;
+      }
+      if (action === "verify" && base !== undefined) {
+        const issues = await verifySeal(root, base);
+        output.log(issues.length === 0 ? "Seal: OK" : ["Seal: BROKEN", ...issues].join("\n"));
+        return issues.length === 0 ? 0 : 1;
+      }
+      output.error(
+        "Invalid seal command.\nRun maru seal keygen --out <path>, maru seal create --key <path> --by <owner>, or maru seal verify --base <ref>.",
+      );
+      return 1;
+    }
+
     if (command === "mcp") {
       await (
         dependencies.mcpServer ?? (async (projectRoot) => runStdioMcpServer({ root: projectRoot }))
@@ -998,7 +1037,7 @@ export async function runCli(
       reportGitError(error, output);
       return 1;
     }
-    if (error instanceof GitBaseError) {
+    if (error instanceof GitBaseError || error instanceof SealError) {
       output.error(`${error.code}\n${error.message}\nFix: ${error.remediation}`);
       return 1;
     }

@@ -150,6 +150,8 @@ export interface BuildVerificationReportInput {
   readonly generatedAt: string;
   readonly plan: VerificationPlan;
   readonly run: VerificationRun;
+  /** Problems with the signed seal. Any issue blocks the gate. */
+  readonly sealIssues?: readonly string[];
 }
 
 export interface CreateVerificationReportOptions {
