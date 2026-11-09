@@ -202,6 +202,8 @@ describe("GitHub pull-request verification", () => {
     const verificationReport = vi.fn().mockResolvedValue(reportResult());
 
     const result = await runPullRequestVerification(root, new Date("2026-08-18T10:00:00Z"), {
+      // An explicit environment keeps the test independent of the runner's GITHUB_BASE_REF.
+      environment: {},
       githubStepSummaryPath: githubSummary,
       verificationReport,
     });
@@ -217,5 +219,20 @@ describe("GitHub pull-request verification", () => {
       "Invoice ownership verification failed",
     );
     await expect(readFile(githubSummary, "utf8")).resolves.toContain("BLOCKED");
+  });
+
+  it("verifies against the pull request's base branch when GitHub provides one", async () => {
+    const root = await project();
+    const verificationReport = vi.fn().mockResolvedValue(reportResult());
+
+    await runPullRequestVerification(root, new Date("2026-08-18T10:00:00Z"), {
+      environment: { GITHUB_BASE_REF: "main" },
+      githubStepSummaryPath: join(root, "github-step-summary.md"),
+      verificationReport,
+    });
+
+    expect(verificationReport).toHaveBeenCalledWith(root, expect.any(Date), {
+      base: "origin/main",
+    });
   });
 });
