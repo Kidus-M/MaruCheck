@@ -14,6 +14,29 @@ cannot edit. Local-first: no account, no model API key, and no code leaves your 
   <img src="docs/assets/demo.svg" alt="An AI change keeps the test suite green; maru verify --diff blocks it against the approved contract" width="760">
 </p>
 
+## Swarm mode (Swarm Alignment Hackathon, November 2026)
+
+This branch adds Swarm mode, a merge-gate check for teams of coding agents. It was written during the
+Swarm Alignment Hackathon (6 to 8 November 2026).
+
+- **Preexisting:** everything up to and including MaruCheck 0.6.1, commit `4d07f52`, tagged
+  `pre-sprint-baseline`.
+- **Sprint work:** the commits after that tag on this branch: `3a9839b` (cumulative and strict
+  verification), `18232ee` (signed seal as the trust anchor), `351cc17` and `2a77d51` (seal checks
+  before and after change code runs, and the error message).
+
+Swarm mode verifies the composed result since a trusted base rather than the latest diff, runs every
+blocking requirement on every change, fails closed, and refuses to run if a sealed contract, contract
+test or gate setting has changed. The seal is signed with an Ed25519 key held outside the repository.
+It is not yet released to npm. The study that measures it against distributed attacks is at
+[Kidus-M/marucheck-swarm-study](https://github.com/Kidus-M/marucheck-swarm-study).
+
+```sh
+maru seal keygen --out /path/outside/repo/seal.pem
+maru seal create --key /path/outside/repo/seal.pem --by contract-owner@example.com
+maru ci verify --base <trusted-ref> --strict
+```
+
 ## The failure this exists for
 
 An agent is asked to fix a bug report: _paying users are throttled right after upgrading._ It

@@ -17,6 +17,7 @@ export default defineConfig({
       "@maru/mcp-server": packageSource("mcp-server"),
       "@maru/planner": packageSource("planner"),
       "@maru/risk": packageSource("risk"),
+      "@maru/seal": packageSource("seal"),
       "@maru/shared": packageSource("shared"),
     },
   },

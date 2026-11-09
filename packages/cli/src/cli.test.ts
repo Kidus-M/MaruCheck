@@ -613,7 +613,7 @@ approval:
       }),
     ).resolves.toBe(1);
 
-    expect(verificationReport).toHaveBeenCalledWith(root, now);
+    expect(verificationReport).toHaveBeenCalledWith(root, now, {});
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Verification gate: BLOCKED"));
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("[CRITICAL] BLOCKING"));
     expect(output.log).toHaveBeenCalledWith(
@@ -898,7 +898,7 @@ approval:
       }),
     ).resolves.toBe(1);
 
-    expect(ciVerification).toHaveBeenCalledWith(root, expect.any(Date));
+    expect(ciVerification).toHaveBeenCalledWith(root, expect.any(Date), {});
     expect(output.log).toHaveBeenCalledWith(expect.stringContaining("ProofLayer: FAILURE"));
     expect(output.log).toHaveBeenCalledWith(
       expect.stringContaining("GitHub summary: .maru/generated/github-summary.md"),

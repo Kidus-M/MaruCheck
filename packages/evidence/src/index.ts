@@ -5,6 +5,7 @@ import {
   type AdapterExecutionResult,
   type VerificationResultStatus,
 } from "@maru/execution";
+import { SealBrokenError, verifySeal } from "@maru/seal";
 import {
   createAndWriteVerificationPlan,
   type SelectedRequirement,
@@ -176,8 +177,11 @@ function requirementRef(requirement: SelectedRequirement): string {
   return `${requirement.contractId}#${requirement.id}`;
 }
 
-function requirementStatus(evidence: readonly Evidence[]): RequirementEvidenceStatus {
-  if (evidence.length === 0) return "unverified";
+function requirementStatus(allEvidence: readonly Evidence[]): RequirementEvidenceStatus {
+  if (allEvidence.length === 0) return "unverified";
+  // A check that could not run says nothing when another check actually ran.
+  const ran = allEvidence.filter((item) => item.adapter !== "unavailable");
+  const evidence = ran.length > 0 ? ran : allEvidence;
   if (evidence.some((item) => item.status === "failed")) return "failed";
   if (evidence.some((item) => item.status === "inconclusive")) return "inconclusive";
   return "passed";
@@ -415,6 +419,10 @@ export function buildVerificationReport(input: BuildVerificationReportInput): Ve
     ...(reportSummary.blockingFindings > 0
       ? [`${reportSummary.blockingFindings} blocking finding(s) remain open.`]
       : []),
+    ...(input.plan.strict === true && input.plan.selectedRequirements.length === 0
+      ? ["Strict verification found no approved requirement to verify."]
+      : []),
+    ...(input.sealIssues ?? []),
   ];
   return {
     artifacts,
@@ -483,7 +491,21 @@ export async function createAndWriteVerificationReport(
   now = new Date(),
   options: CreateVerificationReportOptions = {},
 ): Promise<VerificationReportResult> {
-  const planned = await (options.createPlan ?? createAndWriteVerificationPlan)(root, now);
+  // The seal needs a trusted commit to anchor to, so it only applies to a base-range run.
+  const sealBase = options.strict === true ? options.base : undefined;
+  if (sealBase !== undefined) {
+    // Never execute code from a change whose protected files have been altered.
+    const issues = await verifySeal(root, sealBase);
+    if (issues.length > 0) throw new SealBrokenError(issues);
+  }
+  const planned = await (
+    options.createPlan ??
+    ((planRoot: string, planNow: Date) =>
+      createAndWriteVerificationPlan(planRoot, planNow, {
+        ...(options.base === undefined ? {} : { base: options.base }),
+        ...(options.strict === undefined ? {} : { strict: options.strict }),
+      }))
+  )(root, now);
   const runOptions = {
     ...(options.commandRunner === undefined ? {} : { commandRunner: options.commandRunner }),
     now: options.now ?? (() => now),
@@ -495,11 +517,15 @@ export async function createAndWriteVerificationReport(
   const diagnostics = await Promise.all(
     executed.run.results.map((result) => readDiagnostic(root, result)),
   );
+  // Tests execute code from the change, which could restore tampered files once it has
+  // run. Checking again here catches that, and any other change made during the run.
+  const sealIssues = sealBase === undefined ? [] : await verifySeal(root, sealBase);
   const report = buildVerificationReport({
     diagnostics,
     generatedAt: (options.now?.() ?? now).toISOString(),
     plan: planned.plan,
     run: executed.run,
+    sealIssues,
   });
   const path = await writeVerificationReport(root, report);
   return {

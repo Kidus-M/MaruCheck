@@ -150,12 +150,18 @@ export interface BuildVerificationReportInput {
   readonly generatedAt: string;
   readonly plan: VerificationPlan;
   readonly run: VerificationRun;
+  /** Problems with the signed seal. Any issue blocks the gate. */
+  readonly sealIssues?: readonly string[];
 }
 
 export interface CreateVerificationReportOptions {
+  /** Verify everything since this ref, including commits, rather than the working tree. */
+  readonly base?: string;
   readonly commandRunner?: CommandRunner;
   readonly createPlan?: (root: string, now: Date) => Promise<VerificationPlanResult>;
   readonly now?: () => Date;
+  /** Sweep every approved requirement instead of selecting by diff terms. */
+  readonly strict?: boolean;
   readonly runPlan?: (
     root: string,
     plan: VerificationPlan,

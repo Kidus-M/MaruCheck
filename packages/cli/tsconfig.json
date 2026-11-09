@@ -10,6 +10,7 @@
   "exclude": ["src/**/*.test.ts"],
   "references": [
     { "path": "../agent" },
+    { "path": "../seal" },
     { "path": "../challenger" },
     { "path": "../ci" },
     { "path": "../contracts" },
